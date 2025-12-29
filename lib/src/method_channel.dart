@@ -8,6 +8,18 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
 
   final Map<int, MethodChannel> _channels = <int, MethodChannel>{};
 
+  /// 导航相关通道
+  final MethodChannel _naviChannel = const MethodChannel(
+    "plugins.flutter.dev/amap_navi",
+  );
+
+  final EventChannel _naviEventChannel = const EventChannel(
+    "plugins.flutter.dev/amap_navi_events",
+  );
+
+  StreamSubscription<dynamic>? _naviEventSubscription;
+  bool _naviEventChannelInitialized = false;
+
   /// Accesses the MethodChannel associated to the passed mapId.
   MethodChannel _channel(int mapId) {
     final MethodChannel? channel = _channels[mapId];
@@ -456,7 +468,15 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   @override
   Future<Location> getUserLocation({required int mapId}) async {
     final result = await _channel(mapId).invokeMethod<Location>("getUserLocation");
-    if (result == null) throw "Failed to get user location";
+    if (result == null) {
+      throw StateError(
+        "Failed to get user location. "
+        "This usually means the native map SDK has not produced a location fix yet, "
+        "or location permission was not granted, "
+        "or user location display is disabled (showUserLocation/isMyLocationEnabled). "
+        "Wait for onUserLocationChange callback/event, and ensure runtime location permission is granted.",
+      );
+    }
     return result;
   }
 
@@ -480,10 +500,155 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
 
   /// 销毁
   @override
-  Future<void> destroy({required int mapId}) {
-    if (_channels.containsKey(mapId)) {
-      _channels.remove(mapId);
+  Future<void> destroy({required int mapId}) async {
+    final MethodChannel? channel = _channels.remove(mapId);
+    if (channel == null) {
+      // If already disposed (or never initialized), treat as no-op.
+      return;
     }
-    return _channel(mapId).invokeMethod("destroy");
+    await channel.invokeMethod("destroy");
+  }
+
+  // ==================== 导航相关方法实现 ====================
+
+  /// 初始化导航事件监听
+  void _initNaviEventChannel() {
+    if (_naviEventChannelInitialized) return;
+    _naviEventChannelInitialized = true;
+
+    _naviEventSubscription = _naviEventChannel
+        .receiveBroadcastStream()
+        .listen(_handleNaviEvent);
+  }
+
+  /// 处理导航事件
+  void _handleNaviEvent(dynamic event) {
+    if (event is! Map) return;
+    final Map<String, dynamic> data = Map<String, dynamic>.from(event);
+    final String? type = data['type'] as String?;
+
+    switch (type) {
+      case 'navInfo':
+        naviEventStreamController.add(
+          NaviInfoUpdateEvent(NaviInfo.decodeFromMap(data)),
+        );
+        break;
+
+      case 'initSuccess':
+        naviEventStreamController.add(NaviInitSuccessEvent());
+        break;
+
+      case 'initFailure':
+        naviEventStreamController.add(
+          NaviInitFailureEvent(data['message'] as String? ?? ''),
+        );
+        break;
+
+      case 'locationChange':
+        naviEventStreamController.add(
+          NaviLocationChangeEvent(NaviLocation.decodeFromMap(data)),
+        );
+        break;
+
+      case 'navigationText':
+        naviEventStreamController.add(
+          NaviTextEvent(data['text'] as String? ?? ''),
+        );
+        break;
+
+      case 'arriveDestination':
+        naviEventStreamController.add(NaviArriveDestinationEvent());
+        break;
+
+      case 'startNavi':
+        naviEventStreamController.add(
+          NaviStartEvent(data['naviType'] as int? ?? 0),
+        );
+        break;
+
+      case 'calculateRouteSuccess':
+        final routeIds = (data['routeIds'] as List?)
+            ?.map((e) => e as int)
+            .toList() ?? [];
+        naviEventStreamController.add(
+          NaviRouteCalculateSuccessEvent(routeIds),
+        );
+        break;
+
+      case 'calculateRouteFailure':
+        naviEventStreamController.add(
+          NaviRouteCalculateFailureEvent(data['errorCode'] as int? ?? -1),
+        );
+        break;
+
+      case 'reCalculateRouteForYaw':
+        naviEventStreamController.add(NaviReCalculateRouteForYawEvent());
+        break;
+
+      case 'reCalculateRouteForTrafficJam':
+        naviEventStreamController.add(NaviReCalculateRouteForTrafficJamEvent());
+        break;
+
+      case 'arrivedWayPoint':
+        naviEventStreamController.add(
+          NaviArrivedWayPointEvent(data['wayPointIndex'] as int? ?? 0),
+        );
+        break;
+
+      case 'gpsSignalWeak':
+        naviEventStreamController.add(
+          NaviGpsSignalEvent(data['isWeak'] as bool? ?? false),
+        );
+        break;
+
+      case 'trafficStatusUpdate':
+        naviEventStreamController.add(NaviTrafficStatusUpdateEvent());
+        break;
+
+      case 'endEmulatorNavi':
+        naviEventStreamController.add(NaviEndEmulatorEvent());
+        break;
+
+      case 'exitPage':
+        naviEventStreamController.add(
+          NaviExitEvent(data['exitCode'] as int? ?? 0),
+        );
+        break;
+    }
+  }
+
+  /// 启动导航
+  @override
+  Future<void> startNavigation(NaviConfig config) async {
+    _initNaviEventChannel();
+    await _naviChannel.invokeMethod(
+      'startNavigation',
+      <String, dynamic>{
+        'carNumber': config.carNumber,
+        'motorcycleCC': config.motorcycleCC,
+        'naviType': config.naviType.index,
+        'pageType': config.pageType.index,
+        'startLat': config.start?.position.latitude,
+        'startLng': config.start?.position.longitude,
+        'startName': config.start?.name,
+        'endLat': config.end?.position.latitude,
+        'endLng': config.end?.position.longitude,
+        'endName': config.end?.name,
+        'wayPoints': config.wayPoints?.map((e) => <String, dynamic>{
+          'lat': e.position.latitude,
+          'lng': e.position.longitude,
+          'name': e.name,
+        }).toList(),
+      },
+    );
+  }
+
+  /// 停止导航
+  @override
+  Future<void> stopNavigation() async {
+    await _naviChannel.invokeMethod('stopNavigation');
+    _naviEventSubscription?.cancel();
+    _naviEventSubscription = null;
+    _naviEventChannelInitialized = false;
   }
 }

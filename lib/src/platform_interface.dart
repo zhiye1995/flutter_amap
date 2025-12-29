@@ -272,4 +272,87 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   Future<void> destroy({required int mapId}) {
     throw UnimplementedError('destroy() has not been implemented.');
   }
+
+  // ==================== 导航相关接口 ====================
+
+  /// 导航事件流控制器
+  final StreamController<NaviEvent<Object?>> naviEventStreamController =
+      StreamController<NaviEvent<Object?>>.broadcast();
+
+  /// 获取导航事件流
+  Stream<NaviEvent<Object?>> get naviEventStream => naviEventStreamController.stream;
+
+  /// 导航初始化成功事件流
+  Stream<NaviInitSuccessEvent> get onNaviInitSuccess =>
+      naviEventStream.whereType<NaviInitSuccessEvent>();
+
+  /// 导航初始化失败事件流
+  Stream<NaviInitFailureEvent> get onNaviInitFailure =>
+      naviEventStream.whereType<NaviInitFailureEvent>();
+
+  /// 导航引导信息更新事件流
+  Stream<NaviInfoUpdateEvent> get onNaviInfoUpdate =>
+      naviEventStream.whereType<NaviInfoUpdateEvent>();
+
+  /// 导航定位变化事件流
+  Stream<NaviLocationChangeEvent> get onNaviLocationChange =>
+      naviEventStream.whereType<NaviLocationChangeEvent>();
+
+  /// 导航语音播报事件流
+  Stream<NaviTextEvent> get onNaviText =>
+      naviEventStream.whereType<NaviTextEvent>();
+
+  /// 到达目的地事件流
+  Stream<NaviArriveDestinationEvent> get onNaviArriveDestination =>
+      naviEventStream.whereType<NaviArriveDestinationEvent>();
+
+  /// 导航开始事件流
+  Stream<NaviStartEvent> get onNaviStart =>
+      naviEventStream.whereType<NaviStartEvent>();
+
+  /// 路线计算成功事件流
+  Stream<NaviRouteCalculateSuccessEvent> get onNaviRouteCalculateSuccess =>
+      naviEventStream.whereType<NaviRouteCalculateSuccessEvent>();
+
+  /// 路线计算失败事件流
+  Stream<NaviRouteCalculateFailureEvent> get onNaviRouteCalculateFailure =>
+      naviEventStream.whereType<NaviRouteCalculateFailureEvent>();
+
+  /// 偏航重新计算路线事件流
+  Stream<NaviReCalculateRouteForYawEvent> get onNaviReCalculateRouteForYaw =>
+      naviEventStream.whereType<NaviReCalculateRouteForYawEvent>();
+
+  /// 拥堵重新计算路线事件流
+  Stream<NaviReCalculateRouteForTrafficJamEvent> get onNaviReCalculateRouteForTrafficJam =>
+      naviEventStream.whereType<NaviReCalculateRouteForTrafficJamEvent>();
+
+  /// 到达途经点事件流
+  Stream<NaviArrivedWayPointEvent> get onNaviArrivedWayPoint =>
+      naviEventStream.whereType<NaviArrivedWayPointEvent>();
+
+  /// GPS信号状态变化事件流
+  Stream<NaviGpsSignalEvent> get onNaviGpsSignal =>
+      naviEventStream.whereType<NaviGpsSignalEvent>();
+
+  /// 交通状态更新事件流
+  Stream<NaviTrafficStatusUpdateEvent> get onNaviTrafficStatusUpdate =>
+      naviEventStream.whereType<NaviTrafficStatusUpdateEvent>();
+
+  /// 模拟导航结束事件流
+  Stream<NaviEndEmulatorEvent> get onNaviEndEmulator =>
+      naviEventStream.whereType<NaviEndEmulatorEvent>();
+
+  /// 退出导航页面事件流
+  Stream<NaviExitEvent> get onNaviExit =>
+      naviEventStream.whereType<NaviExitEvent>();
+
+  /// 启动导航
+  Future<void> startNavigation(NaviConfig config) {
+    throw UnimplementedError('startNavigation() has not been implemented.');
+  }
+
+  /// 停止导航
+  Future<void> stopNavigation() {
+    throw UnimplementedError('stopNavigation() has not been implemented.');
+  }
 }

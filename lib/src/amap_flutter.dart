@@ -607,3 +607,110 @@ class AMapFlutterState extends State<AMapFlutter> {
     });
   }
 }
+
+/// 高德导航 API
+///
+/// 使用导航组件模式启动高德导航页面，支持驾车、步行、骑行导航。
+/// 通过事件流获取导航过程中的各种回调信息。
+///
+/// 使用示例:
+/// ```dart
+/// // 启动导航
+/// await AMapNavi.startNavigation(
+///   config: NaviConfig(
+///     naviType: NaviType.driver,
+///     end: NaviPoint(
+///       position: Position(latitude: 39.908, longitude: 116.397),
+///       name: "天安门",
+///     ),
+///   ),
+/// );
+///
+/// // 监听导航信息
+/// AMapNavi.onNaviInfoUpdate.listen((event) {
+///   print("剩余距离: ${event.naviInfo.pathRetainDistance}");
+/// });
+/// ```
+class AMapNavi {
+  AMapNavi._();
+
+  /// 启动导航
+  ///
+  /// [config] 导航配置，包括起终点、导航类型等
+  static Future<void> startNavigation({required NaviConfig config}) {
+    return AMapFlutterPlatformInterface.instance.startNavigation(config);
+  }
+
+  /// 停止导航
+  static Future<void> stopNavigation() {
+    return AMapFlutterPlatformInterface.instance.stopNavigation();
+  }
+
+  /// 导航初始化成功事件流
+  static Stream<NaviInitSuccessEvent> get onNaviInitSuccess =>
+      AMapFlutterPlatformInterface.instance.onNaviInitSuccess;
+
+  /// 导航初始化失败事件流
+  static Stream<NaviInitFailureEvent> get onNaviInitFailure =>
+      AMapFlutterPlatformInterface.instance.onNaviInitFailure;
+
+  /// 导航引导信息更新事件流
+  ///
+  /// 包含转向图标类型、剩余距离、下一路名、剩余时间等信息
+  static Stream<NaviInfoUpdateEvent> get onNaviInfoUpdate =>
+      AMapFlutterPlatformInterface.instance.onNaviInfoUpdate;
+
+  /// 导航定位变化事件流
+  static Stream<NaviLocationChangeEvent> get onNaviLocationChange =>
+      AMapFlutterPlatformInterface.instance.onNaviLocationChange;
+
+  /// 导航语音播报事件流
+  ///
+  /// 可用于自定义语音播报
+  static Stream<NaviTextEvent> get onNaviText =>
+      AMapFlutterPlatformInterface.instance.onNaviText;
+
+  /// 到达目的地事件流
+  static Stream<NaviArriveDestinationEvent> get onNaviArriveDestination =>
+      AMapFlutterPlatformInterface.instance.onNaviArriveDestination;
+
+  /// 导航开始事件流
+  static Stream<NaviStartEvent> get onNaviStart =>
+      AMapFlutterPlatformInterface.instance.onNaviStart;
+
+  /// 路线计算成功事件流
+  static Stream<NaviRouteCalculateSuccessEvent> get onNaviRouteCalculateSuccess =>
+      AMapFlutterPlatformInterface.instance.onNaviRouteCalculateSuccess;
+
+  /// 路线计算失败事件流
+  static Stream<NaviRouteCalculateFailureEvent> get onNaviRouteCalculateFailure =>
+      AMapFlutterPlatformInterface.instance.onNaviRouteCalculateFailure;
+
+  /// 偏航重新计算路线事件流
+  static Stream<NaviReCalculateRouteForYawEvent> get onNaviReCalculateRouteForYaw =>
+      AMapFlutterPlatformInterface.instance.onNaviReCalculateRouteForYaw;
+
+  /// 拥堵重新计算路线事件流
+  static Stream<NaviReCalculateRouteForTrafficJamEvent> get onNaviReCalculateRouteForTrafficJam =>
+      AMapFlutterPlatformInterface.instance.onNaviReCalculateRouteForTrafficJam;
+
+  /// 到达途经点事件流
+  static Stream<NaviArrivedWayPointEvent> get onNaviArrivedWayPoint =>
+      AMapFlutterPlatformInterface.instance.onNaviArrivedWayPoint;
+
+  /// GPS信号状态变化事件流
+  static Stream<NaviGpsSignalEvent> get onNaviGpsSignal =>
+      AMapFlutterPlatformInterface.instance.onNaviGpsSignal;
+
+  /// 交通状态更新事件流
+  static Stream<NaviTrafficStatusUpdateEvent> get onNaviTrafficStatusUpdate =>
+      AMapFlutterPlatformInterface.instance.onNaviTrafficStatusUpdate;
+
+  /// 模拟导航结束事件流
+  static Stream<NaviEndEmulatorEvent> get onNaviEndEmulator =>
+      AMapFlutterPlatformInterface.instance.onNaviEndEmulator;
+
+  /// 退出导航页面事件流
+  static Stream<NaviExitEvent> get onNaviExit =>
+      AMapFlutterPlatformInterface.instance.onNaviExit;
+}

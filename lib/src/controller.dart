@@ -267,6 +267,17 @@ class AMapController {
     return AMapFlutterPlatformInterface.instance.getUserLocation(mapId: mapId);
   }
 
+  /// 等待首次定位结果（推荐：避免在尚未产生定位回调前调用 [getUserLocation] 返回空）
+  Future<Location> waitForUserLocation({
+    Duration timeout = const Duration(seconds: 10),
+  }) {
+    return AMapFlutterPlatformInterface.instance
+        .onUserLocationChange(mapId: mapId)
+        .map((e) => e.value)
+        .first
+        .timeout(timeout);
+  }
+
   /// 开始地图渲染
   Future<void> start() {
     return AMapFlutterPlatformInterface.instance.start(mapId: mapId);

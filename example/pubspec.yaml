@@ -4,6 +4,10 @@ description: Demonstrates how to use the amap_flutter plugin.
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
+# 修改app名称   rename setAppName --targets ios,android --value  "leafwink"
+# 获取app名称   rename getAppName --targets ios,android
+# 修改app包名   rename setBundleId --targets ios,android --value "com.mengxun.amap_flutter_example"
+# 获取app包名   rename getBundleId --targets ios,android
 environment:
   sdk: '>=3.0.0 <4.0.0'
 

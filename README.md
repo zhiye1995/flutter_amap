@@ -62,3 +62,11 @@ class _DemoState extends State<Demo> {
 ```
 
 See the `example` directory for a complete sample app.
+
+### User location (定位) notes
+
+`getUserLocation()` returns the **current location cached by the native map SDK** (`myLocation/userLocation`). It may be `null` before the first location fix is produced, or when location permission is not granted, or when user location display is disabled.
+
+- **Android**: you must request runtime location permission (e.g. `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`). The example app uses `permission_handler` to request it.
+- **iOS**: you must set `NSLocationWhenInUseUsageDescription` (and/or Always) in `Info.plist` and request permission at runtime.
+- **Recommended**: listen to `onUserLocationChange` and/or call `AMapController.waitForUserLocation()` before calling `getUserLocation()`.

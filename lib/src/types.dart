@@ -1214,3 +1214,293 @@ class UserLocationStyle {
     );
   }
 }
+
+// ==================== 导航相关类型 ====================
+
+/// 导航类型
+enum NaviType {
+  /// 驾车导航
+  driver,
+
+  /// 步行导航
+  walk,
+
+  /// 骑行导航
+  ride,
+}
+
+/// 导航页面类型
+enum NaviPageType {
+  /// 路线规划页面
+  route,
+
+  /// 导航页面
+  navi,
+}
+
+/// 导航途经点/终点
+class NaviPoint {
+  NaviPoint({
+    required this.position,
+    this.name,
+  });
+
+  /// 坐标位置
+  final Position position;
+
+  /// 地点名称
+  final String? name;
+
+  Object encode() {
+    return <Object?>[
+      position.encode(),
+      name,
+    ];
+  }
+
+  static NaviPoint decode(List<Object?> result) {
+    return NaviPoint(
+      position: Position.decode(result[0]! as List<Object?>),
+      name: result[1] as String?,
+    );
+  }
+
+  NaviPoint copyWith({
+    Position? position,
+    String? name,
+  }) {
+    return NaviPoint(
+      position: position ?? this.position,
+      name: name ?? this.name,
+    );
+  }
+}
+
+/// 导航配置
+class NaviConfig {
+  NaviConfig({
+    this.carNumber,
+    this.motorcycleCC,
+    this.naviType = NaviType.driver,
+    this.pageType = NaviPageType.route,
+    this.start,
+    this.end,
+    this.wayPoints,
+  });
+
+  /// 车牌号（用于限行规避）
+  final String? carNumber;
+
+  /// 摩托车排量（cc）
+  final int? motorcycleCC;
+
+  /// 导航类型
+  final NaviType naviType;
+
+  /// 导航页面类型
+  final NaviPageType pageType;
+
+  /// 起点（不传则默认为当前位置）
+  final NaviPoint? start;
+
+  /// 终点（不传则显示路线规划页让用户选择）
+  final NaviPoint? end;
+
+  /// 途经点列表
+  final List<NaviPoint>? wayPoints;
+
+  Object encode() {
+    return <Object?>[
+      carNumber,
+      motorcycleCC,
+      naviType.index,
+      pageType.index,
+      start?.encode(),
+      end?.encode(),
+      wayPoints?.map((e) => e.encode()).toList(),
+    ];
+  }
+
+  static NaviConfig decode(List<Object?> result) {
+    return NaviConfig(
+      carNumber: result[0] as String?,
+      motorcycleCC: result[1] as int?,
+      naviType: NaviType.values[result[2] as int],
+      pageType: NaviPageType.values[result[3] as int],
+      start: result[4] != null ? NaviPoint.decode(result[4]! as List<Object?>) : null,
+      end: result[5] != null ? NaviPoint.decode(result[5]! as List<Object?>) : null,
+      wayPoints: result[6] != null
+          ? (result[6] as List).map((e) => NaviPoint.decode(e as List<Object?>)).toList()
+          : null,
+    );
+  }
+
+  NaviConfig copyWith({
+    String? carNumber,
+    int? motorcycleCC,
+    NaviType? naviType,
+    NaviPageType? pageType,
+    NaviPoint? start,
+    NaviPoint? end,
+    List<NaviPoint>? wayPoints,
+  }) {
+    return NaviConfig(
+      carNumber: carNumber ?? this.carNumber,
+      motorcycleCC: motorcycleCC ?? this.motorcycleCC,
+      naviType: naviType ?? this.naviType,
+      pageType: pageType ?? this.pageType,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      wayPoints: wayPoints ?? this.wayPoints,
+    );
+  }
+}
+
+/// 导航引导信息
+class NaviInfo {
+  NaviInfo({
+    required this.iconType,
+    required this.curStepRetainDistance,
+    required this.nextRoadName,
+    required this.pathRetainDistance,
+    required this.pathRetainTime,
+    this.iconData,
+  });
+
+  /// 转向图标类型
+  final int iconType;
+
+  /// 当前路段剩余距离（米）
+  final int curStepRetainDistance;
+
+  /// 下一路段名称
+  final String nextRoadName;
+
+  /// 整体路径剩余距离（米）
+  final int pathRetainDistance;
+
+  /// 整体路径剩余时间（秒）
+  final int pathRetainTime;
+
+  /// 转向图标数据（Base64压缩）
+  final String? iconData;
+
+  Object encode() {
+    return <Object?>[
+      iconType,
+      curStepRetainDistance,
+      nextRoadName,
+      pathRetainDistance,
+      pathRetainTime,
+      iconData,
+    ];
+  }
+
+  static NaviInfo decode(List<Object?> result) {
+    return NaviInfo(
+      iconType: result[0]! as int,
+      curStepRetainDistance: result[1]! as int,
+      nextRoadName: result[2]! as String,
+      pathRetainDistance: result[3]! as int,
+      pathRetainTime: result[4]! as int,
+      iconData: result[5] as String?,
+    );
+  }
+
+  /// 从 Map 解码（用于 EventChannel）
+  static NaviInfo decodeFromMap(Map<String, dynamic> map) {
+    return NaviInfo(
+      iconType: map['iconType'] as int? ?? 0,
+      curStepRetainDistance: map['curStepRetainDistance'] as int? ?? 0,
+      nextRoadName: map['nextRoadName'] as String? ?? '',
+      pathRetainDistance: map['pathRetainDistance'] as int? ?? 0,
+      pathRetainTime: map['pathRetainTime'] as int? ?? 0,
+      iconData: map['iconData'] as String?,
+    );
+  }
+
+  NaviInfo copyWith({
+    int? iconType,
+    int? curStepRetainDistance,
+    String? nextRoadName,
+    int? pathRetainDistance,
+    int? pathRetainTime,
+    String? iconData,
+  }) {
+    return NaviInfo(
+      iconType: iconType ?? this.iconType,
+      curStepRetainDistance: curStepRetainDistance ?? this.curStepRetainDistance,
+      nextRoadName: nextRoadName ?? this.nextRoadName,
+      pathRetainDistance: pathRetainDistance ?? this.pathRetainDistance,
+      pathRetainTime: pathRetainTime ?? this.pathRetainTime,
+      iconData: iconData ?? this.iconData,
+    );
+  }
+}
+
+/// 导航定位信息
+class NaviLocation {
+  NaviLocation({
+    required this.position,
+    this.bearing,
+    this.speed,
+    this.accuracy,
+  });
+
+  /// 坐标位置
+  final Position position;
+
+  /// 方向角度
+  final double? bearing;
+
+  /// 速度（米/秒）
+  final double? speed;
+
+  /// 定位精度
+  final double? accuracy;
+
+  Object encode() {
+    return <Object?>[
+      position.encode(),
+      bearing,
+      speed,
+      accuracy,
+    ];
+  }
+
+  static NaviLocation decode(List<Object?> result) {
+    return NaviLocation(
+      position: Position.decode(result[0]! as List<Object?>),
+      bearing: result[1] as double?,
+      speed: result[2] as double?,
+      accuracy: result[3] as double?,
+    );
+  }
+
+  /// 从 Map 解码（用于 EventChannel）
+  static NaviLocation decodeFromMap(Map<String, dynamic> map) {
+    return NaviLocation(
+      position: Position(
+        latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+      ),
+      bearing: (map['bearing'] as num?)?.toDouble(),
+      speed: (map['speed'] as num?)?.toDouble(),
+      accuracy: (map['accuracy'] as num?)?.toDouble(),
+    );
+  }
+
+  NaviLocation copyWith({
+    Position? position,
+    double? bearing,
+    double? speed,
+    double? accuracy,
+  }) {
+    return NaviLocation(
+      position: position ?? this.position,
+      bearing: bearing ?? this.bearing,
+      speed: speed ?? this.speed,
+      accuracy: accuracy ?? this.accuracy,
+    );
+  }
+}

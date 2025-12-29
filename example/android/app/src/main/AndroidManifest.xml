@@ -1,5 +1,5 @@
-<manifest xmlns:tools="http://schemas.android.com/tools"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <!--如果设置了target >= 28 如果需要启动后台定位则必须声明这个权限-->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <!--如果您的应用需要后台定位权限，且有可能运行在Android Q设备上,并且设置了target>28，必须增加这个权限声明-->
@@ -26,15 +26,26 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
     <!-- 可以提高室内定位的精确度 -->
     <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <!--用于导航状态中保持屏幕常亮-->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!--用于蓝牙扫描-->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation"/>
+    <!--用于蓝牙连接-->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!--用于蓝牙广播-->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
+    <!--允许获取wifi状态改变，用于网络定位-->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+
     <application
         android:label="amap_flutter_example"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true" tools:targetApi="tiramisu">
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -58,5 +69,27 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <service android:name="com.amap.api.location.APSService"></service>
+        
+        <!-- 高德导航路线规划页面 -->
+        <activity
+            android:name="com.amap.api.navi.AmapRouteActivity"
+            android:theme="@android:style/Theme.NoTitleBar"
+            android:configChanges="orientation|keyboardHidden|screenSize|navigation"/>
+        <meta-data
+                android:name="com.amap.api.v2.apikey"
+                android:value="fddb0c469571c9686915aade4e2a7a18"/>
+
+
     </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
 </manifest>

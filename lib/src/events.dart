@@ -208,3 +208,123 @@ class UserLocationChangeEvent extends MapEvent<Location> {
 class UserLocationClickEvent extends _PositionedMapEvent<void> {
   UserLocationClickEvent(int mapId, Position position) : super(mapId, position, null);
 }
+
+// ==================== 导航相关事件 ====================
+
+/// 导航事件基类
+abstract class NaviEvent<T> {
+  NaviEvent(this.value);
+
+  /// 事件携带的值
+  final T value;
+}
+
+/// 导航初始化成功事件
+class NaviInitSuccessEvent extends NaviEvent<void> {
+  NaviInitSuccessEvent() : super(null);
+}
+
+/// 导航初始化失败事件
+class NaviInitFailureEvent extends NaviEvent<String> {
+  NaviInitFailureEvent(String message) : super(message);
+
+  /// 失败信息
+  String get message => value;
+}
+
+/// 导航引导信息更新事件
+class NaviInfoUpdateEvent extends NaviEvent<NaviInfo> {
+  NaviInfoUpdateEvent(NaviInfo naviInfo) : super(naviInfo);
+
+  /// 导航引导信息
+  NaviInfo get naviInfo => value;
+}
+
+/// 导航定位变化事件
+class NaviLocationChangeEvent extends NaviEvent<NaviLocation> {
+  NaviLocationChangeEvent(NaviLocation location) : super(location);
+
+  /// 导航定位信息
+  NaviLocation get location => value;
+}
+
+/// 导航语音播报事件
+class NaviTextEvent extends NaviEvent<String> {
+  NaviTextEvent(String text) : super(text);
+
+  /// 语音播报文本
+  String get text => value;
+}
+
+/// 到达目的地事件
+class NaviArriveDestinationEvent extends NaviEvent<void> {
+  NaviArriveDestinationEvent() : super(null);
+}
+
+/// 导航开始事件
+class NaviStartEvent extends NaviEvent<int> {
+  NaviStartEvent(int type) : super(type);
+
+  /// 导航类型
+  int get type => value;
+}
+
+/// 路线计算成功事件
+class NaviRouteCalculateSuccessEvent extends NaviEvent<List<int>> {
+  NaviRouteCalculateSuccessEvent(List<int> routeIds) : super(routeIds);
+
+  /// 路线ID列表
+  List<int> get routeIds => value;
+}
+
+/// 路线计算失败事件
+class NaviRouteCalculateFailureEvent extends NaviEvent<int> {
+  NaviRouteCalculateFailureEvent(int errorCode) : super(errorCode);
+
+  /// 错误码
+  int get errorCode => value;
+}
+
+/// 偏航重新计算路线事件
+class NaviReCalculateRouteForYawEvent extends NaviEvent<void> {
+  NaviReCalculateRouteForYawEvent() : super(null);
+}
+
+/// 拥堵重新计算路线事件
+class NaviReCalculateRouteForTrafficJamEvent extends NaviEvent<void> {
+  NaviReCalculateRouteForTrafficJamEvent() : super(null);
+}
+
+/// 到达途经点事件
+class NaviArrivedWayPointEvent extends NaviEvent<int> {
+  NaviArrivedWayPointEvent(int wayPointIndex) : super(wayPointIndex);
+
+  /// 途经点索引
+  int get wayPointIndex => value;
+}
+
+/// GPS信号状态变化事件
+class NaviGpsSignalEvent extends NaviEvent<bool> {
+  NaviGpsSignalEvent(bool isWeak) : super(isWeak);
+
+  /// 是否信号弱
+  bool get isWeak => value;
+}
+
+/// 交通状态更新事件
+class NaviTrafficStatusUpdateEvent extends NaviEvent<void> {
+  NaviTrafficStatusUpdateEvent() : super(null);
+}
+
+/// 模拟导航结束事件
+class NaviEndEmulatorEvent extends NaviEvent<void> {
+  NaviEndEmulatorEvent() : super(null);
+}
+
+/// 退出导航页面事件
+class NaviExitEvent extends NaviEvent<int> {
+  NaviExitEvent(int exitCode) : super(exitCode);
+
+  /// 退出码
+  int get exitCode => value;
+}

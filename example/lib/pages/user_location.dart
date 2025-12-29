@@ -14,7 +14,8 @@ class UserLocationPage extends StatefulWidget {
 }
 
 class _UserLocationPageState extends State<UserLocationPage> {
-  late AMapController controller;
+  AMapController? controller;
+  Location? _lastLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +24,33 @@ class _UserLocationPageState extends State<UserLocationPage> {
         title: const Text(UserLocationPage.title),
         actions: [
           TextButton(
-            onPressed: () async {
-              Location location = await controller.getUserLocation();
-              controller.moveCamera(
-                CameraPosition(
-                  position: location.position,
-                  heading: location.heading,
-                  zoom: 13,
-                ),
-              );
-            },
+            onPressed: controller == null
+                ? null
+                : () async {
+                    try {
+                      final Location location = _lastLocation ??
+                          await controller!.waitForUserLocation(
+                            timeout: const Duration(seconds: 10),
+                          );
+                      controller!.moveCamera(
+                        CameraPosition(
+                          position: location.position,
+                          heading: location.heading,
+                          zoom: 13,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "定位获取失败：$e\n"
+                            "请确认已授予定位权限，并等待 onUserLocationChange 回调触发后再点击。",
+                          ),
+                        ),
+                      );
+                    }
+                  },
             child: const Text("当前位置"),
           ),
         ],
@@ -40,12 +58,15 @@ class _UserLocationPageState extends State<UserLocationPage> {
       body: AMapFlutter(
         showUserLocation: true,
         onUserLocationChange: (location) {
+          _lastLocation = location;
           debugPrint(
             '${location.position.latitude}, ${location.position.longitude}',
           );
         },
         onMapCreated: (controller) async {
-          this.controller = controller;
+          setState(() {
+            this.controller = controller;
+          });
         },
       ),
     );

@@ -14,6 +14,7 @@ import 'pages/map_setting.dart';
 import 'pages/map_styles.dart';
 import 'pages/map_types.dart';
 import 'pages/map_view.dart';
+import 'pages/navigation.dart';
 import 'pages/user_location.dart';
 
 void main() {
@@ -30,24 +31,34 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
+  late final Future<void> _bootstrapFuture;
+
   @override
   void initState() {
     super.initState();
-    AMapFlutter.init(
+    _bootstrapFuture = _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await AMapFlutter.init(
       apiKey: ApiKey(
         iosKey: "a4a1394fe817c2f86a424b897b4a9af4",
-        androidKey: "d0065c21d2aedd0b234bfb7b88e5d6b2",
+        androidKey: "fddb0c469571c9686915aade4e2a7a18",
         webKey: "fc9908dc4103f3d8274070bb34ab37af",
       ),
       agreePrivacy: true,
     );
-    requestLocationPermission();
+    if (!kIsWeb) {
+      await requestLocationPermission();
+    }
   }
 
   Future<void> requestLocationPermission() async {
-    var status = await Permission.location.status;
-    if (status != PermissionStatus.granted) {
-      await Permission.location.request();
+    final status = await Permission.location.status;
+    if (status.isGranted) return;
+    final result = await Permission.location.request();
+    if (result.isPermanentlyDenied) {
+      await openAppSettings();
     }
   }
 
@@ -66,60 +77,82 @@ class _AppState extends State<App> {
           colorScheme: const ColorScheme.dark(),
           disabledColor: Colors.grey[400],
         ),
-        home: Scaffold(
-          body: ListView(children: [
-            Item(
-              MapSettingPage.title,
-              (_) => const MapSettingPage(),
-            ),
-            if (kIsWeb)
-              Item(
-                MapStylesPage.title,
-                (_) => const MapStylesPage(),
-              )
-            else
-              Item(
-                MapTypesPage.title,
-                (_) => const MapTypesPage(),
-              ),
-            if (kIsWeb)
-              Item(
-                MapFeaturesPage.title,
-                (_) => const MapFeaturesPage(),
-              ),
-            Item(
-              MapControlsPage.title,
-              (_) => const MapControlsPage(),
-            ),
-            Item(
-              MapControlsPositionPage.title,
-              (_) => const MapControlsPositionPage(),
-            ),
-            Item(
-              MapLayersPage.title,
-              (_) => const MapLayersPage(),
-            ),
-            Item(
-              MapViewPage.title,
-              (_) => const MapViewPage(),
-            ),
-            Item(
-              MapRestrictionPage.title,
-              (_) => const MapRestrictionPage(),
-            ),
-            Item(
-              MapEventsPage.title,
-              (_) => const MapEventsPage(),
-            ),
-            Item(
-              AddRemoveMarkerPage.title,
-              (_) => const AddRemoveMarkerPage(),
-            ),
-            Item(
-              UserLocationPage.title,
-              (_) => const UserLocationPage(),
-            ),
-          ]),
+        home: FutureBuilder<void>(
+          future: _bootstrapFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: Center(
+                  child: Text("Init failed: ${snapshot.error}"),
+                ),
+              );
+            }
+            return Scaffold(
+              body: ListView(children: [
+                Item(
+                  MapSettingPage.title,
+                  (_) => const MapSettingPage(),
+                ),
+                if (kIsWeb)
+                  Item(
+                    MapStylesPage.title,
+                    (_) => const MapStylesPage(),
+                  )
+                else
+                  Item(
+                    MapTypesPage.title,
+                    (_) => const MapTypesPage(),
+                  ),
+                if (kIsWeb)
+                  Item(
+                    MapFeaturesPage.title,
+                    (_) => const MapFeaturesPage(),
+                  ),
+                Item(
+                  MapControlsPage.title,
+                  (_) => const MapControlsPage(),
+                ),
+                Item(
+                  MapControlsPositionPage.title,
+                  (_) => const MapControlsPositionPage(),
+                ),
+                Item(
+                  MapLayersPage.title,
+                  (_) => const MapLayersPage(),
+                ),
+                Item(
+                  MapViewPage.title,
+                  (_) => const MapViewPage(),
+                ),
+                Item(
+                  MapRestrictionPage.title,
+                  (_) => const MapRestrictionPage(),
+                ),
+                Item(
+                  MapEventsPage.title,
+                  (_) => const MapEventsPage(),
+                ),
+                Item(
+                  AddRemoveMarkerPage.title,
+                  (_) => const AddRemoveMarkerPage(),
+                ),
+                Item(
+                  UserLocationPage.title,
+                  (_) => const UserLocationPage(),
+                ),
+                if (!kIsWeb)
+                  Item(
+                    NavigationPage.title,
+                    (_) => const NavigationPage(),
+                  ),
+              ]),
+            );
+          },
         ),
       ),
     );
@@ -128,6 +161,7 @@ class _AppState extends State<App> {
 
 /// 示例项目
 class Item extends StatelessWidget {
+
   /// 示例标题
   final String title;
 
