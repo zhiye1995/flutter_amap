@@ -539,6 +539,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'initFailure':
+        // 启动失败，回落到非导航态
+        AMapNavi._setIsNavigating(false);
         naviEventStreamController.add(
           NaviInitFailureEvent(data['message'] as String? ?? ''),
         );
@@ -557,10 +559,14 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'arriveDestination':
+        // 到达目的地后认为导航结束
+        AMapNavi._setIsNavigating(false);
         naviEventStreamController.add(NaviArriveDestinationEvent());
         break;
 
       case 'startNavi':
+        // 导航真正开始（双保险：即使上层没走 startNavigation，也能正确置位）
+        AMapNavi._setIsNavigating(true);
         naviEventStreamController.add(
           NaviStartEvent(data['naviType'] as int? ?? 0),
         );
@@ -576,6 +582,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'calculateRouteFailure':
+        // 路线计算失败，认为未进入导航态
+        AMapNavi._setIsNavigating(false);
         naviEventStreamController.add(
           NaviRouteCalculateFailureEvent(data['errorCode'] as int? ?? -1),
         );
@@ -606,10 +614,14 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'endEmulatorNavi':
+        // 模拟导航结束
+        AMapNavi._setIsNavigating(false);
         naviEventStreamController.add(NaviEndEmulatorEvent());
         break;
 
       case 'exitPage':
+        // 退出导航页
+        AMapNavi._setIsNavigating(false);
         naviEventStreamController.add(
           NaviExitEvent(data['exitCode'] as int? ?? 0),
         );

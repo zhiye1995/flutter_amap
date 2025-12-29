@@ -613,6 +613,14 @@ class AMapFlutterState extends State<AMapFlutter> {
 /// 使用导航组件模式启动高德导航页面，支持驾车、步行、骑行导航。
 /// 通过事件流获取导航过程中的各种回调信息。
 ///
+/// 使用事项（强烈建议先读）：
+///
+/// - 仅 **Android** 支持导航（iOS/Web 暂未实现对应原生通道）。
+/// - 调用前请先执行 `AMapFlutter.init(apiKey: ..., agreePrivacy: ...)` 完成 SDK 初始化与隐私合规设置。
+/// - 若 `NaviConfig.start == null`（默认使用当前位置），请确保已授予运行时定位权限，否则可能导致路线计算失败/定位不更新。
+/// - Android 端建议在宿主 `AndroidManifest.xml` 的 `<application>` 内配置 `com.amap.api.v2.apikey`（内置导航/路线规划页常依赖该 meta-data）。
+/// - 建议在 `startNavigation` 前就订阅事件流（例如 `onNaviInitFailure` / `onNaviExit`），并在页面 `dispose` 时取消订阅、必要时调用 `stopNavigation`。
+///
 /// 使用示例:
 /// ```dart
 /// // 启动导航
@@ -634,16 +642,38 @@ class AMapFlutterState extends State<AMapFlutter> {
 class AMapNavi {
   AMapNavi._();
 
+  /// 是否正在导航（全局状态）。
+  ///
+  /// - `startNavigation` 调用成功后会置为 true；
+  /// - 收到退出/到达目的地/失败等事件或调用 `stopNavigation` 后会置为 false。
+  ///
+  /// Flutter UI 建议用 `ValueListenableBuilder` 监听它来切换“启动/继续/停止”等按钮。
+  static final ValueNotifier<bool> _isNavigating = ValueNotifier<bool>(false);
+
+  /// 当前是否正在导航
+  static bool get isNavigating => _isNavigating.value;
+
+  /// 监听“是否正在导航”的变化（适合 UI）
+  static ValueListenable<bool> get isNavigatingListenable => _isNavigating;
+
+  static void _setIsNavigating(bool value) {
+    if (_isNavigating.value == value) return;
+    _isNavigating.value = value;
+  }
+
   /// 启动导航
   ///
   /// [config] 导航配置，包括起终点、导航类型等
-  static Future<void> startNavigation({required NaviConfig config}) {
-    return AMapFlutterPlatformInterface.instance.startNavigation(config);
+  static Future<void> startNavigation({required NaviConfig config}) async {
+    await AMapFlutterPlatformInterface.instance.startNavigation(config);
+    // 启动方法调用成功后即认为进入导航态；若后续失败，会在事件回调里回落为 false
+    _setIsNavigating(true);
   }
 
   /// 停止导航
-  static Future<void> stopNavigation() {
-    return AMapFlutterPlatformInterface.instance.stopNavigation();
+  static Future<void> stopNavigation() async {
+    await AMapFlutterPlatformInterface.instance.stopNavigation();
+    _setIsNavigating(false);
   }
 
   /// 导航初始化成功事件流

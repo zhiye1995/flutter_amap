@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:amap_flutter/amap_flutter.dart';
 import 'package:flutter/material.dart';
@@ -27,8 +28,8 @@ class _NavigationPageState extends State<NavigationPage> {
   final TextEditingController _carNumberController = TextEditingController();
 
   // 导航状态
-  bool _isNavigating = false;
   NaviInfo? _lastNaviInfo;
+  NaviLocation? _lastNaviLocation;
   final List<String> _eventLogs = [];
 
   // 事件订阅
@@ -53,6 +54,15 @@ class _NavigationPageState extends State<NavigationPage> {
       }),
     );
 
+    // 导航定位变化
+    _subscriptions.add(
+      AMapNavi.onNaviLocationChange.listen((event) {
+        setState(() {
+          _lastNaviLocation = event.location;
+        });
+      }),
+    );
+
     // 导航初始化成功
     _subscriptions.add(
       AMapNavi.onNaviInitSuccess.listen((_) {
@@ -71,9 +81,6 @@ class _NavigationPageState extends State<NavigationPage> {
     _subscriptions.add(
       AMapNavi.onNaviStart.listen((event) {
         _addLog('▶ 导航开始, 类型: ${event.type}');
-        setState(() {
-          _isNavigating = true;
-        });
       }),
     );
 
@@ -102,9 +109,6 @@ class _NavigationPageState extends State<NavigationPage> {
     _subscriptions.add(
       AMapNavi.onNaviArriveDestination.listen((_) {
         _addLog('🏁 到达目的地');
-        setState(() {
-          _isNavigating = false;
-        });
       }),
     );
 
@@ -143,8 +147,8 @@ class _NavigationPageState extends State<NavigationPage> {
       AMapNavi.onNaviExit.listen((event) {
         _addLog('■ 退出导航页面, 退出码: ${event.exitCode}');
         setState(() {
-          _isNavigating = false;
           _lastNaviInfo = null;
+          _lastNaviLocation = null;
         });
       }),
     );
@@ -172,6 +176,232 @@ class _NavigationPageState extends State<NavigationPage> {
   String _formatDistance(int meters) {
     if (meters < 1000) return '$meters米';
     return '${(meters / 1000).toStringAsFixed(1)}公里';
+  }
+
+  String _formatSpeed(double? kmh) {
+    if (kmh == null) return '未知';
+    return '${kmh.toStringAsFixed(1)} km/h';
+  }
+
+  String _formatMs(int? ms) {
+    if (ms == null) return '未知';
+    try {
+      final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+      String two(int v) => v.toString().padLeft(2, '0');
+      return '${dt.year}-${two(dt.month)}-${two(dt.day)} '
+          '${two(dt.hour)}:${two(dt.minute)}:${two(dt.second)}';
+    } catch (_) {
+      return ms.toString();
+    }
+  }
+
+  Widget _kv(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text('$label: $value'),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildNaviInfoCard(NaviInfo info) {
+    final Uint8List? iconPngBytes = info.iconPng;
+    final bool hasPngIcon = iconPngBytes != null && iconPngBytes.isNotEmpty;
+
+    return Card(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Expanded(
+                  child: Text(
+                    '当前导航信息',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                if (hasPngIcon)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      iconPngBytes,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    ),
+                  )
+                else
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('无图标'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            _sectionTitle('道路 / 转向'),
+            _kv('当前道路', info.currentRoadName ?? ''),
+            _kv('下一路段', info.nextRoadName),
+            _kv('转向图标类型(iconType)', '${info.iconType}'),
+
+            _sectionTitle('剩余距离 / 时间'),
+            _kv('当前路段剩余距离', _formatDistance(info.curStepRetainDistance)),
+            _kv(
+              '当前路段剩余时间',
+              info.curStepRetainTime == null
+                  ? '未知'
+                  : _formatTime(info.curStepRetainTime!),
+            ),
+            _kv('全程剩余距离', _formatDistance(info.pathRetainDistance)),
+            _kv('预计时间', _formatTime(info.pathRetainTime)),
+
+            _sectionTitle('基础 / 进度'),
+            _kv('路线ID(pathId)', info.pathId?.toString() ?? '未知'),
+            _kv('导航类型(naviType)', info.naviType?.toString() ?? '未知'),
+            _kv('Step/Link/Point', '${info.curStep}/${info.curLink}/${info.curPoint}'),
+
+            _sectionTitle('红绿灯 / 速度'),
+            _kv('剩余红绿灯(routeRemainLightCount)', info.routeRemainLightCount?.toString() ?? '未知'),
+            _kv('当前速度(currentSpeed)', info.currentSpeed?.toString() ?? '未知'),
+
+            _sectionTitle('图标数据(调试)'),
+            _kv('hasIcon', (info.hasIcon ?? false).toString()),
+            _kv('iconPng', hasPngIcon ? '有(可渲染)' : '无'),
+
+            _sectionTitle('出口方向信息'),
+            if (info.exitDirectionInfo == null)
+              _kv('exitDirectionInfo', '无')
+            else ...[
+              _kv('text', info.exitDirectionInfo!.text ?? ''),
+              _kv('exitName', info.exitDirectionInfo!.exitName ?? ''),
+              _kv('directionType', info.exitDirectionInfo!.directionType?.toString() ?? ''),
+              _kv('distance', info.exitDirectionInfo!.distance?.toString() ?? ''),
+            ],
+
+            _sectionTitle('不可避让信息'),
+            if (info.notAvoidInfo == null)
+              _kv('notAvoidInfo', '无')
+            else ...[
+              _kv('type', info.notAvoidInfo!.type?.toString() ?? ''),
+              _kv('title', info.notAvoidInfo!.title ?? ''),
+              _kv('content', info.notAvoidInfo!.content ?? ''),
+              _kv('roadName', info.notAvoidInfo!.roadName ?? ''),
+              _kv('distance', info.notAvoidInfo!.distance?.toString() ?? ''),
+              _kv('time', info.notAvoidInfo!.time?.toString() ?? ''),
+              _kv(
+                'coord',
+                info.notAvoidInfo!.coord == null
+                    ? ''
+                    : '${info.notAvoidInfo!.coord!.latitude},${info.notAvoidInfo!.coord!.longitude}',
+              ),
+            ],
+
+            _sectionTitle('途经点信息(toViaInfos)'),
+            if (info.toViaInfos == null || info.toViaInfos!.isEmpty)
+              _kv('toViaInfos', '无')
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final v in info.toViaInfos!)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        'viaIndex=${v.viaIndex ?? ''}, name=${v.name ?? ''}, '
+                        'distance=${v.distance ?? ''}, time=${v.time ?? ''}, '
+                        'coord=${v.coord == null ? '' : '${v.coord!.latitude},${v.coord!.longitude}'}',
+                      ),
+                    ),
+                ],
+              ),
+
+            _sectionTitle('raw(调试)'),
+            SelectableText(info.raw ?? ''),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNaviLocationCard(NaviLocation loc) {
+    final lat = loc.position.latitude;
+    final lng = loc.position.longitude;
+    final hasCoord = !(lat == 0.0 && lng == 0.0);
+
+    return Card(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '当前定位信息',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    hasCoord ? '已定位' : '坐标未知',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            _sectionTitle('坐标'),
+            _kv('经纬度', '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}'),
+            _kv('时间', _formatMs(loc.time)),
+
+            _sectionTitle('航向 / 速度 / 精度'),
+            _kv('航向(bearing)', loc.bearing?.toStringAsFixed(1) ?? '未知'),
+            _kv('道路方向(roadBearing)', loc.roadBearing?.toStringAsFixed(1) ?? '未知'),
+            _kv('速度', _formatSpeed(loc.speed)),
+            _kv('精度(accuracy)', loc.accuracy == null ? '未知' : '${loc.accuracy!.toStringAsFixed(1)} m'),
+            _kv('海拔(altitude)', loc.altitude == null ? '未知' : '${loc.altitude!.toStringAsFixed(1)} m'),
+
+            _sectionTitle('导航进度索引'),
+            _kv('Step/Link/Point', '${loc.curStepIndex ?? ''}/${loc.curLinkIndex ?? ''}/${loc.curPointIndex ?? ''}'),
+
+            _sectionTitle('类型 / 匹配'),
+            _kv('matchStatus', loc.matchStatus?.toString() ?? '未知'),
+            _kv('locationDataType', loc.locationDataType?.toString() ?? '未知'),
+            _kv('locationType', loc.locationType?.toString() ?? '未知'),
+
+            if ((loc.raw ?? '').isNotEmpty) ...[
+              _sectionTitle('raw(调试)'),
+              SelectableText(loc.raw ?? ''),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _startNavigation() async {
@@ -223,6 +453,10 @@ class _NavigationPageState extends State<NavigationPage> {
     try {
       await AMapNavi.stopNavigation();
       _addLog('■ 导航已停止');
+      setState(() {
+        _lastNaviInfo = null;
+        _lastNaviLocation = null;
+      });
     } catch (e) {
       _addLog('✗ 停止导航失败: $e');
     }
@@ -246,11 +480,16 @@ class _NavigationPageState extends State<NavigationPage> {
       appBar: AppBar(
         title: const Text(NavigationPage.title),
         actions: [
-          if (_isNavigating)
-            TextButton(
-              onPressed: _stopNavigation,
-              child: const Text('停止导航'),
-            ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AMapNavi.isNavigatingListenable,
+            builder: (context, isNavigating, _) {
+              if (!isNavigating) return const SizedBox.shrink();
+              return TextButton(
+                onPressed: _stopNavigation,
+                child: const Text('停止导航'),
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -386,37 +625,28 @@ class _NavigationPageState extends State<NavigationPage> {
             const SizedBox(height: 16),
 
             // 启动导航按钮
-            FilledButton.icon(
-              onPressed: _startNavigation,
-              icon: const Icon(Icons.navigation),
-              label: const Text('启动导航'),
+            ValueListenableBuilder<bool>(
+              valueListenable: AMapNavi.isNavigatingListenable,
+              builder: (context, isNavigating, _) {
+                return FilledButton.icon(
+                  onPressed: _startNavigation,
+                  icon: const Icon(Icons.navigation),
+                  label: Text(isNavigating ? '继续导航' : '启动导航'),
+                );
+              },
             ),
 
             const SizedBox(height: 16),
 
             // 导航信息显示
             if (_lastNaviInfo != null)
-              Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('当前导航信息',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Text('下一路段: ${_lastNaviInfo!.nextRoadName}'),
-                      Text(
-                          '当前路段剩余: ${_formatDistance(_lastNaviInfo!.curStepRetainDistance)}'),
-                      Text(
-                          '全程剩余: ${_formatDistance(_lastNaviInfo!.pathRetainDistance)}'),
-                      Text(
-                          '预计时间: ${_formatTime(_lastNaviInfo!.pathRetainTime)}'),
-                    ],
-                  ),
-                ),
-              ),
+              _buildNaviInfoCard(_lastNaviInfo!),
+
+            const SizedBox(height: 12),
+
+            // 导航定位信息显示
+            if (_lastNaviLocation != null)
+              _buildNaviLocationCard(_lastNaviLocation!),
 
             const SizedBox(height: 16),
 
