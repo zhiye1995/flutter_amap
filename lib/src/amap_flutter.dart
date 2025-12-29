@@ -615,10 +615,11 @@ class AMapFlutterState extends State<AMapFlutter> {
 ///
 /// 使用事项（强烈建议先读）：
 ///
-/// - 仅 **Android** 支持导航（iOS/Web 暂未实现对应原生通道）。
+/// - 支持 **Android** 和 **iOS** 平台（Web 暂未实现对应原生通道）。
 /// - 调用前请先执行 `AMapFlutter.init(apiKey: ..., agreePrivacy: ...)` 完成 SDK 初始化与隐私合规设置。
 /// - 若 `NaviConfig.start == null`（默认使用当前位置），请确保已授予运行时定位权限，否则可能导致路线计算失败/定位不更新。
 /// - Android 端建议在宿主 `AndroidManifest.xml` 的 `<application>` 内配置 `com.amap.api.v2.apikey`（内置导航/路线规划页常依赖该 meta-data）。
+/// - iOS 端需要在 `Info.plist` 中配置 `NSLocationWhenInUseUsageDescription` 定位权限描述。
 /// - 建议在 `startNavigation` 前就订阅事件流（例如 `onNaviInitFailure` / `onNaviExit`），并在页面 `dispose` 时取消订阅、必要时调用 `stopNavigation`。
 ///
 /// 使用示例:
