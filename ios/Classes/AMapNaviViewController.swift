@@ -130,12 +130,11 @@ class AMapNaviViewController: UIViewController {
         driveManager = AMapNaviDriveManager.sharedInstance()
         driveManager?.delegate = naviDelegate
         
-        // 设置车牌号（用于限行）- 新版 SDK 使用 setVehicleProvince 和 setVehicleNumber
+        // 设置车牌号（用于限行）- 新版 SDK 使用 setVehicleProvince:number: 方法
         if let carNumber = carNumber, !carNumber.isEmpty, carNumber.count >= 2 {
             let province = String(carNumber.prefix(1))
             let number = String(carNumber.dropFirst(1))
-            driveManager?.setVehicleProvince(province)
-            driveManager?.setVehicleNumber(number)
+            driveManager?.setVehicleProvince(province, number: number)
         }
         
         // 发送初始化成功事件
@@ -237,7 +236,7 @@ class AMapNaviViewController: UIViewController {
             withStart: startPoints,
             end: [endPoint],
             wayPoints: wayPointsArray,
-            drivingStrategy: .singleDefault()
+            drivingStrategy: .DrivingStrategySingleDefault
         )
     }
     

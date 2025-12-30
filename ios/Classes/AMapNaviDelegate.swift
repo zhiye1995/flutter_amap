@@ -226,7 +226,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             return [
                 "cameraType": camera.cameraType.rawValue,
                 "cameraDistance": camera.distance,
-                "cameraSpeed": camera.speedLimit  // 新版 SDK 中 limitedSpeed 改为 speedLimit
+                "cameraSpeed": camera.cameraSpeed  // 新版 SDK 中使用 cameraSpeed
             ]
         }
         
