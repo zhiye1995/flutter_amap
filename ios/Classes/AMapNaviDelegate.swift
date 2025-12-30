@@ -151,7 +151,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
     }
     
     /// 到达目的地
-    func driveManagerOnArrivedDestination(_ driveManager: AMapNaviDriveManager) {
+    func driveManager(onArrivedDestination driveManager: AMapNaviDriveManager) {
         print("[AMapNaviDelegate] onArriveDestination: 到达目的地")
         sendEvent(["type": "arriveDestination"])
     }
@@ -182,7 +182,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
     }
     
     /// 路径规划成功
-    func driveManagerOnCalculateRouteSuccess(_ driveManager: AMapNaviDriveManager) {
+    func driveManager(onCalculateRouteSuccess driveManager: AMapNaviDriveManager) {
         print("[AMapNaviDelegate] onCalculateRouteSuccess: 路径规划成功")
         let routeIds = driveManager.naviRoutes?.keys.map { $0.intValue } ?? []
         sendEvent([
@@ -389,13 +389,13 @@ extension AMapNaviDelegate: AMapNaviWalkManagerDelegate {
     }
     
     /// 步行导航到达目的地
-    func walkManagerOnArrivedDestination(_ walkManager: AMapNaviWalkManager) {
+    func walkManager(onArrivedDestination walkManager: AMapNaviWalkManager) {
         print("[AMapNaviDelegate] walkManager onArriveDestination")
         sendEvent(["type": "arriveDestination"])
     }
     
     /// 步行路径规划成功
-    func walkManagerOnCalculateRouteSuccess(_ walkManager: AMapNaviWalkManager) {
+    func walkManager(onCalculateRouteSuccess walkManager: AMapNaviWalkManager) {
         print("[AMapNaviDelegate] walkManager onCalculateRouteSuccess")
         sendEvent([
             "type": "calculateRouteSuccess",
@@ -513,13 +513,13 @@ extension AMapNaviDelegate: AMapNaviRideManagerDelegate {
     }
     
     /// 骑行导航到达目的地
-    func rideManagerOnArrivedDestination(_ rideManager: AMapNaviRideManager) {
+    func rideManager(onArrivedDestination rideManager: AMapNaviRideManager) {
         print("[AMapNaviDelegate] rideManager onArriveDestination")
         sendEvent(["type": "arriveDestination"])
     }
     
     /// 骑行路径规划成功
-    func rideManagerOnCalculateRouteSuccess(_ rideManager: AMapNaviRideManager) {
+    func rideManager(onCalculateRouteSuccess rideManager: AMapNaviRideManager) {
         print("[AMapNaviDelegate] rideManager onCalculateRouteSuccess")
         sendEvent([
             "type": "calculateRouteSuccess",
