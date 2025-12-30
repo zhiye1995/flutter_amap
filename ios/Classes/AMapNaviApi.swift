@@ -182,20 +182,35 @@ class AMapNaviApi: NSObject {
     }
     
     private func tryUpdatePrivacyIfAvailable(for cls: AnyClass) {
+        // 尝试调用隐私合规方法
+        // 使用协议扩展方式安全调用，避免 objc_msgSend 的兼容性问题
+        
+        guard let metaClass = cls as? NSObject.Type else { return }
+        
         // class func updatePrivacyShow(_ showStatus: AMapPrivacyShowStatus, privacyInfo: AMapPrivacyInfoStatus)
         let selShow = NSSelectorFromString("updatePrivacyShow:privacyInfo:")
-        if cls.responds(to: selShow) {
-            typealias MsgSendShow = @convention(c) (AnyClass, Selector, AMapPrivacyShowStatus, AMapPrivacyInfoStatus) -> Void
-            let f = unsafeBitCast(objc_msgSend, to: MsgSendShow.self)
-            f(cls, selShow, AMapPrivacyShowStatus(true), AMapPrivacyInfoStatus(true))
+        if metaClass.responds(to: selShow) {
+            // 使用 IMP 方式调用类方法
+            let method = class_getClassMethod(cls, selShow)
+            if let method = method {
+                typealias MethodType = @convention(c) (AnyClass, Selector, AMapPrivacyShowStatus, AMapPrivacyInfoStatus) -> Void
+                let imp = method_getImplementation(method)
+                let function = unsafeBitCast(imp, to: MethodType.self)
+                function(cls, selShow, AMapPrivacyShowStatus(true), AMapPrivacyInfoStatus(true))
+            }
         }
         
         // class func updatePrivacyAgree(_ agreeStatus: AMapPrivacyAgreeStatus)
         let selAgree = NSSelectorFromString("updatePrivacyAgree:")
-        if cls.responds(to: selAgree) {
-            typealias MsgSendAgree = @convention(c) (AnyClass, Selector, AMapPrivacyAgreeStatus) -> Void
-            let f = unsafeBitCast(objc_msgSend, to: MsgSendAgree.self)
-            f(cls, selAgree, AMapPrivacyAgreeStatus(true))
+        if metaClass.responds(to: selAgree) {
+            // 使用 IMP 方式调用类方法
+            let method = class_getClassMethod(cls, selAgree)
+            if let method = method {
+                typealias MethodType = @convention(c) (AnyClass, Selector, AMapPrivacyAgreeStatus) -> Void
+                let imp = method_getImplementation(method)
+                let function = unsafeBitCast(imp, to: MethodType.self)
+                function(cls, selAgree, AMapPrivacyAgreeStatus(true))
+            }
         }
     }
     
