@@ -105,22 +105,14 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             // 调试兜底
             "raw": "\(info)",
             
-            // 图标是否存在
-            "hasIcon": info.iconImage != nil
+            // 图标是否存在（新版 SDK 中 iconImage 已移除，使用 iconType 判断）
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        // 处理转向图标
-        if let iconImage = info.iconImage, info.iconType.rawValue > 0 {
-            let iconType = Int(info.iconType.rawValue)
-            if iconType != lastIconType {
-                if let cachedPng = iconPngCache[iconType] {
-                    data["iconPng"] = cachedPng
-                } else if let pngData = imageToPngData(iconImage) {
-                    iconPngCache[iconType] = pngData
-                    data["iconPng"] = pngData
-                }
-                lastIconType = iconType
-            }
+        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
+        let iconType = Int(info.iconType.rawValue)
+        if iconType > 0 && iconType != lastIconType {
+            lastIconType = iconType
         }
         
         sendEvent(data)
@@ -158,7 +150,8 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
     
     /// GPS 信号状态
     func driveManager(_ driveManager: AMapNaviDriveManager, didChange gpsSignalStrength: AMapNaviGPSSignalStrength) {
-        let isWeak = gpsSignalStrength == .weak || gpsSignalStrength == .noSignal
+        // 新版 SDK 中 noSignal 被移除，使用 weak 判断信号弱
+        let isWeak = gpsSignalStrength == .weak
         print("[AMapNaviDelegate] onGpsSignalWeak: GPS信号\(isWeak ? "弱" : "正常")")
         sendEvent([
             "type": "gpsSignalWeak",
@@ -233,7 +226,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             return [
                 "cameraType": camera.cameraType.rawValue,
                 "cameraDistance": camera.distance,
-                "cameraSpeed": camera.limitedSpeed
+                "cameraSpeed": camera.speedLimit  // 新版 SDK 中 limitedSpeed 改为 speedLimit
             ]
         }
         
@@ -348,17 +341,13 @@ extension AMapNaviDelegate: AMapNaviWalkManagerDelegate {
             "notAvoidInfo": nil,
             "toViaInfos": nil,
             "raw": "\(info)",
-            "hasIcon": info.iconImage != nil
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        if let iconImage = info.iconImage, info.iconType.rawValue > 0 {
-            let iconType = Int(info.iconType.rawValue)
-            if iconType != lastIconType {
-                if let pngData = imageToPngData(iconImage) {
-                    data["iconPng"] = pngData
-                }
-                lastIconType = iconType
-            }
+        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
+        let iconType = Int(info.iconType.rawValue)
+        if iconType > 0 && iconType != lastIconType {
+            lastIconType = iconType
         }
         
         sendEvent(data)
@@ -472,17 +461,13 @@ extension AMapNaviDelegate: AMapNaviRideManagerDelegate {
             "notAvoidInfo": nil,
             "toViaInfos": nil,
             "raw": "\(info)",
-            "hasIcon": info.iconImage != nil
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        if let iconImage = info.iconImage, info.iconType.rawValue > 0 {
-            let iconType = Int(info.iconType.rawValue)
-            if iconType != lastIconType {
-                if let pngData = imageToPngData(iconImage) {
-                    data["iconPng"] = pngData
-                }
-                lastIconType = iconType
-            }
+        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
+        let iconType = Int(info.iconType.rawValue)
+        if iconType > 0 && iconType != lastIconType {
+            lastIconType = iconType
         }
         
         sendEvent(data)

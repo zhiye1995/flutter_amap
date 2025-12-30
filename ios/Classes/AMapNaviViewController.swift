@@ -130,10 +130,12 @@ class AMapNaviViewController: UIViewController {
         driveManager = AMapNaviDriveManager.sharedInstance()
         driveManager?.delegate = naviDelegate
         
-        // 设置车牌号（用于限行）
-        if let carNumber = carNumber, !carNumber.isEmpty {
-            driveManager?.vehicleInfo = AMapNaviVehicleInfo()
-            driveManager?.vehicleInfo?.plateNumber = carNumber
+        // 设置车牌号（用于限行）- 新版 SDK 使用 setVehicleProvince 和 setVehicleNumber
+        if let carNumber = carNumber, !carNumber.isEmpty, carNumber.count >= 2 {
+            let province = String(carNumber.prefix(1))
+            let number = String(carNumber.dropFirst(1))
+            driveManager?.setVehicleProvince(province)
+            driveManager?.setVehicleNumber(number)
         }
         
         // 发送初始化成功事件
@@ -235,7 +237,7 @@ class AMapNaviViewController: UIViewController {
             withStart: startPoints,
             end: [endPoint],
             wayPoints: wayPointsArray,
-            drivingStrategy: .singleDefault
+            drivingStrategy: .singleDefault()
         )
     }
     
@@ -252,14 +254,12 @@ class AMapNaviViewController: UIViewController {
     }
     
     private func calculateRideRoute(endPoint: AMapNaviPoint) {
-        var startPoints: [AMapNaviPoint] = []
-        if let start = startPoint {
-            startPoints.append(start)
-        }
+        // 骑行导航需要单个起点和终点，不是数组
+        let startPt = startPoint ?? AMapNaviPoint.location(withLatitude: 0, longitude: 0)
         
         rideManager?.calculateRideRoute(
-            withStart: startPoints,
-            end: [endPoint]
+            withStart: startPt!,
+            end: endPoint
         )
     }
     
