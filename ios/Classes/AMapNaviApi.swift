@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import AMapNaviKit
 import AMapFoundationKit
+import ObjectiveC
 
 /// 高德导航 API 处理类
 class AMapNaviApi: NSObject {
@@ -170,15 +171,32 @@ class AMapNaviApi: NSObject {
     // MARK: - Privacy
     
     private func updatePrivacy() {
-        // 更新隐私合规状态
-        AMapNaviDriveManager.updatePrivacyShow(.didShow, privacyInfo: .didContain)
-        AMapNaviDriveManager.updatePrivacyAgree(.didAgree)
+        // 注意：不同版本 AMapNaviKit 的“隐私合规”API 名称可能不同。
+        // 这里用运行时反射方式调用，避免因缺少 API 导致编译失败。
+        //
+        // 地图侧隐私合规已在 AMapSdkApi.swift 通过 MAMapView.updatePrivacy... 处理；
+        // 这里尽力对 NaviKit 做同样处理（如果当前版本提供相应方法）。
+        tryUpdatePrivacyIfAvailable(for: AMapNaviDriveManager.self)
+        tryUpdatePrivacyIfAvailable(for: AMapNaviWalkManager.self)
+        tryUpdatePrivacyIfAvailable(for: AMapNaviRideManager.self)
+    }
+    
+    private func tryUpdatePrivacyIfAvailable(for cls: AnyClass) {
+        // class func updatePrivacyShow(_ showStatus: AMapPrivacyShowStatus, privacyInfo: AMapPrivacyInfoStatus)
+        let selShow = NSSelectorFromString("updatePrivacyShow:privacyInfo:")
+        if cls.responds(to: selShow) {
+            typealias MsgSendShow = @convention(c) (AnyClass, Selector, AMapPrivacyShowStatus, AMapPrivacyInfoStatus) -> Void
+            let f = unsafeBitCast(objc_msgSend, to: MsgSendShow.self)
+            f(cls, selShow, AMapPrivacyShowStatus(true), AMapPrivacyInfoStatus(true))
+        }
         
-        AMapNaviWalkManager.updatePrivacyShow(.didShow, privacyInfo: .didContain)
-        AMapNaviWalkManager.updatePrivacyAgree(.didAgree)
-        
-        AMapNaviRideManager.updatePrivacyShow(.didShow, privacyInfo: .didContain)
-        AMapNaviRideManager.updatePrivacyAgree(.didAgree)
+        // class func updatePrivacyAgree(_ agreeStatus: AMapPrivacyAgreeStatus)
+        let selAgree = NSSelectorFromString("updatePrivacyAgree:")
+        if cls.responds(to: selAgree) {
+            typealias MsgSendAgree = @convention(c) (AnyClass, Selector, AMapPrivacyAgreeStatus) -> Void
+            let f = unsafeBitCast(objc_msgSend, to: MsgSendAgree.self)
+            f(cls, selAgree, AMapPrivacyAgreeStatus(true))
+        }
     }
     
     // MARK: - Utilities

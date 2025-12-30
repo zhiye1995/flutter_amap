@@ -1,4 +1,5 @@
 import Flutter
+import UIKit
 import AMapNaviKit
 
 /// 高德导航事件代理实现
@@ -6,7 +7,7 @@ import AMapNaviKit
 class AMapNaviDelegate: NSObject {
     
     /// Flutter 事件通道
-    weak var eventSink: FlutterEventSink?
+    var eventSink: FlutterEventSink?
     
     /// 上一次下发给 Flutter 的转向图标类型，用于去重
     private var lastIconType: Int = Int.min
