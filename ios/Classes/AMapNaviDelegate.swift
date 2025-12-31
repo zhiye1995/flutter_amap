@@ -1,13 +1,33 @@
 import Flutter
 import UIKit
+// `MAMapKit` 通常来自 `AMap3DMap`。
+// 但在一些集成方式下（例如仅引入 `AMapNavi`），`MAMapKit` 这个 Swift module 可能不存在，
+// 地图相关类型会通过 `AMapNaviKit` 暴露出来；因此这里做条件导入以兼容两种情况。
+#if canImport(MAMapKit)
+import MAMapKit
+#elseif canImport(AMapNaviKit)
 import AMapNaviKit
+#else
+#error("Neither MAMapKit nor AMapNaviKit is available. Please add AMapNavi (recommended) or AMap3DMap to your Pod dependencies.")
+#endif
 
 /// 高德导航事件代理实现
-/// 实现 AMapNaviDriveManagerDelegate 等协议，将导航事件转发到 Flutter 层
+/// 实现 AMapNaviDriveManagerDelegate 和 AMapNaviDriveDataRepresentable 等协议，将导航事件和数据转发到 Flutter 层
+/// 
+/// 注意：高德SDK有两套回调协议：
+/// - AMapNaviDriveManagerDelegate: 事件回调（路径规划成功/失败、TTS字符串、GPS信号弱等）
+/// - AMapNaviDriveDataRepresentable: 数据回调（导航信息NaviInfo、定位信息、电子眼信息等）
+/// 
+/// 使用方式：
+/// - 通过 driveManager.delegate = naviDelegate 设置事件代理
+/// - 通过 driveManager.addDataRepresentative(naviDelegate) 注册数据代理
 class AMapNaviDelegate: NSObject {
     
     /// Flutter 事件通道
     var eventSink: FlutterEventSink?
+    
+    /// 路线计算成功回调（用于通知 ViewController 显示概览模式）
+    var onRouteCalculateSuccess: (() -> Void)?
     
     /// 上一次下发给 Flutter 的转向图标类型，用于去重
     private var lastIconType: Int = Int.min
@@ -68,79 +88,9 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         ])
     }
     
-    /// 导航信息更新
-    func driveManager(_ driveManager: AMapNaviDriveManager, update naviInfo: AMapNaviInfo?) {
-        guard let info = naviInfo else { return }
-        
-        var data: [String: Any?] = [
-            "type": "navInfo",
-            
-            // 基础/进度字段
-            "pathId": 0, // iOS SDK 可能没有直接的 pathId
-            "naviType": 0,
-            "curStep": info.currentSegmentIndex,
-            "curLink": info.currentLinkIndex,
-            "curPoint": info.currentPointIndex,
-            
-            // 道路/转向字段
-            "currentRoadName": info.currentRoadName ?? "",
-            "nextRoadName": info.nextRoadName ?? "",
-            "iconType": info.iconType.rawValue,
-            
-            // 剩余距离/时间
-            "pathRetainDistance": info.routeRemainDistance,
-            "pathRetainTime": info.routeRemainTime,
-            "curStepRetainDistance": info.segmentRemainDistance,
-            "curStepRetainTime": info.segmentRemainTime,
-            
-            // 其它字段
-            "routeRemainLightCount": info.routeRemainTrafficLightCount,
-            "currentSpeed": 0,
-            
-            // 对象字段（iOS 端可能没有对应字段）
-            "exitDirectionInfo": nil,
-            "notAvoidInfo": nil,
-            "toViaInfos": nil,
-            
-            // 调试兜底
-            "raw": "\(info)",
-            
-            // 图标是否存在（新版 SDK 中 iconImage 已移除，使用 iconType 判断）
-            "hasIcon": info.iconType.rawValue > 0
-        ]
-        
-        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
-        let iconType = Int(info.iconType.rawValue)
-        if iconType > 0 && iconType != lastIconType {
-            lastIconType = iconType
-        }
-        
-        sendEvent(data)
-    }
+    // 注意：导航信息更新(naviInfo)和位置变化(naviLocation)回调已移至 AMapNaviDriveDataRepresentable 协议
+    // 通过 driveManager.addDataRepresentative(self) 注册后，会收到这些数据回调
     
-    /// 位置变化
-    func driveManager(_ driveManager: AMapNaviDriveManager, update naviLocation: AMapNaviLocation?) {
-        guard let location = naviLocation else { return }
-        
-        sendEvent([
-            "type": "locationChange",
-            "latitude": location.coordinate.latitude,
-            "longitude": location.coordinate.longitude,
-            "bearing": location.heading,
-            "roadBearing": location.heading, // iOS 可能没有单独的道路方向
-            "speed": location.speed,
-            "accuracy": location.accuracy,
-            "altitude": location.altitude,
-            "time": Int(Date().timeIntervalSince1970 * 1000),
-            "matchStatus": 0,
-            "locationDataType": 0,
-            "locationType": 0,
-            "curStepIndex": location.currentSegmentIndex,
-            "curLinkIndex": location.currentLinkIndex,
-            "curPointIndex": location.currentPointIndex,
-            "raw": "\(location)"
-        ])
-    }
     
     /// 到达目的地
     func driveManager(onArrivedDestination driveManager: AMapNaviDriveManager) {
@@ -159,10 +109,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         ])
     }
     
-    /// 路况信息更新
-    func driveManager(_ driveManager: AMapNaviDriveManager, updateTrafficStatus trafficStatus: [AMapNaviTrafficStatus]?) {
-        sendEvent(["type": "trafficStatusUpdate"])
-    }
+    // 注意：路况信息更新(trafficStatus)回调已移至 AMapNaviDriveDataRepresentable 协议
     
     /// 语音播报文本
     func driveManager(_ driveManager: AMapNaviDriveManager, playNaviSound text: String, soundType: AMapNaviSoundType) {
@@ -184,6 +131,8 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             "errorCode": 0,
             "errorDescription": ""
         ])
+        // 通知 ViewController 路线计算成功
+        onRouteCalculateSuccess?()
     }
     
     /// 路径规划失败
@@ -218,49 +167,17 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         ])
     }
     
-    /// 电子眼信息
-    func driveManager(_ driveManager: AMapNaviDriveManager, update cameraInfos: [AMapNaviCameraInfo]?) {
-        guard let cameras = cameraInfos, !cameras.isEmpty else { return }
-        
-        let cameraList = cameras.map { camera -> [String: Any] in
-            return [
-                "cameraType": camera.cameraType.rawValue,
-                "cameraDistance": camera.distance,
-                "cameraSpeed": camera.cameraSpeed  // 新版 SDK 中使用 cameraSpeed
-            ]
-        }
-        
-        sendEvent([
-            "type": "cameraInfo",
-            "cameras": cameraList
-        ])
-    }
+    // 注意：电子眼信息(cameraInfos)回调已移至 AMapNaviDriveDataRepresentable 协议
     
-    /// 显示路口放大图
-    func driveManager(_ driveManager: AMapNaviDriveManager, showCross crossImage: UIImage?) {
-        guard let image = crossImage else { return }
-        print("[AMapNaviDelegate] showCross: 显示路口放大图")
-        
-        var payload: [String: Any?] = [
-            "type": "showCross",
-            "raw": ""
-        ]
-        
-        if let pngData = imageToPngData(image) {
-            payload["crossData"] = pngData
-            payload["dataFormat"] = "bitmap"
-        }
-        
-        sendEvent(payload)
-    }
+    // 注意：路口放大图和车道信息回调已移至 AMapNaviDriveDataRepresentable 协议
     
-    /// 隐藏路口放大图
+    /// 隐藏路口放大图（Delegate协议中的版本）
     func driveManagerHideCrossImage(_ driveManager: AMapNaviDriveManager) {
         print("[AMapNaviDelegate] hideCross: 隐藏路口放大图")
         sendEvent(["type": "hideCross"])
     }
     
-    /// 显示车道信息
+    /// 显示车道信息（Delegate协议中的版本，使用图片）
     func driveManager(_ driveManager: AMapNaviDriveManager, showLaneBackInfo laneBackImage: UIImage?, laneSelectImage: UIImage?) {
         print("[AMapNaviDelegate] showLaneInfo: 显示车道信息")
         
@@ -292,6 +209,195 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             "type": "playRing",
             "ringType": ringType.rawValue
         ])
+    }
+}
+
+// MARK: - AMapNaviDriveDataRepresentable
+// 数据回调协议，提供导航过程中的实时数据（NaviInfo、定位信息、电子眼信息等）
+// 需要通过 driveManager.addDataRepresentative(self) 注册
+//
+// 注意：Swift 会自动将 ObjC 的方法名转换，例如：
+// - driveManager:updateNaviMode: -> driveManager(_:update:) with AMapNaviMode
+// - driveManager:updateNaviInfo: -> driveManager(_:update:) with AMapNaviInfo
+// 为避免与 AMapNaviDriveManagerDelegate 中的方法冲突，只实现必要的数据回调
+extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
+    
+    /// 导航模式更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update naviMode: AMapNaviMode) {
+        print("[AMapNaviDelegate-Data] updateNaviMode: \(naviMode.rawValue)")
+        sendEvent([
+            "type": "naviModeUpdate",
+            "naviMode": naviMode.rawValue
+        ])
+    }
+    
+    /// 路径ID更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, updateNaviRouteID naviRouteID: Int) {
+        print("[AMapNaviDelegate-Data] updateNaviRouteID: \(naviRouteID)")
+        sendEvent([
+            "type": "naviRouteIDUpdate",
+            "routeId": naviRouteID
+        ])
+    }
+    
+    /// 路径信息更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update naviRoute: AMapNaviRoute?) {
+        guard let route = naviRoute else { return }
+        print("[AMapNaviDelegate-Data] updateNaviRoute: routeLength=\(route.routeLength)")
+        sendEvent([
+            "type": "naviRouteUpdate",
+            "routeLength": route.routeLength,
+            "routeTime": route.routeTime,
+            "routeTollCost": route.routeTollCost
+        ])
+    }
+    
+    /// 导航信息更新回调（核心！包含转向图标、剩余距离、下一路名等）
+    func driveManager(_ driveManager: AMapNaviDriveManager, update naviInfo: AMapNaviInfo?) {
+        guard let info = naviInfo else { return }
+        
+        let data: [String: Any?] = [
+            "type": "navInfo",
+            
+            // 基础/进度字段
+            "pathId": 0,
+            "naviType": 0,
+            "curStep": info.currentSegmentIndex,
+            "curLink": info.currentLinkIndex,
+            "curPoint": info.currentPointIndex,
+            
+            // 道路/转向字段
+            "currentRoadName": info.currentRoadName ?? "",
+            "nextRoadName": info.nextRoadName ?? "",
+            "iconType": info.iconType.rawValue,
+            
+            // 剩余距离/时间
+            "pathRetainDistance": info.routeRemainDistance,
+            "pathRetainTime": info.routeRemainTime,
+            "curStepRetainDistance": info.segmentRemainDistance,
+            "curStepRetainTime": info.segmentRemainTime,
+            
+            // 其它字段
+            "routeRemainLightCount": info.routeRemainTrafficLightCount,
+            "currentSpeed": 0,
+            
+            // 对象字段
+            "exitDirectionInfo": nil,
+            "notAvoidInfo": nil,
+            "toViaInfos": nil,
+            
+            // 调试
+            "raw": "\(info)",
+            "hasIcon": info.iconType.rawValue > 0
+        ]
+        
+        // 更新转向图标类型
+        let iconType = Int(info.iconType.rawValue)
+        if iconType > 0 && iconType != lastIconType {
+            lastIconType = iconType
+        }
+        
+        sendEvent(data)
+    }
+    
+    /// 自车位置更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update naviLocation: AMapNaviLocation?) {
+        guard let location = naviLocation else { return }
+        
+        sendEvent([
+            "type": "locationChange",
+            "latitude": location.coordinate.latitude,
+            "longitude": location.coordinate.longitude,
+            "bearing": location.heading,
+            "roadBearing": location.heading,
+            "speed": location.speed,
+            "accuracy": location.accuracy,
+            "altitude": location.altitude,
+            "time": Int(Date().timeIntervalSince1970 * 1000),
+            "matchStatus": 0,
+            "locationDataType": 0,
+            "locationType": 0,
+            "curStepIndex": location.currentSegmentIndex,
+            "curLinkIndex": location.currentLinkIndex,
+            "curPointIndex": location.currentPointIndex,
+            "raw": "\(location)"
+        ])
+    }
+    
+    /// 路口放大图显示回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, showCross crossImage: UIImage?) {
+        guard let image = crossImage else { return }
+        print("[AMapNaviDelegate-Data] showCross")
+        
+        var payload: [String: Any?] = [
+            "type": "showCross",
+            "raw": ""
+        ]
+        
+        if let pngData = imageToPngData(image) {
+            payload["crossData"] = pngData
+            payload["dataFormat"] = "bitmap"
+        }
+        
+        sendEvent(payload)
+    }
+    
+    /// 路况信息更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update trafficStatus: [AMapNaviTrafficStatus]?) {
+        guard let statuses = trafficStatus, !statuses.isEmpty else { return }
+        sendEvent(["type": "trafficStatusUpdate"])
+    }
+    
+    /// 电子眼信息更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update cameraInfos: [AMapNaviCameraInfo]?) {
+        guard let cameras = cameraInfos, !cameras.isEmpty else { return }
+        
+        let cameraList = cameras.map { camera -> [String: Any] in
+            return [
+                "cameraType": camera.cameraType.rawValue,
+                "cameraDistance": camera.distance,
+                "cameraSpeed": camera.cameraSpeed
+            ]
+        }
+        
+        sendEvent([
+            "type": "cameraInfo",
+            "cameras": cameraList
+        ])
+    }
+    
+    /// 服务区信息更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, update serviceAreaInfos: [AMapNaviServiceAreaInfo]?) {
+        guard let areas = serviceAreaInfos, !areas.isEmpty else { return }
+        
+        let areaList = areas.map { area -> [String: Any] in
+            return [
+                "areaType": area.type, // 0服务区,1收费站,2检查站
+                "remainDistance": area.remainDistance,
+                "name": area.name ?? ""
+            ]
+        }
+        
+        sendEvent([
+            "type": "serviceAreaInfo",
+            "areas": areaList
+        ])
+    }
+    
+    /// 转向图标更新回调
+    func driveManager(_ driveManager: AMapNaviDriveManager, updateTurnIconImage turnIconImage: UIImage?, turn turnIconType: AMapNaviIconType) {
+        print("[AMapNaviDelegate-Data] updateTurnIconImage: type=\(turnIconType.rawValue)")
+        
+        var payload: [String: Any?] = [
+            "type": "turnIconUpdate",
+            "iconType": turnIconType.rawValue
+        ]
+        
+        if let image = turnIconImage, let pngData = imageToPngData(image) {
+            payload["iconData"] = pngData
+        }
+        
+        sendEvent(payload)
     }
 }
 
@@ -392,6 +498,8 @@ extension AMapNaviDelegate: AMapNaviWalkManagerDelegate {
             "errorCode": 0,
             "errorDescription": ""
         ])
+        // 通知 ViewController 路线计算成功
+        onRouteCalculateSuccess?()
     }
     
     /// 步行路径规划失败
@@ -512,6 +620,8 @@ extension AMapNaviDelegate: AMapNaviRideManagerDelegate {
             "errorCode": 0,
             "errorDescription": ""
         ])
+        // 通知 ViewController 路线计算成功
+        onRouteCalculateSuccess?()
     }
     
     /// 骑行路径规划失败
