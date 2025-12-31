@@ -18,13 +18,13 @@ class _NavigationPageState extends State<NavigationPage> {
   NaviType _naviType = NaviType.driver;
   NaviPageType _pageType = NaviPageType.route;
 
-  // 目的地坐标（示例：重庆茶园）
+  // 目的地坐标（示例：重庆茶园） 106.489462,29.437589
   final TextEditingController _latController =
-      TextEditingController(text: '29.497403');
+      TextEditingController(text: '29.437589');
   final TextEditingController _lngController =
-      TextEditingController(text: '106.651138');
+      TextEditingController(text: '106.489462');
   final TextEditingController _nameController =
-      TextEditingController(text: '重庆茶园');
+      TextEditingController(text: '春晖十里');
   final TextEditingController _carNumberController = TextEditingController();
 
   // 导航状态

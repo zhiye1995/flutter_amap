@@ -14,8 +14,17 @@ class AMapNaviApi: NSObject {
     private var eventChannel: FlutterEventChannel?
     private var naviDelegate: AMapNaviDelegate?
     
-    /// 组合导航管理器（直接使用，不需要中间的ViewController）
+    /// 组合导航管理器（驾车导航使用）
     private var compositeManager: AMapNaviCompositeManager?
+    
+    /// 步行导航视图控制器
+    private var walkNaviVC: AMapNaviWalkRideViewController?
+    
+    /// 骑行导航视图控制器
+    private var rideNaviVC: AMapNaviWalkRideViewController?
+    
+    /// 当前导航类型
+    private var currentNaviType: AMapNaviType = .driver
     
     private weak var registrar: FlutterPluginRegistrar?
     
@@ -113,11 +122,61 @@ class AMapNaviApi: NSObject {
         }
         
         // 导航类型和页面类型
+        let naviType = AMapNaviType(rawValue: naviTypeIndex) ?? .driver
         let pageType = AMapNaviPageType(rawValue: pageTypeIndex) ?? .route
+        
+        // 保存当前导航类型
+        self.currentNaviType = naviType
         
         print("[AMapNaviApi] startNavigation: naviType=\(naviTypeIndex), pageType=\(pageType), start=\(String(describing: startPoint)), end=\(endPoint), wayPoints=\(wayPoints.count)")
         
-        // 直接启动组合导航
+        // 根据导航类型选择不同的导航方式
+        switch naviType {
+        case .driver:
+            // 驾车导航 - 使用 AMapNaviCompositeManager
+            startDriveNavigation(
+                startPoint: startPoint,
+                startName: startName,
+                endPoint: endPoint,
+                endName: endName,
+                wayPoints: wayPoints,
+                carNumber: carNumber,
+                pageType: pageType,
+                result: result
+            )
+        case .walk:
+            // 步行导航 - 使用 AMapNaviWalkManager
+            startWalkNavigation(
+                startPoint: startPoint,
+                endPoint: endPoint,
+                endName: endName,
+                pageType: pageType,
+                result: result
+            )
+        case .ride:
+            // 骑行导航 - 使用 AMapNaviRideManager
+            startRideNavigation(
+                startPoint: startPoint,
+                endPoint: endPoint,
+                endName: endName,
+                pageType: pageType,
+                result: result
+            )
+        }
+    }
+    
+    // MARK: - 驾车导航
+    
+    private func startDriveNavigation(
+        startPoint: AMapNaviPoint?,
+        startName: String,
+        endPoint: AMapNaviPoint,
+        endName: String,
+        wayPoints: [AMapNaviPoint],
+        carNumber: String?,
+        pageType: AMapNaviPageType,
+        result: @escaping FlutterResult
+    ) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
                 result(FlutterError(code: "INTERNAL_ERROR", message: "内部错误", details: nil))
@@ -205,18 +264,186 @@ class AMapNaviApi: NSObject {
         }
     }
     
+    // MARK: - 步行导航
+    
+    private func startWalkNavigation(
+        startPoint: AMapNaviPoint?,
+        endPoint: AMapNaviPoint,
+        endName: String,
+        pageType: AMapNaviPageType,
+        result: @escaping FlutterResult
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                result(FlutterError(code: "INTERNAL_ERROR", message: "内部错误", details: nil))
+                return
+            }
+            
+            // 获取步行导航管理器
+            let walkManager = AMapNaviWalkManager.sharedInstance()
+            walkManager.delegate = self.naviDelegate
+            
+            // 发送初始化成功事件
+            self.naviDelegate?.sendEvent(["type": "initSuccess"])
+            
+            // 设置路线计算成功回调
+            self.naviDelegate?.onRouteCalculateSuccess = { [weak self] in
+                guard let self = self else { return }
+                self.presentWalkRideNaviVC(naviType: .walk, endName: endName, pageType: pageType)
+            }
+            
+            // 计算步行路线（步行导航只支持单起点单终点）
+            print("[AMapNaviApi] 计算步行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
+            if let start = startPoint {
+                walkManager.calculateWalkRoute(withStart: [start], end: [endPoint])
+            } else {
+                // 无起点时使用当前位置
+                walkManager.calculateWalkRoute(withEnd: [endPoint])
+            }
+            
+            result(nil)
+        }
+    }
+    
+    // MARK: - 骑行导航
+    
+    private func startRideNavigation(
+        startPoint: AMapNaviPoint?,
+        endPoint: AMapNaviPoint,
+        endName: String,
+        pageType: AMapNaviPageType,
+        result: @escaping FlutterResult
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                result(FlutterError(code: "INTERNAL_ERROR", message: "内部错误", details: nil))
+                return
+            }
+            
+            // 获取骑行导航管理器
+            let rideManager = AMapNaviRideManager.sharedInstance()
+            rideManager.delegate = self.naviDelegate
+            
+            // 发送初始化成功事件
+            self.naviDelegate?.sendEvent(["type": "initSuccess"])
+            
+            // 设置路线计算成功回调
+            self.naviDelegate?.onRouteCalculateSuccess = { [weak self] in
+                guard let self = self else { return }
+                self.presentWalkRideNaviVC(naviType: .ride, endName: endName, pageType: pageType)
+            }
+            
+            // 计算骑行路线（骑行导航只支持单起点单终点）
+            print("[AMapNaviApi] 计算骑行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
+            if let start = startPoint {
+                rideManager.calculateRideRoute(withStart: start, end: endPoint)
+            } else {
+                // 无起点时使用当前位置
+                rideManager.calculateRideRoute(withEnd: endPoint)
+            }
+            
+            result(nil)
+        }
+    }
+    
+    // MARK: - 展示步行/骑行导航视图
+    
+    private func presentWalkRideNaviVC(naviType: AMapNaviType, endName: String, pageType: AMapNaviPageType) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // 获取当前的 ViewController
+            guard let rootVC = UIApplication.shared.keyWindow?.rootViewController else {
+                print("[AMapNaviApi] 无法获取 rootViewController")
+                return
+            }
+            
+            // 找到最顶层的 ViewController
+            var topVC = rootVC
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            
+            // 创建步行/骑行导航视图控制器
+            let naviVC = AMapNaviWalkRideViewController(
+                naviType: naviType,
+                endName: endName,
+                pageType: pageType,
+                naviDelegate: self.naviDelegate
+            )
+            naviVC.modalPresentationStyle = .fullScreen
+            naviVC.onDismiss = { [weak self] in
+                self?.handleWalkRideNaviDismiss()
+            }
+            
+            // 保存引用
+            if naviType == .walk {
+                self.walkNaviVC = naviVC
+            } else {
+                self.rideNaviVC = naviVC
+            }
+            
+            // 展示导航视图
+            topVC.present(naviVC, animated: true)
+        }
+    }
+    
+    private func handleWalkRideNaviDismiss() {
+        // 发送退出事件
+        naviDelegate?.sendEvent([
+            "type": "exitPage",
+            "exitCode": 0
+        ])
+        
+        // 清理资源
+        walkNaviVC = nil
+        rideNaviVC = nil
+        naviDelegate?.onRouteCalculateSuccess = nil
+        
+        // 清理管理器
+        AMapNaviWalkManager.sharedInstance().delegate = nil
+        AMapNaviRideManager.sharedInstance().delegate = nil
+    }
+    
     private func stopNavigation(result: @escaping FlutterResult) {
         DispatchQueue.main.async { [weak self] in
-            self?.compositeManager?.dismissWith(animated: true)
-            self?.compositeManager?.delegate = nil
-            self?.compositeManager = nil
-            
-            // 清理 DriveManager 的代理和数据代理
-            let driveManager = AMapNaviDriveManager.sharedInstance()
-            if let delegate = self?.naviDelegate {
-                driveManager.removeDataRepresentative(delegate)
+            guard let self = self else {
+                result(nil)
+                return
             }
-            driveManager.delegate = nil
+            
+            // 根据当前导航类型清理对应的资源
+            switch self.currentNaviType {
+            case .driver:
+                // 清理驾车导航
+                self.compositeManager?.dismissWith(animated: true)
+                self.compositeManager?.delegate = nil
+                self.compositeManager = nil
+                
+                // 清理 DriveManager 的代理和数据代理
+                let driveManager = AMapNaviDriveManager.sharedInstance()
+                if let delegate = self.naviDelegate {
+                    driveManager.removeDataRepresentative(delegate)
+                }
+                driveManager.delegate = nil
+                
+            case .walk:
+                // 清理步行导航
+                self.walkNaviVC?.dismiss(animated: true)
+                self.walkNaviVC = nil
+                AMapNaviWalkManager.sharedInstance().stopNavi()
+                AMapNaviWalkManager.sharedInstance().delegate = nil
+                
+            case .ride:
+                // 清理骑行导航
+                self.rideNaviVC?.dismiss(animated: true)
+                self.rideNaviVC = nil
+                AMapNaviRideManager.sharedInstance().stopNavi()
+                AMapNaviRideManager.sharedInstance().delegate = nil
+            }
+            
+            // 清理回调
+            self.naviDelegate?.onRouteCalculateSuccess = nil
             
             // 销毁导航管理器
             AMapNaviDriveManager.destroyInstance()

@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AMapApiKey</key>
+	<string>14cf569c80ddc89d84513331ed8c5164</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -31,25 +33,18 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-
-
-	<key>AMapApiKey</key>
-    <string>14cf569c80ddc89d84513331ed8c5164</string>
-
-    <!-- 若需要后台定位 -->
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>需要持续获取您的位置</string>
-
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>location</string>
-    </array>
-
-
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>需要持续获取您的位置</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>需要访问您的位置以在地图上显示当前位置</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>audio</string>
+		<string>bluetooth-central</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

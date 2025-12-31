@@ -1,10 +1,13 @@
 PODS:
   - amap_flutter (0.0.1):
     - AMapNavi
+    - AMapSearch
     - Flutter
   - AMapFoundation (1.8.2)
   - AMapNavi (10.1.600):
     - AMapFoundation (>= 1.8.2)
+  - AMapSearch (9.7.4):
+    - AMapFoundation (>= 1.8.0)
   - Flutter (1.0.0)
   - integration_test (0.0.1):
     - Flutter
@@ -21,6 +24,7 @@ SPEC REPOS:
   trunk:
     - AMapFoundation
     - AMapNavi
+    - AMapSearch
 
 EXTERNAL SOURCES:
   amap_flutter:
@@ -33,9 +37,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
 
 SPEC CHECKSUMS:
-  amap_flutter: 7a72b55e41cbced389635df589a4ed9a46eeb7b1
+  amap_flutter: eba535629f2dcd41f1d43b6867f8e3af96ed2b64
   AMapFoundation: 9885c48fc3a78fdfb84a0299a2293e56ea3c9fec
   AMapNavi: 86bc5bd0100d2fb6a705d608c06b7e1299bd4d56
+  AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
