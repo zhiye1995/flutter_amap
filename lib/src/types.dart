@@ -1381,7 +1381,7 @@ class NaviInfo {
     this.raw,
   });
 
-  /// 转向图标类型
+  /// 转向图标类型    https://a.amap.com/lbs/static/unzip/Android_Navi_Doc/com/amap/api/navi/enums/IconType.html
   final int iconType;
 
   /// 当前路段剩余距离（米）

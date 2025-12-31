@@ -163,7 +163,6 @@ class _AppState extends State<App> {
 
 /// 示例项目
 class Item extends StatelessWidget {
-
   /// 示例标题
   final String title;
 
