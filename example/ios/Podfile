@@ -28,9 +28,7 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # AMap 等 SDK 常见是“vendored 静态 framework/库”，若用默认的动态 frameworks 方式，
-  # 容易在链接阶段出现大量 duplicate symbols。这里改为静态链接的 frameworks。
-  use_frameworks! :linkage => :static
+  use_frameworks!
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
