@@ -42,7 +42,7 @@ class _AppState extends State<App> {
   Future<void> _bootstrap() async {
     await AMapFlutter.init(
       apiKey: ApiKey(
-        iosKey: "a4a1394fe817c2f86a424b897b4a9af4",
+        iosKey: "14cf569c80ddc89d84513331ed8c5164",
         androidKey: "fddb0c469571c9686915aade4e2a7a18",
         webKey: "fc9908dc4103f3d8274070bb34ab37af",
       ),
@@ -55,11 +55,13 @@ class _AppState extends State<App> {
 
   Future<void> requestLocationPermission() async {
     final status = await Permission.location.status;
+    // 已授权，直接返回
     if (status.isGranted) return;
-    final result = await Permission.location.request();
-    if (result.isPermanentlyDenied) {
-      await openAppSettings();
-    }
+    // 如果已经是永久拒绝状态，不要自动跳转设置页面
+    // 避免每次启动都打开设置页面，应该让用户主动触发
+    if (status.isPermanentlyDenied) return;
+    // 首次请求权限
+    await Permission.location.request();
   }
 
   @override

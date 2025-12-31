@@ -13,7 +13,9 @@ class AMapNaviApi: NSObject {
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var naviDelegate: AMapNaviDelegate?
-    private var naviViewController: AMapNaviViewController?
+    
+    /// 组合导航管理器（直接使用，不需要中间的ViewController）
+    private var compositeManager: AMapNaviCompositeManager?
     
     private weak var registrar: FlutterPluginRegistrar?
     
@@ -72,11 +74,11 @@ class AMapNaviApi: NSObject {
         
         let startLat = arguments["startLat"] as? Double
         let startLng = arguments["startLng"] as? Double
-        let startName = arguments["startName"] as? String
+        let startName = arguments["startName"] as? String ?? "起点"
         
         let endLat = arguments["endLat"] as? Double
         let endLng = arguments["endLng"] as? Double
-        let endName = arguments["endName"] as? String
+        let endName = arguments["endName"] as? String ?? "终点"
         
         let wayPointsList = arguments["wayPoints"] as? [[String: Any]]
         
@@ -92,6 +94,11 @@ class AMapNaviApi: NSObject {
             endPoint = AMapNaviPoint.location(withLatitude: CGFloat(lat), longitude: CGFloat(lng))
         }
         
+        guard let endPoint = endPoint else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "终点不能为空", details: nil))
+            return
+        }
+        
         // 构建途经点
         var wayPoints: [AMapNaviPoint] = []
         if let wayPointsList = wayPointsList {
@@ -105,41 +112,94 @@ class AMapNaviApi: NSObject {
             }
         }
         
-        // 导航类型
-        let naviType = AMapNaviType(rawValue: naviTypeIndex) ?? .driver
+        // 导航类型和页面类型
         let pageType = AMapNaviPageType(rawValue: pageTypeIndex) ?? .route
         
-        print("[AMapNaviApi] startNavigation: naviType=\(naviType), pageType=\(pageType), start=\(String(describing: startPoint)), end=\(String(describing: endPoint)), wayPoints=\(wayPoints.count)")
+        print("[AMapNaviApi] startNavigation: naviType=\(naviTypeIndex), pageType=\(pageType), start=\(String(describing: startPoint)), end=\(endPoint), wayPoints=\(wayPoints.count)")
         
-        // 创建导航视图控制器
-        let naviVC = AMapNaviViewController()
-        naviVC.naviType = naviType
-        naviVC.pageType = pageType
-        naviVC.startPoint = startPoint
-        naviVC.endPoint = endPoint
-        naviVC.wayPoints = wayPoints
-        naviVC.carNumber = carNumber
-        naviVC.naviDelegate = naviDelegate
-        naviVC.modalPresentationStyle = .fullScreen
-        
-        naviVC.onExit = { [weak self] exitCode in
-            self?.naviViewController = nil
-        }
-        
-        naviViewController = naviVC
-        
-        // 获取当前视图控制器并展示导航页面
+        // 直接启动组合导航
         DispatchQueue.main.async { [weak self] in
-            guard let topVC = self?.topViewController() else {
-                result(FlutterError(code: "NO_VIEW_CONTROLLER", message: "无法获取当前视图控制器", details: nil))
+            guard let self = self else {
+                result(FlutterError(code: "INTERNAL_ERROR", message: "内部错误", details: nil))
                 return
             }
             
-            if let navigationController = topVC.navigationController {
-                navigationController.pushViewController(naviVC, animated: true)
-            } else {
-                topVC.present(naviVC, animated: true)
+            // 创建组合导航管理器
+            self.compositeManager = AMapNaviCompositeManager()
+            self.compositeManager?.delegate = self
+            
+            // 同时设置 AMapNaviDriveManager 的代理来获取导航事件和数据
+            // AMapNaviCompositeManager 内部使用了 AMapNaviDriveManager 单例
+            // 但 CompositeManagerDelegate 没有导航信息更新（navInfo）回调
+            // 
+            // 高德SDK有两套回调协议：
+            // - AMapNaviDriveManagerDelegate: 事件回调（通过 delegate 设置）
+            // - AMapNaviDriveDataRepresentable: 数据回调（通过 addDataRepresentative 注册）
+            //
+            // 需要同时设置两者才能获取完整的导航信息
+            let driveManager = AMapNaviDriveManager.sharedInstance()
+            driveManager.delegate = self.naviDelegate
+            
+            // 注册数据代理以获取 NaviInfo、定位信息、电子眼信息等实时数据
+            if let delegate = self.naviDelegate {
+                driveManager.addDataRepresentative(delegate)
             }
+            
+            // 创建导航配置
+            let config = AMapNaviCompositeUserConfig()
+            
+            // 设置起点（如果有）
+            if let start = startPoint {
+                let _ = config.setRoutePlanPOIType(
+                    .start,
+                    location: start,
+                    name: startName,
+                    poiId: nil
+                )
+            }
+            
+            // 设置终点
+            let _ = config.setRoutePlanPOIType(
+                .end,
+                location: endPoint,
+                name: endName,
+                poiId: nil
+            )
+            
+            // 设置途经点（最多支持3个）
+            for (index, wayPoint) in wayPoints.prefix(3).enumerated() {
+                let _ = config.setRoutePlanPOIType(
+                    .way,
+                    location: wayPoint,
+                    name: "途经点\(index + 1)",
+                    poiId: nil
+                )
+            }
+            
+            // 设置车辆信息（如果有车牌号）
+            if let carNumber = carNumber, !carNumber.isEmpty {
+                let vehicleInfo = AMapNaviVehicleInfo()
+                vehicleInfo.vehicleId = carNumber
+                config.setVehicleInfo(vehicleInfo)
+            }
+            
+            // 根据页面类型设置是否直接开始导航
+            if pageType == .navi {
+                // 直接导航模式：跳过路线规划页面，直接开始导航
+                config.setStartNaviDirectly(true)
+            } else {
+                // 路线规划模式：显示路线规划页面
+                config.setStartNaviDirectly(false)
+            }
+            
+            // 设置多路线模式（推荐多条路线）
+            config.setMultipleRouteNaviMode(true)
+            
+            // 发送初始化成功事件
+            self.naviDelegate?.sendEvent(["type": "initSuccess"])
+            
+            // 启动组合导航（AMapNaviCompositeManager会自动管理界面展示）
+            self.compositeManager?.presentRoutePlanViewController(withOptions: config)
             
             result(nil)
         }
@@ -147,17 +207,16 @@ class AMapNaviApi: NSObject {
     
     private func stopNavigation(result: @escaping FlutterResult) {
         DispatchQueue.main.async { [weak self] in
-            self?.naviViewController?.stopNavigation()
+            self?.compositeManager?.dismissWith(animated: true)
+            self?.compositeManager?.delegate = nil
+            self?.compositeManager = nil
             
-            if let naviVC = self?.naviViewController {
-                if let navigationController = naviVC.navigationController {
-                    navigationController.popViewController(animated: true)
-                } else {
-                    naviVC.dismiss(animated: true)
-                }
+            // 清理 DriveManager 的代理和数据代理
+            let driveManager = AMapNaviDriveManager.sharedInstance()
+            if let delegate = self?.naviDelegate {
+                driveManager.removeDataRepresentative(delegate)
             }
-            
-            self?.naviViewController = nil
+            driveManager.delegate = nil
             
             // 销毁导航管理器
             AMapNaviDriveManager.destroyInstance()
@@ -171,7 +230,7 @@ class AMapNaviApi: NSObject {
     // MARK: - Privacy
     
     private func updatePrivacy() {
-        // 注意：不同版本 AMapNaviKit 的“隐私合规”API 名称可能不同。
+        // 注意：不同版本 AMapNaviKit 的"隐私合规"API 名称可能不同。
         // 这里用运行时反射方式调用，避免因缺少 API 导致编译失败。
         //
         // 地图侧隐私合规已在 AMapSdkApi.swift 通过 MAMapView.updatePrivacy... 处理；
@@ -213,34 +272,142 @@ class AMapNaviApi: NSObject {
             }
         }
     }
+}
+
+// MARK: - AMapNaviCompositeManagerDelegate
+extension AMapNaviApi: AMapNaviCompositeManagerDelegate {
     
-    // MARK: - Utilities
-    
-    private func topViewController() -> UIViewController? {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
-              let rootViewController = window.rootViewController else {
-            return nil
-        }
-        
-        return topViewController(from: rootViewController)
+    /// 发生错误时回调
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, error: Error) {
+        print("[AMapNaviApi] compositeManager error: \(error.localizedDescription)")
+        let nsError = error as NSError
+        naviDelegate?.sendEvent([
+            "type": "error",
+            "errorCode": nsError.code,
+            "errorDescription": error.localizedDescription
+        ])
     }
     
-    private func topViewController(from viewController: UIViewController) -> UIViewController {
-        if let presented = viewController.presentedViewController {
-            return topViewController(from: presented)
+    /// 路线规划成功
+    func compositeManager(onCalculateRouteSuccess compositeManager: AMapNaviCompositeManager) {
+        print("[AMapNaviApi] onCalculateRouteSuccess")
+        let routeIds = compositeManager.naviRouteIDs?.map { $0.intValue } ?? [0]
+        naviDelegate?.sendEvent([
+            "type": "calculateRouteSuccess",
+            "routeIds": routeIds,
+            "errorCode": 0,
+            "errorDescription": ""
+        ])
+    }
+    
+    /// 路线规划成功（带类型）
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, onCalculateRouteSuccessWith type: AMapNaviRoutePlanType) {
+        print("[AMapNaviApi] onCalculateRouteSuccessWithType: \(type.rawValue)")
+        let routeIds = compositeManager.naviRouteIDs?.map { $0.intValue } ?? [0]
+        naviDelegate?.sendEvent([
+            "type": "calculateRouteSuccess",
+            "routeIds": routeIds,
+            "routePlanType": type.rawValue,
+            "errorCode": 0,
+            "errorDescription": ""
+        ])
+    }
+    
+    /// 路线规划失败
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, onCalculateRouteFailure error: Error) {
+        print("[AMapNaviApi] onCalculateRouteFailure: \(error.localizedDescription)")
+        let nsError = error as NSError
+        naviDelegate?.sendEvent([
+            "type": "calculateRouteFailure",
+            "errorCode": nsError.code,
+            "errorDescription": error.localizedDescription
+        ])
+    }
+    
+    /// 开始导航
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, didStartNavi naviMode: AMapNaviMode) {
+        print("[AMapNaviApi] didStartNavi: \(naviMode.rawValue)")
+        let type = naviMode == .GPS ? 1 : 2
+        naviDelegate?.sendEvent([
+            "type": "startNavi",
+            "naviType": type
+        ])
+    }
+    
+    /// 到达目的地
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, didArrivedDestination naviMode: AMapNaviMode) {
+        print("[AMapNaviApi] didArrivedDestination")
+        naviDelegate?.sendEvent(["type": "arriveDestination"])
+    }
+    
+    /// 导航组件页面回退或退出
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, didBackwardAction backwardActionType: AMapNaviCompositeVCBackwardActionType) {
+        print("[AMapNaviApi] didBackwardAction: \(backwardActionType.rawValue)")
+        
+        var exitCode = 0
+        switch backwardActionType {
+        case .dismiss:
+            exitCode = 0  // 退出整个导航组件
+        case .naviPop:
+            exitCode = 1  // 退出导航界面
+        @unknown default:
+            exitCode = 0
         }
         
-        if let navigation = viewController as? UINavigationController,
-           let visible = navigation.visibleViewController {
-            return topViewController(from: visible)
-        }
+        // 发送退出事件
+        naviDelegate?.sendEvent([
+            "type": "exitPage",
+            "exitCode": exitCode
+        ])
         
-        if let tab = viewController as? UITabBarController,
-           let selected = tab.selectedViewController {
-            return topViewController(from: selected)
+        // 清理资源
+        if backwardActionType == .dismiss {
+            self.compositeManager?.delegate = nil
+            self.compositeManager = nil
+            // 清理 DriveManager 的代理和数据代理
+            let driveManager = AMapNaviDriveManager.sharedInstance()
+            if let delegate = self.naviDelegate {
+                driveManager.removeDataRepresentative(delegate)
+            }
+            driveManager.delegate = nil
         }
+    }
+    
+    /// 当前位置更新
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, update naviLocation: AMapNaviLocation?) {
+        guard let location = naviLocation else { return }
         
-        return viewController
+        naviDelegate?.sendEvent([
+            "type": "locationChange",
+            "latitude": location.coordinate.latitude,
+            "longitude": location.coordinate.longitude,
+            "bearing": location.heading,
+            "roadBearing": location.heading,
+            "speed": location.speed,
+            "accuracy": location.accuracy,
+            "altitude": location.altitude,
+            "time": Int(Date().timeIntervalSince1970 * 1000),
+            "matchStatus": 0,
+            "locationDataType": 0,
+            "locationType": 0,
+            "curStepIndex": location.currentSegmentIndex,
+            "curLinkIndex": location.currentLinkIndex,
+            "curPointIndex": location.currentPointIndex,
+            "raw": "\(location)"
+        ])
+    }
+    
+    // 注意：不要实现 compositeManager(_:playNaviSound:soundStringType:) 方法
+    // 如果实现了这个方法，SDK会认为你要自定义语音播报，而不是使用内置语音
+    // 不实现这个方法，SDK会自动使用内置的TTS语音播报导航指引
+    
+    /// 到达途经点
+    func compositeManager(_ compositeManager: AMapNaviCompositeManager, onArrivedWayPoint wayPointIndex: Int32) {
+        print("[AMapNaviApi] onArrivedWayPoint: \(wayPointIndex)")
+        naviDelegate?.sendEvent([
+            "type": "arrivedWayPoint",
+            "wayPointIndex": Int(wayPointIndex)
+        ])
     }
 }
 
@@ -259,4 +426,3 @@ extension AMapNaviApi: FlutterStreamHandler {
         return nil
     }
 }
-

@@ -48,9 +48,17 @@ class _NavigationPageState extends State<NavigationPage> {
         setState(() {
           _lastNaviInfo = event.naviInfo;
         });
-        _addLog('导航信息: 剩余${event.naviInfo.pathRetainDistance}米, '
-            '预计${_formatTime(event.naviInfo.pathRetainTime)}, '
-            '下一路段: ${event.naviInfo.nextRoadName}');
+        final info = event.naviInfo;
+        _addLog('========================================= \n'
+            '📍 导航信息更新:\n'
+            '  当前道路: ${info.currentRoadName ?? "未知"}\n'
+            '  下一路段: ${info.nextRoadName}\n'
+            '  转向类型: ${_getIconTypeName(info.iconType)}\n'
+            '  当前路段剩余: ${_formatDistance(info.curStepRetainDistance)} / ${_formatTime(info.curStepRetainTime ?? 0)}\n'
+            '  全程剩余: ${_formatDistance(info.pathRetainDistance)} / ${_formatTime(info.pathRetainTime)}\n'
+            '  红绿灯: ${info.routeRemainLightCount ?? 0}个\n'
+            '  进度: Step=${info.curStep ?? 0}, Link=${info.curLink ?? 0}, Point=${info.curPoint ?? 0}\n'
+            '==========================================');
       }),
     );
 
@@ -60,6 +68,10 @@ class _NavigationPageState extends State<NavigationPage> {
         setState(() {
           _lastNaviLocation = event.location;
         });
+        // _addLog('定位更新: '
+        //     '坐标(${event.location.position.latitude.toStringAsFixed(6)}, '
+        //     '${event.location.position.longitude.toStringAsFixed(6)}), '
+        //     '速度: ${_formatSpeed(event.location.speed)}');
       }),
     );
 
@@ -181,6 +193,39 @@ class _NavigationPageState extends State<NavigationPage> {
   String _formatSpeed(double? kmh) {
     if (kmh == null) return '未知';
     return '${kmh.toStringAsFixed(1)} km/h';
+  }
+
+  /// 获取转向图标类型名称
+  String _getIconTypeName(int iconType) {
+    const iconTypeNames = {
+      0: '未知',
+      1: '直行',
+      2: '左转',
+      3: '右转',
+      4: '左前方',
+      5: '右前方',
+      6: '左后方',
+      7: '右后方',
+      8: '左转掉头',
+      9: '右转掉头',
+      10: '靠左',
+      11: '靠右',
+      12: '到达途经点',
+      13: '到达服务区',
+      14: '进入环岛',
+      15: '驶出环岛',
+      16: '到达目的地',
+      17: '进入隧道',
+      18: '进入高速',
+      19: '驶入服务区',
+      20: '驶入收费站',
+      21: '驶入检查站',
+      22: '进入主路',
+      23: '进入辅路',
+      24: '左转45度',
+      25: '右转45度',
+    };
+    return iconTypeNames[iconType] ?? '类型$iconType';
   }
 
   String _formatMs(int? ms) {
