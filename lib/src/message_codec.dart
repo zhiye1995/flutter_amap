@@ -1,4 +1,4 @@
-import 'package:amap_flutter/amap_flutter.dart';
+import 'package:flutter_amap/amap_flutter.dart';
 import 'package:flutter/services.dart';
 
 class AMapApiCodec extends StandardMessageCodec {

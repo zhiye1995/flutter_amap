@@ -1,7 +1,7 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
-import 'package:amap_flutter/amap_flutter.dart';
+import 'package:flutter_amap/amap_flutter.dart';
 
 import 'js/js.dart';
 import 'utils.dart';

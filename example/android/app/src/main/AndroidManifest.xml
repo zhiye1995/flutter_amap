@@ -1,41 +1,60 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--如果设置了target >= 28 如果需要启动后台定位则必须声明这个权限-->
+  <!--  &lt;!&ndash;如果设置了target >= 28 如果需要启动后台定位则必须声明这个权限&ndash;&gt;
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <!--如果您的应用需要后台定位权限，且有可能运行在Android Q设备上,并且设置了target>28，必须增加这个权限声明-->
+    &lt;!&ndash;如果您的应用需要后台定位权限，且有可能运行在Android Q设备上,并且设置了target>28，必须增加这个权限声明&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-    <!--允许程序请求网络-->
+    &lt;!&ndash;允许程序请求网络&ndash;&gt;
     <uses-permission android:name="android.permission.INTERNET" />
-    <!--写入扩展存储，向扩展卡写入数据，用于写入缓存定位数据-->
+    &lt;!&ndash;写入扩展存储，向扩展卡写入数据，用于写入缓存定位数据&ndash;&gt;
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <!--读取缓存数据-->
+    &lt;!&ndash;读取缓存数据&ndash;&gt;
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <!--用于读取手机当前的状态-->
+    &lt;!&ndash;用于读取手机当前的状态&ndash;&gt;
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <!--获取运营商信息，用于支持提供运营商信息相关的接口-->
+    &lt;!&ndash;获取运营商信息，用于支持提供运营商信息相关的接口&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <!--用于访问wifi网络信息，wifi信息会用于进行网络定位-->
+    &lt;!&ndash;用于访问wifi网络信息，wifi信息会用于进行网络定位&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <!--允许程序访问CellID或WiFi热点来获取粗略的位置-->
+    &lt;!&ndash;允许程序访问CellID或WiFi热点来获取粗略的位置&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!--用于访问GPS定位-->
+    &lt;!&ndash;用于访问GPS定位&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <!--用于提高GPS定位速度-->
+    &lt;!&ndash;用于提高GPS定位速度&ndash;&gt;
     <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS"/>
-    <!-- 可以提高室内定位的精确度 -->
+    &lt;!&ndash; 可以提高室内定位的精确度 &ndash;&gt;
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <!-- 可以提高室内定位的精确度 -->
+    &lt;!&ndash; 可以提高室内定位的精确度 &ndash;&gt;
     <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <!--用于导航状态中保持屏幕常亮-->
+    &lt;!&ndash;用于导航状态中保持屏幕常亮&ndash;&gt;
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <!--用于蓝牙扫描-->
+    &lt;!&ndash;用于蓝牙扫描&ndash;&gt;
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation"/>
-    <!--用于蓝牙连接-->
+    &lt;!&ndash;用于蓝牙连接&ndash;&gt;
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-    <!--用于蓝牙广播-->
+    &lt;!&ndash;用于蓝牙广播&ndash;&gt;
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
-    <!--允许获取wifi状态改变，用于网络定位-->
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    &lt;!&ndash;允许获取wifi状态改变，用于网络定位&ndash;&gt;
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>-->
+
+
+    <!-- 允许程序请求网络，用于访问互联网资源 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 允许程序访问CellID或WiFi热点来获取粗略的位置，用于网络定位 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 获取运营商信息和网络状态，用于支持提供运营商信息相关的接口 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 用于访问GPS定位，获取精确的地理位置信息 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- 允许获取wifi状态改变，用于网络定位 -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- 用于访问wifi网络信息，wifi信息会用于进行网络定位 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- 用于导航状态中保持屏幕常亮，防止设备休眠 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
 
     <application
         android:label="amap_flutter_example"
@@ -69,16 +88,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <service android:name="com.amap.api.location.APSService"></service>
-        
-        <!-- 高德导航路线规划页面 -->
-        <activity
-            android:name="com.amap.api.navi.AmapRouteActivity"
-            android:theme="@android:style/Theme.NoTitleBar"
-            android:configChanges="orientation|keyboardHidden|screenSize|navigation"/>
+
         <meta-data
                 android:name="com.amap.api.v2.apikey"
                 android:value="fddb0c469571c9686915aade4e2a7a18"/>
-
 
     </application>
     <!-- Required to query activities that can process text, see:

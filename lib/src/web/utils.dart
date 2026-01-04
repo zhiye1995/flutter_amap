@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:js_interop';
 
-import "package:amap_flutter/amap_flutter.dart";
+import "package:flutter_amap/amap_flutter.dart";
 import 'package:latlong2/latlong.dart';
 
 import 'js/js.dart' as js;

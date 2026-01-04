@@ -44,6 +44,8 @@ android {
 
     defaultConfig {
         minSdk = 21
+        // 将高德 SDK 的混淆规则自动传递给集成方 App（App 开启 R8/ProGuard 时会生效）
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     lintOptions {
