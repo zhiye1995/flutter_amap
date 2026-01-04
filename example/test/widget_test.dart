@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:amap_flutter_example/main.dart';
+import 'package:flutter_amap_example/main.dart';
 
 void main() {
 }

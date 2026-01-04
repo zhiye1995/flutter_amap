@@ -1,9 +1,10 @@
-import 'package:amap_flutter/amap_flutter.dart';
-import 'package:amap_flutter_example/utils.dart';
+import 'package:flutter_amap/amap_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../utils.dart';
 
 /// 地图控件位置设置页面
 class MapControlsPositionPage extends StatefulWidget {

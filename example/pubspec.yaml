@@ -1,4 +1,4 @@
-name: amap_flutter_example
+name: flutter_amap_example
 description: Demonstrates how to use the amap_flutter plugin.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -21,7 +21,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  amap_flutter:
+  flutter_amap:
     # When depending on this package from a real application you should use:
     #   amap_flutter: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints

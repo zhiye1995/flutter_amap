@@ -1,5 +1,5 @@
-import 'package:amap_flutter/amap_flutter.dart';
-import 'package:amap_flutter_example/utils.dart';
+import 'package:flutter_amap/amap_flutter.dart';
+import 'package:flutter_amap_example/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
