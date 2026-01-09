@@ -7,18 +7,21 @@ import AMapFoundationKit
 class AMapSearchApi: NSObject {
     
     private static let SEARCH_METHOD_CHANNEL = "plugins.flutter.dev/amap_search"
-    
+    /// 静态实例，防止被 ARC 释放
+    private static var shared: AMapSearchApi?
+
     private var methodChannel: FlutterMethodChannel?
     private var searchAPI: AMapSearchAPI?
     
     /// 存储当前搜索回调
     private var inputTipsResult: FlutterResult?
-    
+
     // MARK: - Setup
     
     static func setup(registrar: FlutterPluginRegistrar) {
         let instance = AMapSearchApi()
-        
+        // 保持静态引用
+        shared = instance
         // 设置 MethodChannel
         instance.methodChannel = FlutterMethodChannel(
             name: SEARCH_METHOD_CHANNEL,
@@ -37,7 +40,7 @@ class AMapSearchApi: NSObject {
             searchAPI?.delegate = self
         }
     }
-    
+
     // MARK: - Method Call Handler
     
     private func handleMethodCall(call: FlutterMethodCall, result: @escaping FlutterResult) {

@@ -3,7 +3,7 @@
 # Run `pod lib lint amap_flutter.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'amap_flutter'
+  s.name             = 'flutter_amap'
   s.version          = '0.0.1'
   s.summary          = 'This is amap flutter plugin'
   s.description      = <<-DESC
