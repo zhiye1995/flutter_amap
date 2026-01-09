@@ -368,4 +368,25 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   }) {
     throw UnimplementedError('requestInputTips() has not been implemented.');
   }
+
+  /// 周边 POI 搜索
+  ///
+  /// [center] 搜索中心点坐标
+  /// [keywords] 搜索关键词（可选）
+  /// [types] POI 类型限制（多个类型用"|"分隔，可选）
+  /// [radius] 搜索半径，单位：米，默认 1000
+  /// [page] 页码，默认 1
+  /// [pageSize] 每页数量，默认 20
+  /// [city] 搜索城市（可选）
+  Future<List<PoiItem>> searchPOIAround({
+    required Position center,
+    String? keywords,
+    String? types,
+    int radius = 1000,
+    int page = 1,
+    int pageSize = 20,
+    String? city,
+  }) {
+    throw UnimplementedError('searchPOIAround() has not been implemented.');
+  }
 }

@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:ui" as ui;
 
 import "package:flutter_amap/src/message_codec.dart";
 import "package:flutter/foundation.dart";
@@ -17,3 +18,4 @@ part "src/types.dart";
 part 'src/types_extension.dart';
 part 'src/search.dart';
 part 'src/place_picker.dart';
+part 'src/map_place_picker.dart';

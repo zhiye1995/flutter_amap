@@ -701,4 +701,39 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
       return InputTip.decodeFromMap(map);
     }).toList();
   }
+
+  /// 周边 POI 搜索
+  @override
+  Future<List<PoiItem>> searchPOIAround({
+    required Position center,
+    String? keywords,
+    String? types,
+    int radius = 1000,
+    int page = 1,
+    int pageSize = 20,
+    String? city,
+  }) async {
+    final result = await _searchChannel.invokeMethod<List<dynamic>>(
+      'searchPOIAround',
+      <String, dynamic>{
+        'latitude': center.latitude,
+        'longitude': center.longitude,
+        'keywords': keywords ?? '',
+        'types': types ?? '',
+        'radius': radius,
+        'page': page,
+        'pageSize': pageSize,
+        'city': city ?? '',
+      },
+    );
+
+    if (result == null) {
+      return [];
+    }
+
+    return result.map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      return PoiItem.decodeFromMap(map);
+    }).toList();
+  }
 }

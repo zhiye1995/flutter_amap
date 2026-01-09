@@ -15,6 +15,7 @@ class AMapSearchApi: NSObject {
     
     /// 存储当前搜索回调
     private var inputTipsResult: FlutterResult?
+    private var poiAroundResult: FlutterResult?
 
     // MARK: - Setup
     
@@ -50,6 +51,8 @@ class AMapSearchApi: NSObject {
         switch call.method {
         case "requestInputTips":
             requestInputTips(call: call, result: result)
+        case "searchPOIAround":
+            searchPOIAround(call: call, result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -97,6 +100,53 @@ class AMapSearchApi: NSObject {
         // 发起搜索
         searchAPI?.aMapInputTipsSearch(request)
     }
+    
+    // MARK: - POI Around Search
+    
+    private func searchPOIAround(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        
+        guard let latitude = arguments["latitude"] as? Double,
+              let longitude = arguments["longitude"] as? Double else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "latitude and longitude are required", details: nil))
+            return
+        }
+        
+        let keywords = arguments["keywords"] as? String ?? ""
+        let types = arguments["types"] as? String
+        let radius = arguments["radius"] as? Int ?? 1000
+        let page = arguments["page"] as? Int ?? 1
+        let pageSize = arguments["pageSize"] as? Int ?? 20
+        let city = arguments["city"] as? String
+        
+        print("[AMapSearchApi] searchPOIAround: lat=\(latitude), lng=\(longitude), keywords=\(keywords), radius=\(radius)")
+        
+        // 创建周边搜索请求
+        let request = AMapPOIAroundSearchRequest()
+        request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+        request.keywords = keywords
+        request.radius = radius
+        request.page = page
+        request.offset = pageSize
+        request.sortrule = 0  // 按距离排序
+        
+        if let types = types, !types.isEmpty {
+            request.types = types
+        }
+        
+        if let city = city, !city.isEmpty {
+            request.city = city
+        }
+        
+        // 保存回调
+        self.poiAroundResult = result
+        
+        // 发起搜索
+        searchAPI?.aMapPOIAroundSearch(request)
+    }
 }
 
 // MARK: - AMapSearchDelegate
@@ -142,15 +192,64 @@ extension AMapSearchApi: AMapSearchDelegate {
     func aMapSearchRequest(_ request: Any!, didFailWithError error: Error!) {
         print("[AMapSearchApi] Search error: \(error?.localizedDescription ?? "unknown")")
         
+        let nsError = error as NSError
+        let flutterError = FlutterError(
+            code: "SEARCH_ERROR",
+            message: error?.localizedDescription ?? "Search failed",
+            details: nsError.code
+        )
+        
         if let result = inputTipsResult {
             inputTipsResult = nil
-            let nsError = error as NSError
-            result(FlutterError(
-                code: "SEARCH_ERROR",
-                message: error?.localizedDescription ?? "Search failed",
-                details: nsError.code
-            ))
+            result(flutterError)
         }
+        
+        if let result = poiAroundResult {
+            poiAroundResult = nil
+            result(flutterError)
+        }
+    }
+    
+    /// POI 周边搜索回调
+    func onPOISearchDone(_ request: AMapPOISearchBaseRequest!, response: AMapPOISearchResponse!) {
+        guard let result = poiAroundResult else { return }
+        poiAroundResult = nil
+        
+        guard let pois = response?.pois else {
+            result([])
+            return
+        }
+        
+        let poiList = pois.map { poi -> [String: Any?] in
+            var latitude: Double? = nil
+            var longitude: Double? = nil
+            
+            if let location = poi.location {
+                latitude = Double(location.latitude)
+                longitude = Double(location.longitude)
+            }
+            
+            return [
+                "poiId": poi.uid ?? "",
+                "name": poi.name ?? "",
+                "address": poi.address,
+                "latitude": latitude,
+                "longitude": longitude,
+                "typeName": poi.type,
+                "typeCode": poi.typecode,
+                "cityName": poi.city,
+                "cityCode": poi.citycode,
+                "adName": poi.district,
+                "adCode": poi.adcode,
+                "distance": poi.distance,
+                "tel": poi.tel,
+                "provinceName": poi.province,
+                "provinceCode": poi.pcode
+            ]
+        }
+        
+        print("[AMapSearchApi] onPOISearchDone: \(poiList.count) POIs")
+        result(poiList)
     }
 }
 

@@ -12,13 +12,13 @@ class PlacePickerPage extends StatefulWidget {
 }
 
 class _PlacePickerPageState extends State<PlacePickerPage> {
-  InputTip? _homeAddress;
-  InputTip? _companyAddress;
+  PoiItem? _homeAddress;
+  PoiItem? _companyAddress;
 
   Future<void> _selectHomeAddress() async {
-    final result = await AMapPlacePicker.show(
+    final result = await AMapMapPlacePicker.show(
       context,
-      config: const PlacePickerConfig(
+      config: const MapPlacePickerConfig(
         title: '选择家庭地址',
         hintText: '搜索小区、街道等',
       ),
@@ -32,9 +32,9 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   }
 
   Future<void> _selectCompanyAddress() async {
-    final result = await AMapPlacePicker.show(
+    final result = await AMapMapPlacePicker.show(
       context,
-      config: const PlacePickerConfig(
+      config: const MapPlacePickerConfig(
         title: '选择公司地址',
         hintText: '搜索公司、写字楼等',
       ),
@@ -48,13 +48,12 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   }
 
   Future<void> _searchWithCity() async {
-    final result = await AMapPlacePicker.show(
+    final result = await AMapMapPlacePicker.show(
       context,
-      config: const PlacePickerConfig(
+      config: const MapPlacePickerConfig(
         title: '城市限定搜索',
         hintText: '仅搜索北京市',
         city: '北京',
-        cityLimit: true,
       ),
     );
 
@@ -130,10 +129,11 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '• 支持实时输入提示（Inputtips）\n'
-                  '• 支持城市限定搜索\n'
-                  '• 支持 POI 类型过滤\n'
-                  '• 返回地点名称、地址、坐标等信息',
+                  '• 支持地图显示当前定位\n'
+                  '• 自动搜索周边 POI 信息\n'
+                  '• 支持关键词搜索\n'
+                  '• 点击选择后在地图上显示标记\n'
+                  '• 确认后返回地点名称、地址、坐标等信息',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withOpacity(0.7),
                     height: 1.6,
@@ -172,6 +172,21 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
               ],
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // 旧版底部弹窗选择器
+          OutlinedButton(
+            onPressed: _showOldPicker,
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.list_alt, size: 18),
+                SizedBox(width: 8),
+                Text('旧版底部弹窗选择器'),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -189,7 +204,7 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
       );
 
       // 直接调用搜索 API
-      final tips = await AMapSearch.requestInputTips(
+      List<InputTip> tips = await AMapSearch.requestInputTips(
         keywords: '天安门',
         city: '北京',
         cityLimit: true,
@@ -242,6 +257,25 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
       );
     }
   }
+
+  Future<void> _showOldPicker() async {
+    final result = await AMapPlacePicker.show(
+      context,
+      config: const PlacePickerConfig(
+        title: '选择地点',
+        hintText: '搜索地点',
+      ),
+    );
+
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('选中: ${result.name}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 }
 
 /// 地址卡片组件
@@ -257,7 +291,7 @@ class _AddressCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String title;
-  final InputTip? address;
+  final PoiItem? address;
   final VoidCallback onTap;
 
   @override
@@ -317,10 +351,10 @@ class _AddressCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (address!.address != null ||
-                          address!.district != null) ...[
+                          address!.adName != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          address!.address ?? address!.district ?? '',
+                          address!.address ?? address!.adName ?? '',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurface.withOpacity(0.6),
                           ),
@@ -328,17 +362,15 @@ class _AddressCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      if (address!.position != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '坐标: ${address!.position!.latitude.toStringAsFixed(6)}, ${address!.position!.longitude.toStringAsFixed(6)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.primary.withOpacity(0.8),
-                            fontFamily: 'monospace',
-                            fontSize: 11,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '坐标: ${address!.position.latitude.toStringAsFixed(6)}, ${address!.position.longitude.toStringAsFixed(6)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.primary.withOpacity(0.8),
+                          fontFamily: 'monospace',
+                          fontSize: 11,
                         ),
-                      ],
+                      ),
                     ] else
                       Text(
                         '点击选择地址',
@@ -362,4 +394,3 @@ class _AddressCard extends StatelessWidget {
     );
   }
 }
-
