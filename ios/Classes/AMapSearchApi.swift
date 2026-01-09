@@ -19,10 +19,6 @@ class AMapSearchApi: NSObject {
     static func setup(registrar: FlutterPluginRegistrar) {
         let instance = AMapSearchApi()
         
-        // 初始化搜索API
-        instance.searchAPI = AMapSearchAPI()
-        instance.searchAPI?.delegate = instance
-        
         // 设置 MethodChannel
         instance.methodChannel = FlutterMethodChannel(
             name: SEARCH_METHOD_CHANNEL,
@@ -33,9 +29,21 @@ class AMapSearchApi: NSObject {
         }
     }
     
+    /// 懒加载/确保 SearchAPI 已初始化
+    /// 注意：必须在隐私合规设置完成后初始化，否则可能导致功能不可用
+    private func ensureSearchAPI() {
+        if searchAPI == nil {
+            searchAPI = AMapSearchAPI()
+            searchAPI?.delegate = self
+        }
+    }
+    
     // MARK: - Method Call Handler
     
     private func handleMethodCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        // 确保 API 已初始化
+        ensureSearchAPI()
+        
         switch call.method {
         case "requestInputTips":
             requestInputTips(call: call, result: result)
@@ -105,7 +113,7 @@ extension AMapSearchApi: AMapSearchDelegate {
             var latitude: Double? = nil
             var longitude: Double? = nil
             
-            // AMapTip 的 location 是字符串格式 "lng,lat"
+            // AMapTip 的 location 是 AMapGeoPoint
             if let location = tip.location {
                 latitude = Double(location.latitude)
                 longitude = Double(location.longitude)
