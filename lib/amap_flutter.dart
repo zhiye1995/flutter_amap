@@ -15,3 +15,5 @@ part 'src/method_channel.dart';
 part 'src/platform_interface.dart';
 part "src/types.dart";
 part 'src/types_extension.dart';
+part 'src/search.dart';
+part 'src/place_picker.dart';

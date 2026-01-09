@@ -58,11 +58,13 @@ android {
         // 2D地图
 //        implementation 'com.amap.api:map2d:latest.integration'
         // 导航
-        implementation 'com.amap.api:navi-3dmap:latest.integration'
+//        implementation 'com.amap.api:navi-3dmap:latest.integration'
         // 搜索
 //        implementation 'com.amap.api:search:latest.integration'
         // 定位
 //        implementation 'com.amap.api:location:latest.integration'
+
+        implementation 'com.amap.api:navi-3dmap-location-search:latest.integration'
 
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.mockito:mockito-core:5.0.0")

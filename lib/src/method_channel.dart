@@ -20,6 +20,11 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   StreamSubscription<dynamic>? _naviEventSubscription;
   bool _naviEventChannelInitialized = false;
 
+  /// 搜索相关通道
+  final MethodChannel _searchChannel = const MethodChannel(
+    "plugins.flutter.dev/amap_search",
+  );
+
   /// Accesses the MethodChannel associated to the passed mapId.
   MethodChannel _channel(int mapId) {
     final MethodChannel? channel = _channels[mapId];
@@ -662,5 +667,38 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     _naviEventSubscription?.cancel();
     _naviEventSubscription = null;
     _naviEventChannelInitialized = false;
+  }
+
+  // ==================== 搜索相关方法实现 ====================
+
+  /// 请求输入提示
+  @override
+  Future<List<InputTip>> requestInputTips({
+    required String keywords,
+    String? city,
+    bool cityLimit = false,
+    String? types,
+    Position? location,
+  }) async {
+    final result = await _searchChannel.invokeMethod<List<dynamic>>(
+      'requestInputTips',
+      <String, dynamic>{
+        'keywords': keywords,
+        'city': city,
+        'cityLimit': cityLimit,
+        'types': types,
+        'latitude': location?.latitude,
+        'longitude': location?.longitude,
+      },
+    );
+
+    if (result == null) {
+      return [];
+    }
+
+    return result.map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      return InputTip.decodeFromMap(map);
+    }).toList();
   }
 }

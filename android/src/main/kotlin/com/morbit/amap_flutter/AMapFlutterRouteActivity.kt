@@ -35,8 +35,14 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
 
     private fun applySafeAreaAndSystemBars() {
         // 防止全屏/透明系统栏导致“状态栏/底部栏都不见了”
+//        已弃用
+//Use WindowInsetsController.hide(int) with WindowInsets.Type.statusBars() instead.
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+//        已弃用
+//Use Window.setStatusBarColor(int) with a half-translucent color instead.
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+//        已弃用
+//Use Window.setNavigationBarColor(int) with a half-translucent color instead.
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
 
         // 让内容可以绘制到系统栏区域，但我们用 Insets 转 padding 来做 SafeArea

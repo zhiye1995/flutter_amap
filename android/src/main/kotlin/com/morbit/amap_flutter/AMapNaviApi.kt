@@ -19,6 +19,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
+
 /**
  * 高德导航 API 处理类
  */
@@ -36,7 +37,7 @@ class AMapNaviApi {
 
         fun setup(binding: FlutterPluginBinding, activity: Activity?) {
             activityRef = activity
-            
+
             // 设置 MethodChannel
             methodChannel = MethodChannel(binding.binaryMessenger, NAVI_METHOD_CHANNEL)
             methodChannel?.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
@@ -84,10 +85,12 @@ class AMapNaviApi {
                         result.error("NAVI_ERROR", e.message, null)
                     }
                 }
+
                 "stopNavigation" -> {
                     stopNavigation()
                     result.success(null)
                 }
+
                 else -> result.notImplemented()
             }
         }
@@ -102,27 +105,40 @@ class AMapNaviApi {
             val motorcycleCC = call.argument<Int>("motorcycleCC")
             val naviTypeIndex = call.argument<Int>("naviType") ?: 0
             val pageTypeIndex = call.argument<Int>("pageType") ?: 0
-            
+
             val startLat = call.argument<Double>("startLat")
             val startLng = call.argument<Double>("startLng")
             val startName = call.argument<String>("startName")
-            
+
             val endLat = call.argument<Double>("endLat")
             val endLng = call.argument<Double>("endLng")
             val endName = call.argument<String>("endName")
-            
+
             @Suppress("UNCHECKED_CAST")
             val wayPointsList = call.argument<List<Map<String, Any?>>>("wayPoints")
 
             // 初始化 AMapNavi
             aMapNavi = AMapNavi.getInstance(context)
-            
+
             // 设置车辆信息
             val carInfo = AMapCarInfo()
+            // AMapCarInfo 参数详解：
+            //    mCarNumber:           车牌号码，用于计算限行路段，格式如"京A12345"
+            //    isRestriction:        是否避开限行路段，true-避开，false-不避开，默认true
+            //    mCarType:             车辆类型，0-小客车，1-货车，2-客车，用于计算货车限行等
+            //    mVehicleHeight:       车辆高度（单位：米），用于避开限高路段，如桥梁涵洞
+            //    mVehicleWeight:       车辆总重（单位：吨），用于避开限重路段和桥梁
+            //    mVehicleLoad:         车辆核定载重（单位：吨），货车规划时的核定装载质量
+            //    mVehicleLoadSwitch:   载重开关，是否启用载重限制计算，true-启用，false-不启用
+            //    mVehicleWidth:        车辆宽度（单位：米），用于避开限宽路段
+            //    mVehicleLength:       车辆长度（单位：米），用于判断是否能通过狭窄路段
+            //    mVehicleSize:         车辆大小类型，0-微型车，1-轻型车，2-中型车，3-重型车
+            //    mVehicleAxis:         车辆轴数，用于计算货车通行费和限行规则
+            //    mMotorcycleCC:        摩托车排量（单位：CC），如125、250，用于摩托车限行判断
             carNumber?.let { carInfo.carNumber = it }
             motorcycleCC?.let { carInfo.motorcycleCC = it }
             aMapNavi?.setCarInfo(carInfo)
-            
+
             // 添加导航监听器
             naviListener?.let { aMapNavi?.addAMapNaviListener(it) }
 
@@ -152,6 +168,7 @@ class AMapNaviApi {
             }
 
             // 导航类型映射
+            // public enum AmapNaviType { DRIVER, WALK, RIDE, MOTORCYCLE}
             val naviType = when (naviTypeIndex) {
                 0 -> AmapNaviType.DRIVER  // 驾车
                 1 -> AmapNaviType.WALK    // 步行
@@ -166,8 +183,10 @@ class AMapNaviApi {
                 else -> AmapPageType.ROUTE
             }
 
-            Log.i(TAG, "startNavigation: naviType=$naviType, pageType=$pageType, " +
-                    "start=$start, end=$end, wayPoints=${wayPoints.size}")
+            Log.i(
+                TAG, "startNavigation: naviType=$naviType, pageType=$pageType, " +
+                        "start=$start, end=$end, wayPoints=${wayPoints.size}"
+            )
 
             // 构建导航参数
             val params = AmapNaviParams(
@@ -242,10 +261,12 @@ class AMapNaviApi {
 
         override fun onExitPage(type: Int) {
             Log.i(TAG, "INaviInfoCallback: onExitPage: $type")
-            naviListener?.eventSink?.success(mapOf(
-                "type" to "exitPage",
-                "exitCode" to type
-            ))
+            naviListener?.eventSink?.success(
+                mapOf(
+                    "type" to "exitPage",
+                    "exitCode" to type
+                )
+            )
         }
 
         override fun onStrategyChanged(strategy: Int) {

@@ -6,5 +6,6 @@ public class AMapFlutterPlugin: NSObject, FlutterPlugin {
     registrar.register(AMapFactory(registrar: registrar), withId: "amap_flutter")
     _AMapSdkApi.setup(registrar: registrar)
     AMapNaviApi.setup(registrar: registrar)
+    AMapSearchApi.setup(registrar: registrar)
   }
 }

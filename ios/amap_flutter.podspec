@@ -17,6 +17,7 @@ This is amap flutter plugin
   s.dependency 'Flutter'
 #   s.dependency 'AMap3DMap'
   s.dependency 'AMapNavi'
+  s.dependency 'AMapSearch'
   s.platform = :ios, '12.0'
   s.static_framework = true
 

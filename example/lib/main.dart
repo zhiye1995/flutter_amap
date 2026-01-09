@@ -15,6 +15,7 @@ import 'pages/map_styles.dart';
 import 'pages/map_types.dart';
 import 'pages/map_view.dart';
 import 'pages/navigation.dart';
+import 'pages/place_picker.dart';
 import 'pages/user_location.dart';
 
 void main() {
@@ -151,6 +152,11 @@ class _AppState extends State<App> {
                   Item(
                     NavigationPage.title,
                     (_) => const NavigationPage(),
+                  ),
+                if (!kIsWeb)
+                  Item(
+                    PlacePickerPage.title,
+                    (_) => const PlacePickerPage(),
                   ),
               ]),
             );

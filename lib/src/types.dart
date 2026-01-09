@@ -1870,3 +1870,170 @@ class NaviLocation {
     );
   }
 }
+
+// ==================== 搜索相关类型 ====================
+
+/// 输入提示结果项
+class InputTip {
+  InputTip({
+    required this.name,
+    this.address,
+    this.position,
+    this.poiId,
+    this.district,
+    this.adcode,
+    this.typeCode,
+  });
+
+  /// 名称
+  final String name;
+
+  /// 地址
+  final String? address;
+
+  /// 位置坐标（可能为空，如输入提示未返回坐标）
+  final Position? position;
+
+  /// POI ID
+  final String? poiId;
+
+  /// 所属区域
+  final String? district;
+
+  /// 区域编码
+  final String? adcode;
+
+  /// POI类型编码
+  final String? typeCode;
+
+  Object encode() {
+    return <Object?>[
+      name,
+      address,
+      position?.encode(),
+      poiId,
+      district,
+      adcode,
+      typeCode,
+    ];
+  }
+
+  static InputTip decode(List<Object?> result) {
+    return InputTip(
+      name: result[0]! as String,
+      address: result[1] as String?,
+      position: result[2] != null ? Position.decode(result[2]! as List<Object?>) : null,
+      poiId: result[3] as String?,
+      district: result[4] as String?,
+      adcode: result[5] as String?,
+      typeCode: result[6] as String?,
+    );
+  }
+
+  /// 从 Map 解码（用于 MethodChannel 返回）
+  static InputTip decodeFromMap(Map<String, dynamic> map) {
+    Position? position;
+    final lat = map['latitude'] as num?;
+    final lng = map['longitude'] as num?;
+    if (lat != null && lng != null) {
+      position = Position(latitude: lat.toDouble(), longitude: lng.toDouble());
+    }
+
+    return InputTip(
+      name: map['name'] as String? ?? '',
+      address: map['address'] as String?,
+      position: position,
+      poiId: map['poiId'] as String?,
+      district: map['district'] as String?,
+      adcode: map['adcode'] as String?,
+      typeCode: map['typeCode'] as String?,
+    );
+  }
+
+  InputTip copyWith({
+    String? name,
+    String? address,
+    Position? position,
+    String? poiId,
+    String? district,
+    String? adcode,
+    String? typeCode,
+  }) {
+    return InputTip(
+      name: name ?? this.name,
+      address: address ?? this.address,
+      position: position ?? this.position,
+      poiId: poiId ?? this.poiId,
+      district: district ?? this.district,
+      adcode: adcode ?? this.adcode,
+      typeCode: typeCode ?? this.typeCode,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'InputTip(name: $name, address: $address, position: $position, poiId: $poiId, district: $district, adcode: $adcode)';
+  }
+}
+
+/// 搜索配置
+class SearchConfig {
+  SearchConfig({
+    required this.keywords,
+    this.city,
+    this.cityLimit = false,
+    this.types,
+    this.location,
+  });
+
+  /// 搜索关键词
+  final String keywords;
+
+  /// 搜索城市（可选，默认全国）
+  final String? city;
+
+  /// 是否限制在当前城市搜索
+  final bool cityLimit;
+
+  /// POI类型限制（多个类型用"|"分隔）
+  final String? types;
+
+  /// 搜索中心点（用于周边搜索）
+  final Position? location;
+
+  Object encode() {
+    return <Object?>[
+      keywords,
+      city,
+      cityLimit,
+      types,
+      location?.encode(),
+    ];
+  }
+
+  static SearchConfig decode(List<Object?> result) {
+    return SearchConfig(
+      keywords: result[0]! as String,
+      city: result[1] as String?,
+      cityLimit: result[2] as bool? ?? false,
+      types: result[3] as String?,
+      location: result[4] != null ? Position.decode(result[4]! as List<Object?>) : null,
+    );
+  }
+
+  SearchConfig copyWith({
+    String? keywords,
+    String? city,
+    bool? cityLimit,
+    String? types,
+    Position? location,
+  }) {
+    return SearchConfig(
+      keywords: keywords ?? this.keywords,
+      city: city ?? this.city,
+      cityLimit: cityLimit ?? this.cityLimit,
+      types: types ?? this.types,
+      location: location ?? this.location,
+    );
+  }
+}

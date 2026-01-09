@@ -20,11 +20,13 @@ class AMapFlutterPlugin : FlutterPlugin, ActivityAware {
       AMapFactory(binding) { lifecycle }
     )
     AMapSdkApi.setup(binding)
+    AMapSearchApi.setup(binding)
     // 导航 API 将在 Activity 可用后初始化
   }
 
   override fun onDetachedFromEngine(binding: FlutterPluginBinding) {
     AMapNaviApi.dispose()
+    AMapSearchApi.dispose()
     pluginBinding = null
   }
 

@@ -1,43 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-  <!--  &lt;!&ndash;如果设置了target >= 28 如果需要启动后台定位则必须声明这个权限&ndash;&gt;
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    &lt;!&ndash;如果您的应用需要后台定位权限，且有可能运行在Android Q设备上,并且设置了target>28，必须增加这个权限声明&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-    &lt;!&ndash;允许程序请求网络&ndash;&gt;
-    <uses-permission android:name="android.permission.INTERNET" />
-    &lt;!&ndash;写入扩展存储，向扩展卡写入数据，用于写入缓存定位数据&ndash;&gt;
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    &lt;!&ndash;读取缓存数据&ndash;&gt;
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    &lt;!&ndash;用于读取手机当前的状态&ndash;&gt;
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    &lt;!&ndash;获取运营商信息，用于支持提供运营商信息相关的接口&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    &lt;!&ndash;用于访问wifi网络信息，wifi信息会用于进行网络定位&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    &lt;!&ndash;允许程序访问CellID或WiFi热点来获取粗略的位置&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    &lt;!&ndash;用于访问GPS定位&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    &lt;!&ndash;用于提高GPS定位速度&ndash;&gt;
-    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS"/>
-    &lt;!&ndash; 可以提高室内定位的精确度 &ndash;&gt;
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    &lt;!&ndash; 可以提高室内定位的精确度 &ndash;&gt;
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    &lt;!&ndash;用于导航状态中保持屏幕常亮&ndash;&gt;
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    &lt;!&ndash;用于蓝牙扫描&ndash;&gt;
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation"/>
-    &lt;!&ndash;用于蓝牙连接&ndash;&gt;
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-    &lt;!&ndash;用于蓝牙广播&ndash;&gt;
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
-    &lt;!&ndash;允许获取wifi状态改变，用于网络定位&ndash;&gt;
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>-->
-
-
     <!-- 允许程序请求网络，用于访问互联网资源 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 允许程序访问CellID或WiFi热点来获取粗略的位置，用于网络定位 -->
@@ -87,6 +49,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
         <service android:name="com.amap.api.location.APSService"></service>
 
         <meta-data

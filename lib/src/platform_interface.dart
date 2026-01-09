@@ -355,4 +355,17 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   Future<void> stopNavigation() {
     throw UnimplementedError('stopNavigation() has not been implemented.');
   }
+
+  // ==================== 搜索相关接口 ====================
+
+  /// 请求输入提示
+  Future<List<InputTip>> requestInputTips({
+    required String keywords,
+    String? city,
+    bool cityLimit = false,
+    String? types,
+    Position? location,
+  }) {
+    throw UnimplementedError('requestInputTips() has not been implemented.');
+  }
 }

@@ -3,6 +3,7 @@ package com.morbit.amap_flutter
 import android.graphics.Bitmap
 import android.util.Base64
 import android.util.Log
+import androidx.core.graphics.drawable.toIcon
 import com.amap.api.navi.AMapNaviListener
 import com.amap.api.navi.model.*
 import io.flutter.plugin.common.EventChannel
@@ -227,37 +228,37 @@ class AMapNaviListenerImpl : AMapNaviListener {
         // private int curLinkIndex;      // 当前道路 Link 索引。
         // private int curPointIndex;     // 当前形状点/插值点索引。
 
-          if (location == null) return
+        if (location == null) return
 
-          // 说明：这里使用反射方式读取扩展字段，避免因 SDK 版本差异导致编译失败；读不到则为 null。
-          val coord = try {
-              location.coord
-          } catch (_: Throwable) {
-              null
-          }
-          val latitude = try {
-              coord?.latitude
-          } catch (_: Throwable) {
-              null
-          }
-          val longitude = try {
-              coord?.longitude
-          } catch (_: Throwable) {
-              null
-          }
+        // 说明：这里使用反射方式读取扩展字段，避免因 SDK 版本差异导致编译失败；读不到则为 null。
+        val coord = try {
+            location.coord
+        } catch (_: Throwable) {
+            null
+        }
+        val latitude = try {
+            coord?.latitude
+        } catch (_: Throwable) {
+            null
+        }
+        val longitude = try {
+            coord?.longitude
+        } catch (_: Throwable) {
+            null
+        }
 
-          val accuracy = location.tryGetNumber("accuracy")?.toDouble()
-          val altitude = location.tryGetNumber("altitude")?.toDouble()
-          val bearing = location.tryGetNumber("bearing")?.toDouble()
-          val roadBearing = location.tryGetNumber("roadBearing")?.toDouble()
-          val speed = location.tryGetNumber("speed")?.toDouble()
-          val time = location.tryGetNumber("time")?.toLong()
-          val matchStatus = location.tryGetNumber("matchStatus")?.toInt()
-          val locationDataType = location.tryGetNumber("type")?.toInt()
-          val locationType = location.tryGetNumber("locationType")?.toInt()
-          val curStepIndex = location.tryGetNumber("curStepIndex")?.toInt()
-          val curLinkIndex = location.tryGetNumber("curLinkIndex")?.toInt()
-          val curPointIndex = location.tryGetNumber("curPointIndex")?.toInt()
+        val accuracy = location.tryGetNumber("accuracy")?.toDouble()
+        val altitude = location.tryGetNumber("altitude")?.toDouble()
+        val bearing = location.tryGetNumber("bearing")?.toDouble()
+        val roadBearing = location.tryGetNumber("roadBearing")?.toDouble()
+        val speed = location.tryGetNumber("speed")?.toDouble()
+        val time = location.tryGetNumber("time")?.toLong()
+        val matchStatus = location.tryGetNumber("matchStatus")?.toInt()
+        val locationDataType = location.tryGetNumber("type")?.toInt()
+        val locationType = location.tryGetNumber("locationType")?.toInt()
+        val curStepIndex = location.tryGetNumber("curStepIndex")?.toInt()
+        val curLinkIndex = location.tryGetNumber("curLinkIndex")?.toInt()
+        val curPointIndex = location.tryGetNumber("curPointIndex")?.toInt()
 
 //          Log.i(
 //              TAG,
@@ -270,28 +271,28 @@ class AMapNaviListenerImpl : AMapNaviListener {
 //                      "当前Step索引=$curStepIndex，当前Link索引=$curLinkIndex，当前Point索引=$curPointIndex"
 //          )
 
-          // 事件推送给 Flutter：尽可能携带完整定位信息，便于上层做展示/埋点/问题定位
-          sendEvent(
-              mapOf(
-                  "type" to "locationChange",
-                  "latitude" to latitude,
-                  "longitude" to longitude,
-                  "bearing" to bearing,
-                  "roadBearing" to roadBearing,
-                  "speed" to speed,
-                  "accuracy" to accuracy,
-                  "altitude" to altitude,
-                  "time" to time,
-                  "matchStatus" to matchStatus,
-                  // 注意：事件字段名 type 已被占用，这里用 locationDataType 表示 AMapNaviLocation 的 type 字段
-                  "locationDataType" to locationDataType,
-                  "locationType" to locationType,
-                  "curStepIndex" to curStepIndex,
-                  "curLinkIndex" to curLinkIndex,
-                  "curPointIndex" to curPointIndex,
-                  "raw" to location.toString()
-              )
-          )
+        // 事件推送给 Flutter：尽可能携带完整定位信息，便于上层做展示/埋点/问题定位
+        sendEvent(
+            mapOf(
+                "type" to "locationChange",
+                "latitude" to latitude,
+                "longitude" to longitude,
+                "bearing" to bearing,
+                "roadBearing" to roadBearing,
+                "speed" to speed,
+                "accuracy" to accuracy,
+                "altitude" to altitude,
+                "time" to time,
+                "matchStatus" to matchStatus,
+                // 注意：事件字段名 type 已被占用，这里用 locationDataType 表示 AMapNaviLocation 的 type 字段
+                "locationDataType" to locationDataType,
+                "locationType" to locationType,
+                "curStepIndex" to curStepIndex,
+                "curLinkIndex" to curLinkIndex,
+                "curPointIndex" to curPointIndex,
+                "raw" to location.toString()
+            )
+        )
     }
 
 
