@@ -72,8 +72,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   final FocusNode _searchFocusNode = FocusNode();
 
   AMapController? _mapController;
-  Position? _currentPosition;  // 当前定位位置
-  Position? _mapCenterPosition;  // 地图中心位置
+  Position? _currentPosition; // 当前定位位置
+  Position? _mapCenterPosition; // 地图中心位置
   List<PoiItem> _poiList = [];
   bool _isLoading = false;
   bool _isInitializing = true;
@@ -100,6 +100,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _mapController?.destroy();
     super.dispose();
   }
 
@@ -132,6 +133,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 地图创建完成回调
   void _onMapCreated(AMapController controller) {
+    print("地图创建完成回调");
     _mapController = controller;
   }
 
@@ -139,6 +141,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   void _onUserLocationChange(Location location) {
     if (_isInitializing && _currentPosition == null) {
       _currentPosition = location.position;
+      print(
+          '用户位置变化回调: ${_currentPosition?.latitude}, ${_currentPosition!.longitude},'
+          '地图是否已创建: ${_mapController != null}');
       _mapCenterPosition = location.position;
 
       setState(() {
@@ -165,7 +170,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     if (_isKeywordSearch) return;
 
     _mapCenterPosition = cameraPosition.position;
-    
+
     // 防抖搜索
     _debounceTimer?.cancel();
     _debounceTimer = Timer(config.debounceDelay, () {
@@ -192,7 +197,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       if (mounted && !_isKeywordSearch) {
         setState(() {
           _poiList = pois;
-          _selectedIndex = 0;  // 自动选中第一个
+          _selectedIndex = 0; // 自动选中第一个
           _isLoading = false;
         });
       }
@@ -242,7 +247,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     if (index < 0 || index >= _poiList.length) return;
 
     final poi = _poiList[index];
-    
+
     setState(() {
       _selectedIndex = index;
     });
@@ -304,18 +309,13 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                   showUserLocation: true,
                   // 连续定位，蓝点跟随设备移动，但不自动移动地图中心
                   userLocationStyle: UserLocationStyle(
-                    //   ///只定位一次（Android Only）
-                    //   locationTypeShow,
-
                     //   ///定位一次，且将视角移动到地图中心点
                     //   locationTypeLocate,
-
                     //   ///连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
                     //   locationTypeFollow,
                     //   ///连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
                     //   locationTypeMapRotate,
-
-                    userLocationType: UserLocationType.locationTypeLocate,
+                    userLocationType: UserLocationType.locationTypeShow,
                   ),
                   // initCameraPosition: config.initialPosition != null
                   //     ? CameraPosition(
@@ -329,6 +329,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                     offset: UIControlOffset(x: 10, y: 0),
                   ),
                   onMapCreated: _onMapCreated,
+                  onMapCompleted: () {},
                   onUserLocationChange: _onUserLocationChange,
                   onCameraChangeFinish: _onCameraChangeFinish,
                 ),

@@ -17,6 +17,10 @@
     <!-- 用于导航状态中保持屏幕常亮，防止设备休眠 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- 如果 App 在后台还要拿定位，需要加 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+
 
     <application
         android:label="amap_flutter_example"
@@ -54,7 +58,7 @@
 
         <meta-data
                 android:name="com.amap.api.v2.apikey"
-                android:value="fddb0c469571c9686915aade4e2a7a18"/>
+                android:value="25304ab4b426667f31055e3e5e4808a8"/>
 
     </application>
     <!-- Required to query activities that can process text, see:

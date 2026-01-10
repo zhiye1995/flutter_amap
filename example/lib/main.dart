@@ -44,7 +44,7 @@ class _AppState extends State<App> {
     await AMapFlutter.init(
       apiKey: ApiKey(
         iosKey: "14cf569c80ddc89d84513331ed8c5164",
-        androidKey: "fddb0c469571c9686915aade4e2a7a18",
+        androidKey: "25304ab4b426667f31055e3e5e4808a8",
         webKey: "fc9908dc4103f3d8274070bb34ab37af",
       ),
       agreePrivacy: true,
