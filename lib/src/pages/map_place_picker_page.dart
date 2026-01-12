@@ -67,7 +67,8 @@ class AMapMapPlacePicker extends StatefulWidget {
   State<AMapMapPlacePicker> createState() => _AMapMapPlacePickerState();
 }
 
-class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
+class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
+    with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -75,7 +76,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   Position? _currentPosition; // 当前定位位置
   Position? _mapCenterPosition; // 地图中心位置
   List<PoiItem> _poiList = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _errorMessage;
   Timer? _debounceTimer;
 
@@ -85,22 +86,60 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   // 是否正在搜索关键词（区分周边搜索和关键词搜索）
   bool _isKeywordSearch = false;
 
+  // 是否是代码触发的地图移动（区分用户手动拖动和代码调用 moveCamera）
+  bool _isProgrammaticMove = false;
+
+  // 键盘相关状态
+  late KeyboardVisibilityController _keyboardVisibilityController;
+  late StreamSubscription<bool> _keyboardSubscription;
+  bool _isKeyboardVisible = false;
+  double _keyboardHeight = 0;
+
   MapPlacePickerConfig get config => widget.config;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
+
+    // 初始化键盘可见性监听
+    _keyboardVisibilityController = KeyboardVisibilityController();
+    _keyboardSubscription =
+        _keyboardVisibilityController.onChange.listen((bool visible) {
+      setState(() {
+        _isKeyboardVisible = visible;
+      });
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _keyboardSubscription.cancel();
     _debounceTimer?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _mapController?.destroy();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // 获取键盘高度
+    final bottomInset = WidgetsBinding
+        .instance.platformDispatcher.views.first.viewInsets.bottom;
+    final devicePixelRatio =
+        WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+    final keyboardHeight = bottomInset / devicePixelRatio;
+
+    if (keyboardHeight != _keyboardHeight) {
+      setState(() {
+        _keyboardHeight = keyboardHeight;
+      });
+    }
   }
 
   void _onSearchChanged() {
@@ -130,12 +169,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     });
   }
 
-  /// 地图创建完成回调
-  void _onMapCreated(AMapController controller) {
-    print("地图创建完成回调");
-    _mapController = controller;
-  }
-
   /// 用户位置变化回调
   void _onUserLocationChange(Location location) {
     if (_currentPosition == null) {
@@ -146,12 +179,19 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       _mapCenterPosition = location.position;
 
       // 搜索当前位置周边 POI
-      _searchNearby(location.position);
+      // _searchNearby(location.position);
     }
   }
 
   /// 地图移动结束回调
   void _onCameraChangeFinish(CameraPosition cameraPosition) {
+    // 如果是代码触发的移动，重置标志位并跳过搜索
+    if (_isProgrammaticMove) {
+      _isProgrammaticMove = false;
+      return;
+    }
+    if(_currentPosition == null) return;
+
     // 如果正在搜索关键词，不响应地图移动
     if (_isKeywordSearch) return;
 
@@ -174,11 +214,24 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     try {
       final pois = await AMapSearch.searchPOIAround(
         center: position,
+        // keywords: '公司|小区|学校|公交|商场|写字楼|酒店|医院|景点|地铁',
         keywords: '',
-        types: config.types,
+        // 120000	商务住宅
+        // 130000	政府机构及社会团体
+        // 140000	科教文化服务
+        // 170000	公司企业
+        // 190000	地名地址信息
+        // 050000	餐饮服务
+        // 070000	生活服务
+        types: config.types ?? '120000|130000|170000|190000',
         radius: config.searchRadius,
         city: config.city,
       );
+
+      print('搜索中心点周边 POI : types${config.types}, '
+          'radius:${config.searchRadius}, city:${config.city}, '
+          '结果数量: ${pois.length},'
+          'position: ${position.latitude}, ${position.longitude}');
 
       if (mounted && !_isKeywordSearch) {
         setState(() {
@@ -206,9 +259,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       final pois = await AMapSearch.searchPOIAround(
         center: searchPosition,
         keywords: keywords,
-        types: config.types,
-        radius: config.searchRadius,
-        city: config.city,
+        // types: config.types,
+        // radius: config.searchRadius,
+        // city: config.city,
       );
 
       if (mounted && _searchController.text.trim() == keywords) {
@@ -238,6 +291,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       _selectedIndex = index;
     });
 
+    // 标记为代码触发的移动，避免触发周边搜索
+    _isProgrammaticMove = true;
+
     // 移动地图到选中位置
     _mapController?.moveCamera(
       CameraPosition(
@@ -266,6 +322,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   /// 回到当前位置
   void _onBackToCurrentLocation() {
     if (_currentPosition != null) {
+      // 标记为代码触发的移动，避免触发周边搜索
+      _isProgrammaticMove = true;
+
       _mapController?.moveCamera(
         CameraPosition(
           position: _currentPosition!,
@@ -281,13 +340,47 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final mediaQuery = MediaQuery.of(context);
+    final platform = Theme.of(context).platform;
+
+    const double borderRadius = 16.0;
+    const double keyboardVisiblePanelHeight = 200.0;
+
+    // 根据平台设置键盘动画时长和曲线
+    // iOS: 250ms，使用 easeOut 曲线（接近系统 spring 动画）
+    // Android: 280ms，使用 easeInOut 曲线
+    final Duration animationDuration = platform == TargetPlatform.iOS
+        ? const Duration(milliseconds: 250)
+        : const Duration(milliseconds: 150);
+    final Curve animationCurve =
+        platform == TargetPlatform.iOS ? Curves.easeOut : Curves.easeInOut;
+
+    // 底部面板高度：键盘弹出时固定为 200，否则为屏幕高度的 4/9
+    final double defaultPanelHeight = mediaQuery.size.height * 4 / 9;
+    final double bottomPanelHeight =
+        _isKeyboardVisible ? keyboardVisiblePanelHeight : defaultPanelHeight;
+
+    // 地图区域底部位置：
+    // 键盘弹出时：总高度 - 键盘高度 - 200 + borderRadius
+    // 键盘隐藏时：bottomPanelHeight - borderRadius
+    final double mapBottomOffset = _isKeyboardVisible
+        ? _keyboardHeight + keyboardVisiblePanelHeight - borderRadius
+        : bottomPanelHeight - borderRadius;
+
+    // print(
+    //     '构建地图地点选择器页面, 键盘可见: $_isKeyboardVisible, 键盘高度: $_keyboardHeight, 底部面板高度: $bottomPanelHeight, 地图底部偏移: $mapBottomOffset');
 
     return Scaffold(
-      body: Column(
+      resizeToAvoidBottomInset: false, // 禁止 Scaffold 自动调整大小
+      body: Stack(
         children: [
-          // 地图区域
-          Expanded(
-            flex: 5,
+          // 地图区域（使用 AnimatedPositioned 实现动画过渡）
+          AnimatedPositioned(
+            duration: animationDuration,
+            curve: animationCurve,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: mapBottomOffset,
             child: Stack(
               children: [
                 // 地图
@@ -295,27 +388,22 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                   showUserLocation: true,
                   // 连续定位，蓝点跟随设备移动，但不自动移动地图中心
                   userLocationStyle: UserLocationStyle(
-                    //   ///定位一次，且将视角移动到地图中心点
-                    //   locationTypeLocate,
-                    //
-                    //   ///连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
-                    //   locationTypeFollow,
-                    //
-                    //   ///连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
-                    //   locationTypeMapRotate,
                     userLocationType: UserLocationType.locationTypeLocate,
                   ),
                   initCameraPosition: CameraPosition(
+                    position: config.initialPosition,
                     zoom: 16,
                   ),
-                  zoomControlEnabled: true,
-                  zoomControlPosition: UIControlPosition(
-                    anchor: UIControlAnchor.centerRight,
-                    offset: UIControlOffset(x: 10, y: 0),
-                  ),
-                  onMapCreated: _onMapCreated,
+                  zoomControlEnabled: false,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
                   onMapCompleted: () {},
                   onUserLocationChange: _onUserLocationChange,
+                  /// 当地图视野变化结束时触发该回调(Support iOS/Android)
+                  onCameraChangeStart: (cameraPosition) {
+                    print("地图开始移动: $cameraPosition");
+                  },
                   onCameraChangeFinish: _onCameraChangeFinish,
                 ),
 
@@ -338,22 +426,34 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                 // 当前位置按钮
                 Positioned(
                   left: 16,
-                  bottom: 16,
+                  bottom: 16 + borderRadius, // 调整位置，避免被底部面板遮挡
                   child: _buildLocationButton(colorScheme),
                 ),
               ],
             ),
           ),
 
-          // 底部面板
-          Expanded(
-            flex: 5,
-            child: Container(
+          // 底部面板（使用 AnimatedPositioned 实现动画过渡）
+          AnimatedPositioned(
+            duration: animationDuration,
+            curve: animationCurve,
+            left: 0,
+            right: 0,
+            bottom: _isKeyboardVisible ? _keyboardHeight : 0,
+            height: bottomPanelHeight,
+            child: AnimatedContainer(
+              duration: animationDuration,
+              curve: animationCurve,
               decoration: BoxDecoration(
                 color: colorScheme.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(borderRadius),
+                  topRight: Radius.circular(borderRadius),
+                ),
+                // 阴影
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.2),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),
@@ -370,7 +470,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                   // 分割线
                   Divider(
                     height: 1,
-                    color: colorScheme.outline.withOpacity(0.2),
+                    color: colorScheme.outline.withValues(alpha: 0.2),
                   ),
 
                   // POI 列表
@@ -394,11 +494,15 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // 取消按钮
-          TextButton(
+          FilledButton(
             onPressed: _onBack,
-            style: TextButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
-            ),
+            style: FilledButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                backgroundColor: Colors.grey.withValues(alpha: 0.7)),
             child: const Text('取消'),
           ),
 
@@ -406,11 +510,12 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
           FilledButton(
             onPressed: _poiList.isNotEmpty ? _onConfirm : null,
             style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                backgroundColor: Colors.green),
             child: const Text('发送'),
           ),
         ],
@@ -425,12 +530,12 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       children: [
         // 标记点图标
         Container(
-          width: 32,
-          height: 32,
+          width: 20,
+          height: 20,
           decoration: BoxDecoration(
             color: const Color(0xFF07C160),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
+            border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),
@@ -443,7 +548,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         // 标记点下方的小尖角
         CustomPaint(
           size: const ui.Size(12, 8),
-          painter: _MarkerPointerPainter(
+          painter: MarkerPointerPainter(
             color: const Color(0xFF07C160),
           ),
         ),
@@ -456,7 +561,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     return Material(
       color: colorScheme.surface,
       elevation: 2,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(6),
       child: InkWell(
         onTap: _onBackToCurrentLocation,
         borderRadius: BorderRadius.circular(20),
@@ -466,7 +571,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
           alignment: Alignment.center,
           child: Icon(
             Icons.my_location,
-            color: colorScheme.primary,
+            color: colorScheme.onSecondaryContainer,
             size: 20,
           ),
         ),
@@ -493,11 +598,12 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                 icon: Icon(
                   Icons.clear,
                   color: colorScheme.onSurface.withOpacity(0.5),
+                  size: 20,
                 ),
               )
             : null,
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        fillColor: const Color(0xFFEAE8E8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -515,7 +621,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   Widget _buildPoiList(ThemeData theme, ColorScheme colorScheme) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: CupertinoActivityIndicator(),
       );
     }
 
@@ -635,6 +741,18 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       subtitle = addressText;
     }
 
+    // 搜索关键词高亮
+    final searchKeyword = _searchController.text.trim();
+    final highlightWords = <String, HighlightedWord>{};
+    if (searchKeyword.isNotEmpty && _isKeywordSearch) {
+      highlightWords[searchKeyword] = HighlightedWord(
+        textStyle: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF07C160),
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () => _onPoiSelected(index),
       child: Container(
@@ -654,24 +772,46 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    poi.name,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                  if (highlightWords.isNotEmpty)
+                    TextHighlight(
+                      text: poi.name,
+                      words: highlightWords,
+                      textStyle: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
                     Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.6),
+                      poi.name,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    if (highlightWords.isNotEmpty)
+                      TextHighlight(
+                        text: subtitle,
+                        words: highlightWords,
+                        textStyle: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ],
               ),
@@ -689,29 +829,4 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       ),
     );
   }
-}
-
-/// 标记点下方小尖角绘制器
-class _MarkerPointerPainter extends CustomPainter {
-  _MarkerPointerPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, ui.Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

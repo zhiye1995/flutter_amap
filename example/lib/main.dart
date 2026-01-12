@@ -71,15 +71,9 @@ class _AppState extends State<App> {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: MaterialApp(
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: const ColorScheme.light(),
-          disabledColor: Colors.grey,
-        ),
+        debugShowCheckedModeBanner: false,
         darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: const ColorScheme.dark(),
-          disabledColor: Colors.grey[400],
+          colorScheme: const ColorScheme.light(),
         ),
         home: FutureBuilder<void>(
           future: _bootstrapFuture,

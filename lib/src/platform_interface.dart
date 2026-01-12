@@ -374,7 +374,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   /// [center] 搜索中心点坐标
   /// [keywords] 搜索关键词（可选）
   /// [types] POI 类型限制（多个类型用"|"分隔，可选）
-  /// [radius] 搜索半径，单位：米，默认 1000
+  /// [radius] 搜索半径，单位：米（可选，不传时使用平台默认值）
   /// [page] 页码，默认 1
   /// [pageSize] 每页数量，默认 20
   /// [city] 搜索城市（可选）
@@ -382,7 +382,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     required Position center,
     String? keywords,
     String? types,
-    int radius = 1000,
+    int? radius,
     int page = 1,
     int pageSize = 20,
     String? city,

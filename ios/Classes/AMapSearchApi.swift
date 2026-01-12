@@ -117,18 +117,20 @@ class AMapSearchApi: NSObject {
         
         let keywords = arguments["keywords"] as? String ?? ""
         let types = arguments["types"] as? String
-        let radius = arguments["radius"] as? Int ?? 1000
+        let radius = arguments["radius"] as? Int
         let page = arguments["page"] as? Int ?? 1
         let pageSize = arguments["pageSize"] as? Int ?? 20
         let city = arguments["city"] as? String
         
-        print("[AMapSearchApi] searchPOIAround: lat=\(latitude), lng=\(longitude), keywords=\(keywords), radius=\(radius)")
+        print("[AMapSearchApi] searchPOIAround: lat=\(latitude), lng=\(longitude), keywords=\(keywords), radius=\(String(describing: radius))")
         
         // 创建周边搜索请求
         let request = AMapPOIAroundSearchRequest()
         request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
         request.keywords = keywords
-        request.radius = radius
+        if let radius = radius {
+            request.radius = radius
+        }
         request.page = page
         request.offset = pageSize
         request.sortrule = 0  // 按距离排序

@@ -131,7 +131,7 @@ class AMapSearchApi {
             }
             val keywords = call.argument<String>("keywords") ?: ""
             val types = call.argument<String>("types") ?: ""
-            val radius = call.argument<Int>("radius") ?: 1000
+            val radius = call.argument<Int>("radius")
             val page = call.argument<Int>("page") ?: 1
             val pageSize = call.argument<Int>("pageSize") ?: 20
             val city = call.argument<String>("city") ?: ""
@@ -149,7 +149,11 @@ class AMapSearchApi {
             
             // 设置周边搜索的中心点和半径
             val centerPoint = LatLonPoint(latitude, longitude)
-            poiSearch.bound = PoiSearchV2.SearchBound(centerPoint, radius)
+            if (radius != null) {
+                poiSearch.bound = PoiSearchV2.SearchBound(centerPoint, radius)
+            } else {
+//                poiSearch.bound = PoiSearchV2.SearchBound(centerPoint)
+            }
 
             // 设置搜索回调
             poiSearch.setOnPoiSearchListener(object : PoiSearchV2.OnPoiSearchListener {

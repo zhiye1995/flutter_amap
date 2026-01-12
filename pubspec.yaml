@@ -17,6 +17,8 @@ dependencies:
   stream_transform: ^2.0.0
   web: ^1.0.0
   latlong2: ^0.9.1
+  flutter_keyboard_visibility: ^6.0.0
+  highlight_text: ^1.8.0 # 高亮文本
 
 dev_dependencies:
   flutter_test:
