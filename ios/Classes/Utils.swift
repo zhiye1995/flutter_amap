@@ -279,13 +279,21 @@ extension UserLocationStyle {
 extension UserLocationType {
   var userTrackingMode: MAUserTrackingMode? {
     return switch(self) {
-      case .locationTypeLocate:
+      case .locationTypeShow:
+        // 只显示定位，不追踪（Android Only 行为，iOS 映射为 none）
         MAUserTrackingMode.none
+      case .locationTypeLocate:
+        // 定位一次，且将视角移动到地图中心点
+        // 使用 follow 模式让地图自动移动到用户位置
+        MAUserTrackingMode.follow
       case .locationTypeFollow:
+        // 连续定位、且将视角移动到地图中心点
         MAUserTrackingMode.follow
       case .locationTypeMapRotate:
+        // 连续定位、地图依照设备方向旋转
         MAUserTrackingMode.followWithHeading
       default:
+        // 其他 Android Only 的类型，iOS 暂不支持
         nil
     }
   }
