@@ -19,6 +19,9 @@ class AMapController {
   final Completer<void> _mapCompletedCompleter = Completer<void>();
   bool _isDestroyed = false;
 
+  /// 当前地图视野（内部追踪，用于 zoomIn/zoomOut 等操作）
+  CameraPosition? _currentCamera;
+
   /// 等待地图加载完成（onMapCompleted / onMapLoaded）。
   ///
   /// 说明：
@@ -77,22 +80,26 @@ class AMapController {
       AMapFlutterPlatformInterface.instance.onMapLongPress(mapId: mapId).listen(
           (MapLongPressEvent e) => _aMapFlutter.onMapLongPress!(e.position));
     }
-    if (_aMapFlutter.onCameraChange != null) {
-      AMapFlutterPlatformInterface.instance.onCameraChange(mapId: mapId).listen(
-          (CameraChangeEvent e) => _aMapFlutter.onCameraChange!(e.value));
-    }
+    // 始终监听 onCameraChange 以内部追踪当前视野（用于 zoomIn/zoomOut 等操作）
+    AMapFlutterPlatformInterface.instance.onCameraChange(mapId: mapId).listen(
+      (CameraChangeEvent e) {
+        _currentCamera = e.value;
+        _aMapFlutter.onCameraChange?.call(e.value);
+      },
+    );
     if (_aMapFlutter.onCameraChangeStart != null) {
       AMapFlutterPlatformInterface.instance
           .onCameraChangeStart(mapId: mapId)
           .listen((CameraChangeStartEvent e) =>
               _aMapFlutter.onCameraChangeStart!(e.value));
     }
-    if (_aMapFlutter.onCameraChangeFinish != null) {
-      AMapFlutterPlatformInterface.instance
-          .onCameraChangeFinish(mapId: mapId)
-          .listen((CameraChangeFinishEvent e) =>
-              _aMapFlutter.onCameraChangeFinish!(e.value));
-    }
+    // 始终监听 onCameraChangeFinish 以内部追踪当前视野
+    AMapFlutterPlatformInterface.instance
+        .onCameraChangeFinish(mapId: mapId)
+        .listen((CameraChangeFinishEvent e) {
+      _currentCamera = e.value;
+      _aMapFlutter.onCameraChangeFinish?.call(e.value);
+    });
     if (_aMapFlutter.onMapMoveStart != null) {
       AMapFlutterPlatformInterface.instance.onMapMoveStart(mapId: mapId).listen(
           (MapMoveStartEvent e) => _aMapFlutter.onMapMoveStart!(e.position));
@@ -319,6 +326,82 @@ class AMapController {
         .map((e) => e.value)
         .first
         .timeout(timeout);
+  }
+
+  /// 获取当前缩放级别
+  ///
+  /// 返回当前地图的缩放级别，如果尚未获取到则返回 null
+  double? get currentZoom => _currentCamera?.zoom;
+
+  /// 获取当前地图视野
+  ///
+  /// 返回当前地图的视野信息，如果尚未获取到则返回 null
+  CameraPosition? get currentCamera => _currentCamera;
+
+  /// 地图放大一级
+  ///
+  /// [duration] 动画持续时间，默认无动画
+  /// [zoomDelta] 缩放增量，默认为 1
+  Future<void> zoomIn({
+    Duration? duration,
+    double zoomDelta = 1,
+  }) async {
+    if (_isDestroyed) return;
+    final currentZoom = _currentCamera?.zoom;
+    if (currentZoom == null) {
+      // 如果还没有获取到当前缩放级别，等待地图完成
+      await waitForMapCompleted();
+      if (_currentCamera?.zoom == null) return;
+    }
+    final newZoom = (_currentCamera?.zoom ?? 16) + zoomDelta;
+    // 缩放级别上限通常为 20
+    final clampedZoom = newZoom.clamp(2.0, 20.0);
+    await moveCamera(
+      CameraPosition.zoom(clampedZoom),
+      duration,
+      false, // 不再等待 mapCompleted，因为我们已经等过了
+    );
+  }
+
+  /// 地图缩小一级
+  ///
+  /// [duration] 动画持续时间，默认无动画
+  /// [zoomDelta] 缩放减量，默认为 1
+  Future<void> zoomOut({
+    Duration? duration,
+    double zoomDelta = 1,
+  }) async {
+    if (_isDestroyed) return;
+    final currentZoom = _currentCamera?.zoom;
+    if (currentZoom == null) {
+      // 如果还没有获取到当前缩放级别，等待地图完成
+      await waitForMapCompleted();
+      if (_currentCamera?.zoom == null) return;
+    }
+    final newZoom = (_currentCamera?.zoom ?? 16) - zoomDelta;
+    // 缩放级别下限通常为 2
+    final clampedZoom = newZoom.clamp(2.0, 20.0);
+    await moveCamera(
+      CameraPosition.zoom(clampedZoom),
+      duration,
+      false, // 不再等待 mapCompleted，因为我们已经等过了
+    );
+  }
+
+  /// 设置缩放级别
+  ///
+  /// [zoom] 目标缩放级别（范围通常为 2-20）
+  /// [duration] 动画持续时间，默认无动画
+  Future<void> setZoom(
+    double zoom, {
+    Duration? duration,
+  }) async {
+    if (_isDestroyed) return;
+    final clampedZoom = zoom.clamp(2.0, 20.0);
+    await moveCamera(
+      CameraPosition.zoom(clampedZoom),
+      duration,
+    );
   }
 
   /// 开始地图渲染

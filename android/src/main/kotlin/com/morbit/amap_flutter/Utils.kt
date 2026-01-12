@@ -66,9 +66,15 @@ fun AMapCameraPosition.toCameraPosition(): CameraPosition {
   )
 }
 
-fun CameraPosition.toCameraPosition(): AMapCameraPosition {
+/**
+ * 将 CameraPosition 转换为 AMapCameraPosition
+ * 如果 position 为 null，则返回 null（因为 AMapCameraPosition 必须有 target）
+ */
+fun CameraPosition.toCameraPosition(): AMapCameraPosition? {
+  // AMapCameraPosition.Builder 必须设置 target，否则 build() 会抛异常
+  val target = position?.toPosition() ?: return null
   return AMapCameraPosition.Builder().let { builder ->
-    position?.let { builder.target(position.toPosition()) }
+    builder.target(target)
     skew?.let { builder.tilt(skew.toFloat()) }
     zoom?.let { builder.zoom(zoom.toFloat()) }
     heading?.let { builder.bearing(heading.toFloat()) }

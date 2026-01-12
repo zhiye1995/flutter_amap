@@ -223,7 +223,7 @@ class AMapFlutterWebApi {
   Future<void> moveCamera(CameraPosition position, int duration) async {
     aMap.setZoomAndCenter(
       position.zoom,
-      position.position.lngLat,
+      position.position!.lngLat,
       (duration == 0).toJS,
       duration,
     );

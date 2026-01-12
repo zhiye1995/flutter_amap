@@ -194,14 +194,20 @@ class Bitmap {
 /// 地图视野
 class CameraPosition {
   CameraPosition({
-    required this.position,
+    this.position,
     this.heading,
     this.skew,
     this.zoom,
   });
 
-  /// 地图视野的位置
-  Position position;
+  /// 只设置缩放级别的便捷构造函数
+  CameraPosition.zoom(this.zoom)
+      : position = null,
+        heading = null,
+        skew = null;
+
+  /// 地图视野的位置（可选，不传则不改变当前中心位置）
+  Position? position;
 
   /// 地图视野的旋转角度
   double? heading;
@@ -226,7 +232,7 @@ class CameraPosition {
 
   Object encode() {
     return <Object?>[
-      position.encode(),
+      position?.encode(),
       heading,
       skew,
       zoom,
@@ -235,7 +241,9 @@ class CameraPosition {
 
   static CameraPosition decode(List<Object?> result) {
     return CameraPosition(
-      position: Position.decode(result[0]! as List<Object?>),
+      position: result[0] != null
+          ? Position.decode(result[0]! as List<Object?>)
+          : null,
       heading: result[1] as double?,
       skew: result[2] as double?,
       zoom: result[3] as double?,

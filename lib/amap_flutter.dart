@@ -18,4 +18,4 @@ part "src/types.dart";
 part 'src/types_extension.dart';
 part 'src/search.dart';
 part 'src/place_picker.dart';
-part 'src/map_place_picker.dart';
+part 'src/pages/map_place_picker_page.dart';

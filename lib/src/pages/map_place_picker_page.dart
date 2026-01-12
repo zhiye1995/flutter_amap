@@ -1,4 +1,4 @@
-part of '../amap_flutter.dart';
+part of '../../../amap_flutter.dart';
 
 /// 地图地点选择器配置
 class MapPlacePickerConfig {
@@ -76,7 +76,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   Position? _mapCenterPosition; // 地图中心位置
   List<PoiItem> _poiList = [];
   bool _isLoading = false;
-  bool _isInitializing = true;
   String? _errorMessage;
   Timer? _debounceTimer;
 
@@ -139,25 +138,12 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 用户位置变化回调
   void _onUserLocationChange(Location location) {
-    if (_isInitializing && _currentPosition == null) {
+    if (_currentPosition == null) {
       _currentPosition = location.position;
       print(
           '用户位置变化回调: ${_currentPosition?.latitude}, ${_currentPosition!.longitude},'
           '地图是否已创建: ${_mapController != null}');
       _mapCenterPosition = location.position;
-
-      setState(() {
-        _isInitializing = false;
-      });
-
-      // 移动地图到当前位置
-      _mapController?.moveCamera(
-        CameraPosition(
-          position: location.position,
-          zoom: 16,
-        ),
-        const Duration(milliseconds: 300),
-      );
 
       // 搜索当前位置周边 POI
       _searchNearby(location.position);
@@ -174,7 +160,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     // 防抖搜索
     _debounceTimer?.cancel();
     _debounceTimer = Timer(config.debounceDelay, () {
-      _searchNearby(cameraPosition.position);
+      _searchNearby(cameraPosition.position!);
     });
   }
 
@@ -311,18 +297,17 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                   userLocationStyle: UserLocationStyle(
                     //   ///定位一次，且将视角移动到地图中心点
                     //   locationTypeLocate,
+                    //
                     //   ///连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
                     //   locationTypeFollow,
+                    //
                     //   ///连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
                     //   locationTypeMapRotate,
-                    userLocationType: UserLocationType.locationTypeShow,
+                    userLocationType: UserLocationType.locationTypeLocate,
                   ),
-                  // initCameraPosition: config.initialPosition != null
-                  //     ? CameraPosition(
-                  //         position: config.initialPosition!,
-                  //         zoom: 16,
-                  //       )
-                  //     : null,
+                  initCameraPosition: CameraPosition(
+                    zoom: 16,
+                  ),
                   zoomControlEnabled: true,
                   zoomControlPosition: UIControlPosition(
                     anchor: UIControlAnchor.centerRight,
@@ -356,30 +341,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                   bottom: 16,
                   child: _buildLocationButton(colorScheme),
                 ),
-
-                // 初始化加载提示
-                if (_isInitializing)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black26,
-                      child: const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: Colors.white),
-                            SizedBox(height: 16),
-                            Text(
-                              '正在获取位置...',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
