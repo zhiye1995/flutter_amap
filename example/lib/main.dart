@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_amap/amap_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -70,11 +71,16 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: MaterialApp(
+      child: CupertinoApp(
         debugShowCheckedModeBanner: false,
-        darkTheme: ThemeData(
-          colorScheme: const ColorScheme.light(),
-        ),
+        // darkTheme: ThemeData(
+        //   colorScheme: const ColorScheme.dark(),
+        // ),
+        localizationsDelegates: const [
+          DefaultMaterialLocalizations.delegate,
+          DefaultCupertinoLocalizations.delegate,
+          DefaultWidgetsLocalizations.delegate,
+        ],
         home: FutureBuilder<void>(
           future: _bootstrapFuture,
           builder: (context, snapshot) {

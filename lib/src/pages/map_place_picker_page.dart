@@ -337,10 +337,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final mediaQuery = MediaQuery.of(context);
-    final platform = Theme.of(context).platform;
+    final platform = defaultTargetPlatform;
 
     const double borderRadius = 16.0;
     const double keyboardVisiblePanelHeight = 200.0;
@@ -411,7 +409,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 40),
-                    child: _buildCenterMarker(colorScheme),
+                    child: _buildCenterMarker(),
                   ),
                 ),
 
@@ -420,14 +418,14 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                   top: mediaQuery.padding.top,
                   left: 0,
                   right: 0,
-                  child: _buildTopBar(colorScheme),
+                  child: _buildTopBar(),
                 ),
 
                 // 当前位置按钮
                 Positioned(
                   left: 16,
                   bottom: 16 + borderRadius, // 调整位置，避免被底部面板遮挡
-                  child: _buildLocationButton(colorScheme),
+                  child: _buildLocationButton(),
                 ),
               ],
             ),
@@ -445,7 +443,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
               duration: animationDuration,
               curve: animationCurve,
               decoration: BoxDecoration(
-                color: colorScheme.surface,
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(borderRadius),
                   topRight: Radius.circular(borderRadius),
@@ -464,18 +462,18 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                   // 搜索框
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: _buildSearchField(colorScheme),
+                    child: _buildSearchField(),
                   ),
 
                   // 分割线
-                  Divider(
+                  const Divider(
                     height: 1,
-                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    color: Color(0xFFE0E0E0),
                   ),
 
                   // POI 列表
                   Expanded(
-                    child: _buildPoiList(theme, colorScheme),
+                    child: _buildPoiList(),
                   ),
                 ],
               ),
@@ -487,7 +485,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 构建顶部操作栏
-  Widget _buildTopBar(ColorScheme colorScheme) {
+  Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -524,7 +522,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 构建中心标记点
-  Widget _buildCenterMarker(ColorScheme colorScheme) {
+  Widget _buildCenterMarker() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -557,9 +555,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 构建当前位置按钮
-  Widget _buildLocationButton(ColorScheme colorScheme) {
+  Widget _buildLocationButton() {
     return Material(
-      color: colorScheme.surface,
+      color: Colors.white,
       elevation: 2,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
@@ -569,9 +567,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
           width: 40,
           height: 40,
           alignment: Alignment.center,
-          child: Icon(
+          child: const Icon(
             Icons.my_location,
-            color: colorScheme.onSecondaryContainer,
+            color: Color(0xFF333333),
             size: 20,
           ),
         ),
@@ -580,24 +578,24 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 构建搜索框
-  Widget _buildSearchField(ColorScheme colorScheme) {
+  Widget _buildSearchField() {
     return TextField(
       controller: _searchController,
       focusNode: _searchFocusNode,
       decoration: InputDecoration(
         hintText: config.hintText ?? '搜索地点',
-        prefixIcon: Icon(
+        prefixIcon: const Icon(
           Icons.search,
-          color: colorScheme.onSurface.withOpacity(0.5),
+          color: Color(0xFF999999),
         ),
         suffixIcon: _searchController.text.isNotEmpty
             ? IconButton(
                 onPressed: () {
                   _searchController.clear();
                 },
-                icon: Icon(
+                icon: const Icon(
                   Icons.clear,
-                  color: colorScheme.onSurface.withOpacity(0.5),
+                  color: Color(0xFF999999),
                   size: 20,
                 ),
               )
@@ -618,7 +616,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 构建 POI 列表
-  Widget _buildPoiList(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildPoiList() {
     if (_isLoading) {
       return const Center(
         child: CupertinoActivityIndicator(),
@@ -633,13 +631,15 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             Icon(
               Icons.error_outline,
               size: 48,
-              color: colorScheme.error.withOpacity(0.6),
+              color: Colors.red.withOpacity(0.6),
             ),
             const SizedBox(height: 16),
             Text(
               '搜索失败',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.8),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black.withOpacity(0.8),
               ),
             ),
             const SizedBox(height: 8),
@@ -647,8 +647,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.5),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black.withOpacity(0.5),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -675,13 +676,14 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             Icon(
               Icons.location_off,
               size: 48,
-              color: colorScheme.onSurface.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.3),
             ),
             const SizedBox(height: 16),
             Text(
               '未找到附近地点',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.5),
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black.withOpacity(0.5),
               ),
             ),
           ],
@@ -695,7 +697,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
       itemBuilder: (context, index) {
         final poi = _poiList[index];
         final isSelected = index == _selectedIndex;
-        return _buildPoiItem(poi, index, isSelected, theme, colorScheme);
+        return _buildPoiItem(poi, index, isSelected);
       },
     );
   }
@@ -705,8 +707,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     PoiItem poi,
     int index,
     bool isSelected,
-    ThemeData theme,
-    ColorScheme colorScheme,
   ) {
     // 距离显示
     String distanceText = '';
@@ -741,15 +741,28 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
       subtitle = addressText;
     }
 
+    // 文字样式
+    const titleStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: Color(0xFF333333),
+    );
+    const subtitleStyle = TextStyle(
+      fontSize: 12,
+      color: Color(0xFF999999),
+    );
+    const highlightStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: Color(0xFF07C160),
+    );
+
     // 搜索关键词高亮
     final searchKeyword = _searchController.text.trim();
     final highlightWords = <String, HighlightedWord>{};
     if (searchKeyword.isNotEmpty && _isKeywordSearch) {
       highlightWords[searchKeyword] = HighlightedWord(
-        textStyle: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF07C160),
-        ),
+        textStyle: highlightStyle,
       );
     }
 
@@ -757,10 +770,10 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
       onTap: () => _onPoiSelected(index),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: colorScheme.outline.withOpacity(0.1),
+              color: Color(0xFFE0E0E0),
               width: 0.5,
             ),
           ),
@@ -776,18 +789,14 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                     TextHighlight(
                       text: poi.name,
                       words: highlightWords,
-                      textStyle: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      textStyle: titleStyle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     )
                   else
                     Text(
                       poi.name,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: titleStyle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -797,18 +806,14 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                       TextHighlight(
                         text: subtitle,
                         words: highlightWords,
-                        textStyle: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                        ),
+                        textStyle: subtitleStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       )
                     else
                       Text(
                         subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                        ),
+                        style: subtitleStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -819,9 +824,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
 
             // 选中标记
             if (isSelected)
-              Icon(
+              const Icon(
                 Icons.check,
-                color: const Color(0xFF07C160),
+                color: Color(0xFF07C160),
                 size: 24,
               ),
           ],
