@@ -73,7 +73,7 @@ class AMapSearchApi {
             // 创建输入提示查询
             val inputQuery = InputtipsQuery(keywords, city)
             inputQuery.cityLimit = cityLimit
-            
+
             // 设置POI类型限制（如果有）
             if (!types.isNullOrEmpty()) {
                 inputQuery.type = types
@@ -146,7 +146,7 @@ class AMapSearchApi {
 
             // 创建 POI 搜索对象
             val poiSearch = PoiSearchV2(context, query)
-            
+
             // 设置周边搜索的中心点和半径
             val centerPoint = LatLonPoint(latitude, longitude)
             if (radius != null) {
@@ -172,7 +172,7 @@ class AMapSearchApi {
                                 )
                                 results[0].toInt()
                             }
-                            
+
                             mapOf(
                                 "poiId" to (poi.poiId ?: ""),
                                 "name" to (poi.title ?: ""),
