@@ -115,39 +115,68 @@ class AMapSearchApi: NSObject {
             return
         }
         
-        let keywords = arguments["keywords"] as? String ?? ""
+        let keywords = arguments["keywords"] as? String
         let types = arguments["types"] as? String
         let radius = arguments["radius"] as? Int
         let page = arguments["page"] as? Int ?? 1
         let pageSize = arguments["pageSize"] as? Int ?? 20
         let city = arguments["city"] as? String
         
-        print("[AMapSearchApi] searchPOIAround: lat=\(latitude), lng=\(longitude), keywords=\(keywords), radius=\(String(describing: radius))")
-        
-        // 创建周边搜索请求
-        let request = AMapPOIAroundSearchRequest()
-        request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
-        request.keywords = keywords
-        if let radius = radius {
-            request.radius = radius
-        }
-        request.page = page
-        request.offset = pageSize
-        request.sortrule = 0  // 按距离排序
-        
-        if let types = types, !types.isEmpty {
-            request.types = types
-        }
-        
-        if let city = city, !city.isEmpty {
-            request.city = city
-        }
-        
         // 保存回调
         self.poiAroundResult = result
         
-        // 发起搜索
-        searchAPI?.aMapPOIAroundSearch(request)
+        // 根据参数选择搜索方式：
+        // - 无 radius + 有 keywords → 关键字检索 (AMapPOIKeywordsSearchRequest)
+        // - 有 radius → 周边 POI 检索 (AMapPOIAroundSearchRequest)
+        let hasKeywords = keywords != nil && !keywords!.isEmpty
+        
+        if radius == nil && hasKeywords {
+            // 使用关键字检索
+            print("[AMapSearchApi] searchPOIKeywords: lat=\(latitude), lng=\(longitude), keywords=\(keywords ?? "")")
+            
+            let request = AMapPOIKeywordsSearchRequest()
+            request.keywords = keywords
+            // 设置 location 用于按距离排序（sortrule=0 时生效）
+            request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+            request.page = page
+            request.offset = pageSize
+            request.sortrule = 0  // 按距离排序
+            
+            if let types = types, !types.isEmpty {
+                request.types = types
+            }
+            
+            if let city = city, !city.isEmpty {
+                request.city = city
+            }
+            
+            // 发起关键字搜索
+            searchAPI?.aMapPOIKeywordsSearch(request)
+        } else {
+            // 使用周边 POI 检索
+            // AMapPOIAroundSearchRequest radius 查询半径，范围：0-50000，单位：米 [default = 3000]
+            print("[AMapSearchApi] searchPOIAround: lat=\(latitude), lng=\(longitude), keywords=\(keywords ?? ""), radius=\(String(describing: radius))")
+            
+            let request = AMapPOIAroundSearchRequest()
+            request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+            request.keywords = keywords ?? ""
+            // radius: 传入值则使用传入值，无 radius 时设置为最大值 50000
+            request.radius = radius ?? 50000
+            request.page = page
+            request.offset = pageSize
+            request.sortrule = 0  // 按距离排序
+            
+            if let types = types, !types.isEmpty {
+                request.types = types
+            }
+            
+            if let city = city, !city.isEmpty {
+                request.city = city
+            }
+            
+            // 发起周边搜索
+            searchAPI?.aMapPOIAroundSearch(request)
+        }
     }
 }
 
