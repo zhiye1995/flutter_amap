@@ -1,7 +1,10 @@
-package com.morbit.amap_flutter
+ package com.morbit.amap_flutter
 
 import android.content.Context
 import android.util.Log
+import com.amap.api.location.AMapLocationClient
+import com.amap.api.location.AMapLocationClientOption
+import com.amap.api.services.core.AMapException
 import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.core.PoiItemV2
 import com.amap.api.services.help.Inputtips
@@ -9,6 +12,13 @@ import com.amap.api.services.help.InputtipsQuery
 import com.amap.api.services.help.Tip
 import com.amap.api.services.poisearch.PoiResultV2
 import com.amap.api.services.poisearch.PoiSearchV2
+import com.amap.api.services.weather.LocalDayWeatherForecast
+import com.amap.api.services.weather.LocalWeatherForecast
+import com.amap.api.services.weather.LocalWeatherForecastResult
+import com.amap.api.services.weather.LocalWeatherLive
+import com.amap.api.services.weather.LocalWeatherLiveResult
+import com.amap.api.services.weather.WeatherSearch
+import com.amap.api.services.weather.WeatherSearchQuery
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -53,6 +63,42 @@ class AMapSearchApi {
                     } catch (e: Exception) {
                         Log.e(TAG, "searchPOIAround error", e)
                         result.error("SEARCH_ERROR", e.message, null)
+                    }
+                }
+
+                "searchWeatherLive" -> {
+                    try {
+                        searchWeatherLive(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchWeatherLive error", e)
+                        result.error("WEATHER_ERROR", e.message, null)
+                    }
+                }
+
+                "searchWeatherForecast" -> {
+                    try {
+                        searchWeatherForecast(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchWeatherForecast error", e)
+                        result.error("WEATHER_ERROR", e.message, null)
+                    }
+                }
+
+                "searchWeatherLiveByLocation" -> {
+                    try {
+                        searchWeatherLiveByLocation(context, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchWeatherLiveByLocation error", e)
+                        result.error("WEATHER_ERROR", e.message, null)
+                    }
+                }
+
+                "searchWeatherForecastByLocation" -> {
+                    try {
+                        searchWeatherForecastByLocation(context, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchWeatherForecastByLocation error", e)
+                        result.error("WEATHER_ERROR", e.message, null)
                     }
                 }
 
@@ -207,6 +253,321 @@ class AMapSearchApi {
 
             // 发起异步搜索
             poiSearch.searchPOIAsyn()
+        }
+
+        /**
+         * 查询实时天气
+         */
+        private fun searchWeatherLive(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val city = call.argument<String>("city") ?: run {
+                result.error("INVALID_ARGUMENTS", "city is required", null)
+                return
+            }
+
+            Log.i(TAG, "searchWeatherLive: city=$city")
+
+            try {
+                // 创建天气查询条件，WEATHER_TYPE_LIVE = 1 表示实时天气
+                val query = WeatherSearchQuery(city, WeatherSearchQuery.WEATHER_TYPE_LIVE)
+                val weatherSearch = WeatherSearch(context)
+                
+                weatherSearch.setOnWeatherSearchListener(object : WeatherSearch.OnWeatherSearchListener {
+                    override fun onWeatherLiveSearched(weatherLiveResult: LocalWeatherLiveResult?, rCode: Int) {
+                        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                            val liveResult = weatherLiveResult?.liveResult
+                            if (liveResult != null) {
+                                val weatherData = mapOf(
+                                    "province" to liveResult.province,
+                                    "city" to liveResult.city,
+                                    "adCode" to liveResult.adCode,
+                                    "weather" to liveResult.weather,
+                                    "temperature" to liveResult.temperature,
+                                    "windDirection" to liveResult.windDirection,
+                                    "windPower" to liveResult.windPower,
+                                    "humidity" to liveResult.humidity,
+                                    "reportTime" to liveResult.reportTime
+                                )
+                                Log.i(TAG, "searchWeatherLive success: $weatherData")
+                                result.success(weatherData)
+                            } else {
+                                Log.e(TAG, "searchWeatherLive: no result")
+                                result.error("WEATHER_ERROR", "No weather data returned", null)
+                            }
+                        } else {
+                            Log.e(TAG, "searchWeatherLive failed: rCode=$rCode")
+                            result.error("WEATHER_ERROR", "Weather search failed with code: $rCode", null)
+                        }
+                    }
+
+                    override fun onWeatherForecastSearched(weatherForecastResult: LocalWeatherForecastResult?, rCode: Int) {
+                        // 实时天气查询不会调用此回调
+                    }
+                })
+
+                weatherSearch.query = query
+                weatherSearch.searchWeatherAsyn()
+            } catch (e: AMapException) {
+                Log.e(TAG, "searchWeatherLive AMapException", e)
+                result.error("WEATHER_ERROR", e.message, null)
+            }
+        }
+
+        /**
+         * 查询天气预报
+         */
+        private fun searchWeatherForecast(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val city = call.argument<String>("city") ?: run {
+                result.error("INVALID_ARGUMENTS", "city is required", null)
+                return
+            }
+
+            Log.i(TAG, "searchWeatherForecast: city=$city")
+
+            try {
+                // 创建天气查询条件，WEATHER_TYPE_FORECAST = 2 表示预报天气
+                val query = WeatherSearchQuery(city, WeatherSearchQuery.WEATHER_TYPE_FORECAST)
+                val weatherSearch = WeatherSearch(context)
+                
+                weatherSearch.setOnWeatherSearchListener(object : WeatherSearch.OnWeatherSearchListener {
+                    override fun onWeatherLiveSearched(weatherLiveResult: LocalWeatherLiveResult?, rCode: Int) {
+                        // 预报天气查询不会调用此回调
+                    }
+
+                    override fun onWeatherForecastSearched(weatherForecastResult: LocalWeatherForecastResult?, rCode: Int) {
+                        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                            val forecastResult = weatherForecastResult?.forecastResult
+                            if (forecastResult != null) {
+                                // 构建每日预报列表
+                                val casts = forecastResult.weatherForecast?.map { dayForecast: LocalDayWeatherForecast ->
+                                    mapOf(
+                                        "date" to dayForecast.date,
+                                        "week" to dayForecast.week,
+                                        "dayWeather" to dayForecast.dayWeather,
+                                        "nightWeather" to dayForecast.nightWeather,
+                                        "dayTemp" to dayForecast.dayTemp,
+                                        "nightTemp" to dayForecast.nightTemp,
+                                        "dayWind" to dayForecast.dayWindDirection,
+                                        "nightWind" to dayForecast.nightWindDirection,
+                                        "dayPower" to dayForecast.dayWindPower,
+                                        "nightPower" to dayForecast.nightWindPower
+                                    )
+                                } ?: emptyList()
+
+                                val forecastData = mapOf(
+                                    "city" to forecastResult.city,
+                                    "adCode" to forecastResult.adCode,
+                                    "province" to forecastResult.province,
+                                    "reportTime" to forecastResult.reportTime,
+                                    "casts" to casts
+                                )
+                                Log.i(TAG, "searchWeatherForecast success: ${casts.size} days")
+                                result.success(forecastData)
+                            } else {
+                                Log.e(TAG, "searchWeatherForecast: no result")
+                                result.error("WEATHER_ERROR", "No weather forecast data returned", null)
+                            }
+                        } else {
+                            Log.e(TAG, "searchWeatherForecast failed: rCode=$rCode")
+                            result.error("WEATHER_ERROR", "Weather forecast search failed with code: $rCode", null)
+                        }
+                    }
+                })
+
+                weatherSearch.query = query
+                weatherSearch.searchWeatherAsyn()
+            } catch (e: AMapException) {
+                Log.e(TAG, "searchWeatherForecast AMapException", e)
+                result.error("WEATHER_ERROR", e.message, null)
+            }
+        }
+
+        /**
+         * 根据当前定位查询实时天气
+         */
+        private fun searchWeatherLiveByLocation(context: Context, result: MethodChannel.Result) {
+            Log.i(TAG, "searchWeatherLiveByLocation")
+
+            try {
+                val locationClient = AMapLocationClient(context)
+                val option = AMapLocationClientOption()
+                option.isOnceLocation = true  // 单次定位
+                option.isNeedAddress = true   // 需要地址信息（包含adcode）
+                option.locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+                locationClient.setLocationOption(option)
+
+                locationClient.setLocationListener { location ->
+                    locationClient.stopLocation()
+                    locationClient.onDestroy()
+
+                    if (location.errorCode == 0) {
+                        val adCode = location.adCode
+                        if (!adCode.isNullOrEmpty()) {
+                            Log.i(TAG, "searchWeatherLiveByLocation: got adCode=$adCode")
+                            // 用adcode查询天气
+                            searchWeatherLiveInternal(context, adCode, result)
+                        } else {
+                            Log.e(TAG, "searchWeatherLiveByLocation: adCode is empty")
+                            result.error("LOCATION_ERROR", "无法获取区域编码", null)
+                        }
+                    } else {
+                        Log.e(TAG, "searchWeatherLiveByLocation: location error ${location.errorCode}: ${location.errorInfo}")
+                        result.error("LOCATION_ERROR", location.errorInfo, location.errorCode)
+                    }
+                }
+                locationClient.startLocation()
+            } catch (e: Exception) {
+                Log.e(TAG, "searchWeatherLiveByLocation Exception", e)
+                result.error("LOCATION_ERROR", e.message, null)
+            }
+        }
+
+        /**
+         * 根据当前定位查询天气预报
+         */
+        private fun searchWeatherForecastByLocation(context: Context, result: MethodChannel.Result) {
+            Log.i(TAG, "searchWeatherForecastByLocation")
+
+            try {
+                val locationClient = AMapLocationClient(context)
+                val option = AMapLocationClientOption()
+                option.isOnceLocation = true  // 单次定位
+                option.isNeedAddress = true   // 需要地址信息（包含adcode）
+                option.locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
+                locationClient.setLocationOption(option)
+
+                locationClient.setLocationListener { location ->
+                    locationClient.stopLocation()
+                    locationClient.onDestroy()
+
+                    if (location.errorCode == 0) {
+                        val adCode = location.adCode
+                        if (!adCode.isNullOrEmpty()) {
+                            Log.i(TAG, "searchWeatherForecastByLocation: got adCode=$adCode")
+                            // 用adcode查询天气预报
+                            searchWeatherForecastInternal(context, adCode, result)
+                        } else {
+                            Log.e(TAG, "searchWeatherForecastByLocation: adCode is empty")
+                            result.error("LOCATION_ERROR", "无法获取区域编码", null)
+                        }
+                    } else {
+                        Log.e(TAG, "searchWeatherForecastByLocation: location error ${location.errorCode}: ${location.errorInfo}")
+                        result.error("LOCATION_ERROR", location.errorInfo, location.errorCode)
+                    }
+                }
+                locationClient.startLocation()
+            } catch (e: Exception) {
+                Log.e(TAG, "searchWeatherForecastByLocation Exception", e)
+                result.error("LOCATION_ERROR", e.message, null)
+            }
+        }
+
+        /**
+         * 内部方法：查询实时天气（供定位回调使用）
+         */
+        private fun searchWeatherLiveInternal(context: Context, city: String, result: MethodChannel.Result) {
+            try {
+                val query = WeatherSearchQuery(city, WeatherSearchQuery.WEATHER_TYPE_LIVE)
+                val weatherSearch = WeatherSearch(context)
+
+                weatherSearch.setOnWeatherSearchListener(object : WeatherSearch.OnWeatherSearchListener {
+                    override fun onWeatherLiveSearched(weatherLiveResult: LocalWeatherLiveResult?, rCode: Int) {
+                        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                            val liveResult = weatherLiveResult?.liveResult
+                            if (liveResult != null) {
+                                val weatherData = mapOf(
+                                    "province" to liveResult.province,
+                                    "city" to liveResult.city,
+                                    "adCode" to liveResult.adCode,
+                                    "weather" to liveResult.weather,
+                                    "temperature" to liveResult.temperature,
+                                    "windDirection" to liveResult.windDirection,
+                                    "windPower" to liveResult.windPower,
+                                    "humidity" to liveResult.humidity,
+                                    "reportTime" to liveResult.reportTime
+                                )
+                                Log.i(TAG, "searchWeatherLiveInternal success: $weatherData")
+                                result.success(weatherData)
+                            } else {
+                                Log.e(TAG, "searchWeatherLiveInternal: no result")
+                                result.error("WEATHER_ERROR", "No weather data returned", null)
+                            }
+                        } else {
+                            Log.e(TAG, "searchWeatherLiveInternal failed: rCode=$rCode")
+                            result.error("WEATHER_ERROR", "Weather search failed with code: $rCode", null)
+                        }
+                    }
+
+                    override fun onWeatherForecastSearched(weatherForecastResult: LocalWeatherForecastResult?, rCode: Int) {
+                        // 实时天气查询不会调用此回调
+                    }
+                })
+
+                weatherSearch.query = query
+                weatherSearch.searchWeatherAsyn()
+            } catch (e: AMapException) {
+                Log.e(TAG, "searchWeatherLiveInternal AMapException", e)
+                result.error("WEATHER_ERROR", e.message, null)
+            }
+        }
+
+        /**
+         * 内部方法：查询天气预报（供定位回调使用）
+         */
+        private fun searchWeatherForecastInternal(context: Context, city: String, result: MethodChannel.Result) {
+            try {
+                val query = WeatherSearchQuery(city, WeatherSearchQuery.WEATHER_TYPE_FORECAST)
+                val weatherSearch = WeatherSearch(context)
+
+                weatherSearch.setOnWeatherSearchListener(object : WeatherSearch.OnWeatherSearchListener {
+                    override fun onWeatherLiveSearched(weatherLiveResult: LocalWeatherLiveResult?, rCode: Int) {
+                        // 预报天气查询不会调用此回调
+                    }
+
+                    override fun onWeatherForecastSearched(weatherForecastResult: LocalWeatherForecastResult?, rCode: Int) {
+                        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                            val forecastResult = weatherForecastResult?.forecastResult
+                            if (forecastResult != null) {
+                                val casts = forecastResult.weatherForecast?.map { dayForecast: LocalDayWeatherForecast ->
+                                    mapOf(
+                                        "date" to dayForecast.date,
+                                        "week" to dayForecast.week,
+                                        "dayWeather" to dayForecast.dayWeather,
+                                        "nightWeather" to dayForecast.nightWeather,
+                                        "dayTemp" to dayForecast.dayTemp,
+                                        "nightTemp" to dayForecast.nightTemp,
+                                        "dayWind" to dayForecast.dayWindDirection,
+                                        "nightWind" to dayForecast.nightWindDirection,
+                                        "dayPower" to dayForecast.dayWindPower,
+                                        "nightPower" to dayForecast.nightWindPower
+                                    )
+                                } ?: emptyList()
+
+                                val forecastData = mapOf(
+                                    "city" to forecastResult.city,
+                                    "adCode" to forecastResult.adCode,
+                                    "province" to forecastResult.province,
+                                    "reportTime" to forecastResult.reportTime,
+                                    "casts" to casts
+                                )
+                                Log.i(TAG, "searchWeatherForecastInternal success: ${casts.size} days")
+                                result.success(forecastData)
+                            } else {
+                                Log.e(TAG, "searchWeatherForecastInternal: no result")
+                                result.error("WEATHER_ERROR", "No weather forecast data returned", null)
+                            }
+                        } else {
+                            Log.e(TAG, "searchWeatherForecastInternal failed: rCode=$rCode")
+                            result.error("WEATHER_ERROR", "Weather forecast search failed with code: $rCode", null)
+                        }
+                    }
+                })
+
+                weatherSearch.query = query
+                weatherSearch.searchWeatherAsyn()
+            } catch (e: AMapException) {
+                Log.e(TAG, "searchWeatherForecastInternal AMapException", e)
+                result.error("WEATHER_ERROR", e.message, null)
+            }
         }
     }
 }

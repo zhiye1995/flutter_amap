@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import AMapSearchKit
 import AMapFoundationKit
+import AMapLocationKit
 
 /// 高德搜索 API 处理类
 class AMapSearchApi: NSObject {
@@ -12,10 +13,15 @@ class AMapSearchApi: NSObject {
 
     private var methodChannel: FlutterMethodChannel?
     private var searchAPI: AMapSearchAPI?
+    private var locationManager: AMapLocationManager?
     
     /// 存储当前搜索回调
     private var inputTipsResult: FlutterResult?
     private var poiAroundResult: FlutterResult?
+    private var weatherLiveResult: FlutterResult?
+    private var weatherForecastResult: FlutterResult?
+    private var weatherLiveByLocationResult: FlutterResult?
+    private var weatherForecastByLocationResult: FlutterResult?
 
     // MARK: - Setup
     
@@ -53,6 +59,14 @@ class AMapSearchApi: NSObject {
             requestInputTips(call: call, result: result)
         case "searchPOIAround":
             searchPOIAround(call: call, result: result)
+        case "searchWeatherLive":
+            searchWeatherLive(call: call, result: result)
+        case "searchWeatherForecast":
+            searchWeatherForecast(call: call, result: result)
+        case "searchWeatherLiveByLocation":
+            searchWeatherLiveByLocation(result: result)
+        case "searchWeatherForecastByLocation":
+            searchWeatherForecastByLocation(result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -178,6 +192,170 @@ class AMapSearchApi: NSObject {
             searchAPI?.aMapPOIAroundSearch(request)
         }
     }
+    
+    // MARK: - Weather Live Search
+    
+    private func searchWeatherLive(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        
+        guard let city = arguments["city"] as? String, !city.isEmpty else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "city is required", details: nil))
+            return
+        }
+        
+        print("[AMapSearchApi] searchWeatherLive: city=\(city)")
+        
+        // 创建天气查询请求
+        let request = AMapWeatherSearchRequest()
+        request.city = city
+        request.type = AMapWeatherType.live  // 实时天气
+        
+        // 保存回调
+        self.weatherLiveResult = result
+        
+        // 发起天气查询
+        searchAPI?.aMapWeatherSearch(request)
+    }
+    
+    // MARK: - Weather Forecast Search
+    
+    private func searchWeatherForecast(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        
+        guard let city = arguments["city"] as? String, !city.isEmpty else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "city is required", details: nil))
+            return
+        }
+        
+        print("[AMapSearchApi] searchWeatherForecast: city=\(city)")
+        
+        // 创建天气查询请求
+        let request = AMapWeatherSearchRequest()
+        request.city = city
+        request.type = AMapWeatherType.forecast  // 预报天气
+        
+        // 保存回调
+        self.weatherForecastResult = result
+        
+        // 发起天气查询
+        searchAPI?.aMapWeatherSearch(request)
+    }
+    
+    // MARK: - Weather Live Search By Location
+    
+    private func searchWeatherLiveByLocation(result: @escaping FlutterResult) {
+        print("[AMapSearchApi] searchWeatherLiveByLocation")
+        
+        // 保存回调
+        self.weatherLiveByLocationResult = result
+        
+        // 初始化定位管理器
+        locationManager = AMapLocationManager()
+        locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager?.locationTimeout = 10
+        locationManager?.reGeocodeTimeout = 5
+        
+        // 发起单次定位请求（带逆地理编码）
+        locationManager?.requestLocation(withReGeocode: true) { [weak self] location, regeocode, error in
+            self?.locationManager?.stopUpdatingLocation()
+            self?.locationManager = nil
+            
+            guard let result = self?.weatherLiveByLocationResult else { return }
+            self?.weatherLiveByLocationResult = nil
+            
+            if let error = error {
+                print("[AMapSearchApi] searchWeatherLiveByLocation location error: \(error.localizedDescription)")
+                result(FlutterError(code: "LOCATION_ERROR", message: error.localizedDescription, details: nil))
+                return
+            }
+            
+            guard let adcode = regeocode?.adcode, !adcode.isEmpty else {
+                print("[AMapSearchApi] searchWeatherLiveByLocation: adcode is empty")
+                result(FlutterError(code: "LOCATION_ERROR", message: "无法获取区域编码", details: nil))
+                return
+            }
+            
+            print("[AMapSearchApi] searchWeatherLiveByLocation: got adcode=\(adcode)")
+            
+            // 用 adcode 查询实时天气
+            self?.searchWeatherLiveInternal(city: adcode, result: result)
+        }
+    }
+    
+    // MARK: - Weather Forecast Search By Location
+    
+    private func searchWeatherForecastByLocation(result: @escaping FlutterResult) {
+        print("[AMapSearchApi] searchWeatherForecastByLocation")
+        
+        // 保存回调
+        self.weatherForecastByLocationResult = result
+        
+        // 初始化定位管理器
+        locationManager = AMapLocationManager()
+        locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager?.locationTimeout = 10
+        locationManager?.reGeocodeTimeout = 5
+        
+        // 发起单次定位请求（带逆地理编码）
+        locationManager?.requestLocation(withReGeocode: true) { [weak self] location, regeocode, error in
+            self?.locationManager?.stopUpdatingLocation()
+            self?.locationManager = nil
+            
+            guard let result = self?.weatherForecastByLocationResult else { return }
+            self?.weatherForecastByLocationResult = nil
+            
+            if let error = error {
+                print("[AMapSearchApi] searchWeatherForecastByLocation location error: \(error.localizedDescription)")
+                result(FlutterError(code: "LOCATION_ERROR", message: error.localizedDescription, details: nil))
+                return
+            }
+            
+            guard let adcode = regeocode?.adcode, !adcode.isEmpty else {
+                print("[AMapSearchApi] searchWeatherForecastByLocation: adcode is empty")
+                result(FlutterError(code: "LOCATION_ERROR", message: "无法获取区域编码", details: nil))
+                return
+            }
+            
+            print("[AMapSearchApi] searchWeatherForecastByLocation: got adcode=\(adcode)")
+            
+            // 用 adcode 查询天气预报
+            self?.searchWeatherForecastInternal(city: adcode, result: result)
+        }
+    }
+    
+    // MARK: - Internal Weather Methods
+    
+    private func searchWeatherLiveInternal(city: String, result: @escaping FlutterResult) {
+        // 保存回调 (复用 weatherLiveResult)
+        self.weatherLiveResult = result
+        
+        // 创建天气查询请求
+        let request = AMapWeatherSearchRequest()
+        request.city = city
+        request.type = AMapWeatherType.live
+        
+        // 发起天气查询
+        searchAPI?.aMapWeatherSearch(request)
+    }
+    
+    private func searchWeatherForecastInternal(city: String, result: @escaping FlutterResult) {
+        // 保存回调 (复用 weatherForecastResult)
+        self.weatherForecastResult = result
+        
+        // 创建天气查询请求
+        let request = AMapWeatherSearchRequest()
+        request.city = city
+        request.type = AMapWeatherType.forecast
+        
+        // 发起天气查询
+        searchAPI?.aMapWeatherSearch(request)
+    }
 }
 
 // MARK: - AMapSearchDelegate
@@ -239,6 +417,16 @@ extension AMapSearchApi: AMapSearchDelegate {
             poiAroundResult = nil
             result(flutterError)
         }
+        
+        if let result = weatherLiveResult {
+            weatherLiveResult = nil
+            result(flutterError)
+        }
+        
+        if let result = weatherForecastResult {
+            weatherForecastResult = nil
+            result(flutterError)
+        }
     }
     
     /// POI 周边搜索回调
@@ -281,6 +469,76 @@ extension AMapSearchApi: AMapSearchDelegate {
         
         print("[AMapSearchApi] onPOISearchDone: \(poiList.count) POIs")
         result(poiList)
+    }
+    
+    /// 天气查询回调
+    func onWeatherSearchDone(_ request: AMapWeatherSearchRequest!, response: AMapWeatherSearchResponse!) {
+        // 判断是实时天气还是预报天气
+        if request.type == AMapWeatherType.live {
+            // 实时天气
+            guard let result = weatherLiveResult else { return }
+            weatherLiveResult = nil
+            
+            guard let lives = response?.lives, let liveWeather = lives.first else {
+                result(FlutterError(code: "WEATHER_ERROR", message: "No weather live data returned", details: nil))
+                return
+            }
+            
+            let weatherData: [String: Any?] = [
+                "city": liveWeather.city,
+                "adCode": liveWeather.adcode,
+                "province": liveWeather.province,
+                "weather": liveWeather.weather,
+                "temperature": liveWeather.temperature,
+                "windDirection": liveWeather.windDirection,
+                "windPower": liveWeather.windPower,
+                "humidity": liveWeather.humidity,
+                "reportTime": liveWeather.reportTime
+            ]
+            
+            print("[AMapSearchApi] onWeatherSearchDone (live): \(liveWeather.city ?? "")")
+            result(weatherData)
+            
+        } else {
+            // 预报天气
+            guard let result = weatherForecastResult else { return }
+            weatherForecastResult = nil
+            
+            guard let forecasts = response?.forecasts, let forecast = forecasts.first else {
+                result(FlutterError(code: "WEATHER_ERROR", message: "No weather forecast data returned", details: nil))
+                return
+            }
+            
+            // 构建每日预报列表
+            var casts: [[String: Any?]] = []
+            if let weatherCasts = forecast.casts {
+                casts = weatherCasts.map { dayForecast -> [String: Any?] in
+                    return [
+                        "date": dayForecast.date,
+                        "week": dayForecast.week,
+                        "dayWeather": dayForecast.dayWeather,
+                        "nightWeather": dayForecast.nightWeather,
+                        "dayTemp": dayForecast.dayTemp,
+                        "nightTemp": dayForecast.nightTemp,
+                        "dayWind": dayForecast.dayWind,
+                        "nightWind": dayForecast.nightWind,
+                        "dayPower": dayForecast.dayPower,
+                        "nightPower": dayForecast.nightPower
+                    ]
+                }
+            }
+            
+            let forecastData: [String: Any?] = [
+                "city": forecast.city,
+                "adCode": forecast.adcode,
+                "province": forecast.province,
+                "reportTime": forecast.reportTime,
+                "casts": casts
+            ]
+            
+            print("[AMapSearchApi] onWeatherSearchDone (forecast): \(forecast.city ?? ""), \(casts.count) days")
+            result(forecastData)
+        }
     }
 }
 

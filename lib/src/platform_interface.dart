@@ -389,4 +389,38 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   }) {
     throw UnimplementedError('searchPOIAround() has not been implemented.');
   }
+
+  // ==================== 天气相关接口 ====================
+
+  /// 查询实时天气
+  ///
+  /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"
+  Future<LocalWeatherLive> searchWeatherLive({
+    required String city,
+  }) {
+    throw UnimplementedError('searchWeatherLive() has not been implemented.');
+  }
+
+  /// 查询天气预报
+  ///
+  /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"
+  Future<LocalWeatherForecast> searchWeatherForecast({
+    required String city,
+  }) {
+    throw UnimplementedError('searchWeatherForecast() has not been implemented.');
+  }
+
+  /// 根据当前定位查询实时天气
+  ///
+  /// 内部自动获取定位信息，提取adcode后查询天气
+  Future<LocalWeatherLive> searchWeatherLiveByLocation() {
+    throw UnimplementedError('searchWeatherLiveByLocation() has not been implemented.');
+  }
+
+  /// 根据当前定位查询天气预报
+  ///
+  /// 内部自动获取定位信息，提取adcode后查询天气预报
+  Future<LocalWeatherForecast> searchWeatherForecastByLocation() {
+    throw UnimplementedError('searchWeatherForecastByLocation() has not been implemented.');
+  }
 }

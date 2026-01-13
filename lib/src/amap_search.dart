@@ -72,4 +72,50 @@ class AMapSearch {
     });
     return items;
   }
+
+  /// 查询实时天气
+  ///
+  /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"
+  ///
+  /// 返回 [LocalWeatherLive] 实时天气信息
+  static Future<LocalWeatherLive> searchWeatherLive({
+    required String city,
+  }) {
+    return AMapFlutterPlatformInterface.instance.searchWeatherLive(
+      city: city,
+    );
+  }
+
+  /// 查询天气预报
+  ///
+  /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"
+  ///
+  /// 返回 [LocalWeatherForecast] 天气预报信息（包含未来几天预报）
+  static Future<LocalWeatherForecast> searchWeatherForecast({
+    required String city,
+  }) {
+    return AMapFlutterPlatformInterface.instance.searchWeatherForecast(
+      city: city,
+    );
+  }
+
+  /// 根据当前定位查询实时天气
+  ///
+  /// 内部自动获取定位信息，提取adcode后查询天气
+  /// 需要确保已获取定位权限
+  ///
+  /// 返回 [LocalWeatherLive] 实时天气信息
+  static Future<LocalWeatherLive> searchWeatherLiveByLocation() {
+    return AMapFlutterPlatformInterface.instance.searchWeatherLiveByLocation();
+  }
+
+  /// 根据当前定位查询天气预报
+  ///
+  /// 内部自动获取定位信息，提取adcode后查询天气预报
+  /// 需要确保已获取定位权限
+  ///
+  /// 返回 [LocalWeatherForecast] 天气预报信息（包含未来几天预报）
+  static Future<LocalWeatherForecast> searchWeatherForecastByLocation() {
+    return AMapFlutterPlatformInterface.instance.searchWeatherForecastByLocation();
+  }
 }

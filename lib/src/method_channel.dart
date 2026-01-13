@@ -736,4 +736,76 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
       return PoiItem.decodeFromMap(map);
     }).toList();
   }
+
+  // ==================== 天气相关方法实现 ====================
+
+  /// 查询实时天气
+  @override
+  Future<LocalWeatherLive> searchWeatherLive({
+    required String city,
+  }) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchWeatherLive',
+      <String, dynamic>{
+        'city': city,
+      },
+    );
+
+    if (result == null) {
+      throw StateError('Failed to get weather live data');
+    }
+
+    final map = Map<String, dynamic>.from(result);
+    return LocalWeatherLive.decodeFromMap(map);
+  }
+
+  /// 查询天气预报
+  @override
+  Future<LocalWeatherForecast> searchWeatherForecast({
+    required String city,
+  }) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchWeatherForecast',
+      <String, dynamic>{
+        'city': city,
+      },
+    );
+
+    if (result == null) {
+      throw StateError('Failed to get weather forecast data');
+    }
+
+    final map = Map<String, dynamic>.from(result);
+    return LocalWeatherForecast.decodeFromMap(map);
+  }
+
+  /// 根据当前定位查询实时天气
+  @override
+  Future<LocalWeatherLive> searchWeatherLiveByLocation() async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchWeatherLiveByLocation',
+    );
+
+    if (result == null) {
+      throw StateError('Failed to get weather live data by location');
+    }
+
+    final map = Map<String, dynamic>.from(result);
+    return LocalWeatherLive.decodeFromMap(map);
+  }
+
+  /// 根据当前定位查询天气预报
+  @override
+  Future<LocalWeatherForecast> searchWeatherForecastByLocation() async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchWeatherForecastByLocation',
+    );
+
+    if (result == null) {
+      throw StateError('Failed to get weather forecast data by location');
+    }
+
+    final map = Map<String, dynamic>.from(result);
+    return LocalWeatherForecast.decodeFromMap(map);
+  }
 }

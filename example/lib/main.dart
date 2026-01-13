@@ -17,6 +17,7 @@ import 'pages/map_view.dart';
 import 'pages/navigation.dart';
 import 'pages/place_picker.dart';
 import 'pages/user_location.dart';
+import 'pages/weather.dart';
 
 void main() {
   runApp(const App());
@@ -281,7 +282,9 @@ class FeatureListPage extends StatelessWidget {
                   ),
                   _FeatureItem(
                     title: '获取天气数据',
-                    isCompleted: false,
+                    isCompleted: true,
+                    page: WeatherPage(),
+                    mobileOnly: true,
                   ),
                   _FeatureItem(
                     title: '获取业务数据（云图功能）',
