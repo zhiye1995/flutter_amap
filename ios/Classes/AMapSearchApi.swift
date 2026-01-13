@@ -130,7 +130,7 @@ class AMapSearchApi: NSObject {
         // - 有 radius → 周边 POI 检索 (AMapPOIAroundSearchRequest)
         let hasKeywords = keywords != nil && !keywords!.isEmpty
         
-        if radius == nil && hasKeywords {
+        if  hasKeywords {
             // 使用关键字检索
             print("[AMapSearchApi] searchPOIKeywords: lat=\(latitude), lng=\(longitude), keywords=\(keywords ?? "")")
             
