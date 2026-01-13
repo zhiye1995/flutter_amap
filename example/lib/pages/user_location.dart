@@ -62,6 +62,9 @@ class _UserLocationPageState extends State<UserLocationPage> {
         ],
       ),
       body: AMapFlutter(
+        initCameraPosition: CameraPosition(
+          zoom: 16
+        ),
         showUserLocation: true,
         userLocationStyle: UserLocationStyle(
           //   ///定位一次，且将视角移动到地图中心点
@@ -72,7 +75,7 @@ class _UserLocationPageState extends State<UserLocationPage> {
           //
           //   ///连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
           //   locationTypeMapRotate,
-          userLocationType: UserLocationType.locationTypeLocate,
+          userLocationType: UserLocationType.locationTypeFollow,
         ),
 
         onUserLocationChange: (location) {
