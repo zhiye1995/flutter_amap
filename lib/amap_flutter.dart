@@ -25,3 +25,6 @@ part 'src/types_extension.dart';
 part 'src/amap_search.dart';
 part 'src/place_picker.dart';
 part 'src/pages/map_place_picker_page.dart';
+part 'src/models/weather.dart';
+part 'src/models/navi.dart';
+part 'src/models/search.dart';

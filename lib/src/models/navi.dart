@@ -1,0 +1,656 @@
+part of '../../../amap_flutter.dart';
+// ==================== 导航相关类型 ====================
+
+/// 导航类型
+enum NaviType {
+  /// 驾车导航
+  driver,
+
+  /// 步行导航
+  walk,
+
+  /// 骑行导航
+  ride,
+}
+
+/// 导航页面类型
+enum NaviPageType {
+  /// 路线规划页面
+  route,
+
+  /// 导航页面
+  navi,
+}
+
+/// 导航途经点/终点
+class NaviPoint {
+  NaviPoint({
+    required this.position,
+    this.name,
+  });
+
+  /// 坐标位置
+  final Position position;
+
+  /// 地点名称
+  final String? name;
+
+  Object encode() {
+    return <Object?>[
+      position.encode(),
+      name,
+    ];
+  }
+
+  static NaviPoint decode(List<Object?> result) {
+    return NaviPoint(
+      position: Position.decode(result[0]! as List<Object?>),
+      name: result[1] as String?,
+    );
+  }
+
+  NaviPoint copyWith({
+    Position? position,
+    String? name,
+  }) {
+    return NaviPoint(
+      position: position ?? this.position,
+      name: name ?? this.name,
+    );
+  }
+}
+
+/// 导航配置
+class NaviConfig {
+  NaviConfig({
+    this.carNumber,
+    this.motorcycleCC,
+    this.naviType = NaviType.driver,
+    this.pageType = NaviPageType.route,
+    this.start,
+    this.end,
+    this.wayPoints,
+  });
+
+  /// 车牌号（用于限行规避）
+  final String? carNumber;
+
+  /// 摩托车排量（cc）
+  final int? motorcycleCC;
+
+  /// 导航类型
+  final NaviType naviType;
+
+  /// 导航页面类型
+  final NaviPageType pageType;
+
+  /// 起点（不传则默认为当前位置）
+  final NaviPoint? start;
+
+  /// 终点（不传则显示路线规划页让用户选择）
+  final NaviPoint? end;
+
+  /// 途经点列表
+  final List<NaviPoint>? wayPoints;
+
+  Object encode() {
+    return <Object?>[
+      carNumber,
+      motorcycleCC,
+      naviType.index,
+      pageType.index,
+      start?.encode(),
+      end?.encode(),
+      wayPoints?.map((e) => e.encode()).toList(),
+    ];
+  }
+
+  static NaviConfig decode(List<Object?> result) {
+    return NaviConfig(
+      carNumber: result[0] as String?,
+      motorcycleCC: result[1] as int?,
+      naviType: NaviType.values[result[2] as int],
+      pageType: NaviPageType.values[result[3] as int],
+      start: result[4] != null ? NaviPoint.decode(result[4]! as List<Object?>) : null,
+      end: result[5] != null ? NaviPoint.decode(result[5]! as List<Object?>) : null,
+      wayPoints: result[6] != null
+          ? (result[6] as List).map((e) => NaviPoint.decode(e as List<Object?>)).toList()
+          : null,
+    );
+  }
+
+  NaviConfig copyWith({
+    String? carNumber,
+    int? motorcycleCC,
+    NaviType? naviType,
+    NaviPageType? pageType,
+    NaviPoint? start,
+    NaviPoint? end,
+    List<NaviPoint>? wayPoints,
+  }) {
+    return NaviConfig(
+      carNumber: carNumber ?? this.carNumber,
+      motorcycleCC: motorcycleCC ?? this.motorcycleCC,
+      naviType: naviType ?? this.naviType,
+      pageType: pageType ?? this.pageType,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      wayPoints: wayPoints ?? this.wayPoints,
+    );
+  }
+}
+
+/// 导航引导信息
+class NaviInfo {
+  NaviInfo({
+    required this.iconType,
+    required this.curStepRetainDistance,
+    required this.nextRoadName,
+    required this.pathRetainDistance,
+    required this.pathRetainTime,
+    this.iconPng,
+    this.hasIcon,
+    this.pathId,
+    this.naviType,
+    this.curStep,
+    this.curLink,
+    this.curPoint,
+    this.currentRoadName,
+    this.curStepRetainTime,
+    this.routeRemainLightCount,
+    this.currentSpeed,
+    this.exitDirectionInfo,
+    this.notAvoidInfo,
+    this.toViaInfos,
+    this.raw,
+  });
+
+  /// 转向图标类型    https://a.amap.com/lbs/static/unzip/Android_Navi_Doc/com/amap/api/navi/enums/IconType.html
+  final int iconType;
+
+  /// 当前路段剩余距离（米）
+  final int curStepRetainDistance;
+
+  /// 当前路段剩余时间（秒）
+  final int? curStepRetainTime;
+
+  /// 下一路段名称
+  final String nextRoadName;
+
+  /// 当前道路名称
+  final String? currentRoadName;
+
+  /// 整体路径剩余距离（米）
+  final int pathRetainDistance;
+
+  /// 整体路径剩余时间（秒）
+  final int pathRetainTime;
+
+  /// 转向图标 PNG 字节（Android 端下发 byte[]，Flutter 侧收到 Uint8List，可直接 Image.memory 渲染）
+  /// 说明：Android 端通常只在 iconType 变化时下发；Dart 侧会按 iconType 做一次缓存补全。
+  final Uint8List? iconPng;
+
+  /// 是否存在转向图标（bitmap 不为 null）
+  final bool? hasIcon;
+
+  /// 当前导航路线 ID（Android: pathId）
+  final int? pathId;
+
+  /// 导航类型（Android: naviType，具体枚举含义以 SDK 为准）
+  final int? naviType;
+
+  /// 当前 Step / Link / Point 索引
+  final int? curStep;
+  final int? curLink;
+  final int? curPoint;
+
+  /// 路线剩余红绿灯数量（个）
+  final int? routeRemainLightCount;
+
+  /// 当前速度（Deprecated 字段，可能无效；单位以 SDK 为准）
+  final int? currentSpeed;
+
+  /// 出口方向信息（可能来自 SDK 对象或字符串；Android 端已转成 Map/String）
+  final NaviExitDirectionInfo? exitDirectionInfo;
+
+  /// 不可避让信息（Android 端已转成 Map）
+  final NaviNotAvoidInfo? notAvoidInfo;
+
+  /// 到途经点信息列表（Android 端已转成 List<Map>）
+  final List<NaviToViaInfo>? toViaInfos;
+
+  /// SDK 原始 toString()（排查问题用）
+  final String? raw;
+
+  Object encode() {
+    return <Object?>[
+      iconType,
+      curStepRetainDistance,
+      nextRoadName,
+      pathRetainDistance,
+      pathRetainTime,
+      iconPng,
+    ];
+  }
+
+  static NaviInfo decode(List<Object?> result) {
+    return NaviInfo(
+      iconType: result[0]! as int,
+      curStepRetainDistance: result[1]! as int,
+      nextRoadName: result[2]! as String,
+      pathRetainDistance: result[3]! as int,
+      pathRetainTime: result[4]! as int,
+      iconPng: result[5] as Uint8List?,
+    );
+  }
+
+  /// 从 Map 解码（用于 EventChannel）
+  static NaviInfo decodeFromMap(Map<String, dynamic> map) {
+    int asInt(dynamic v, [int defaultValue = 0]) =>
+        (v as num?)?.toInt() ?? defaultValue;
+    String asString(dynamic v, [String defaultValue = '']) =>
+        v as String? ?? defaultValue;
+
+    final Object? exitDirectionAny = map['exitDirectionInfo'];
+    final Object? notAvoidAny = map['notAvoidInfo'];
+    final Object? toViaInfosAny = map['toViaInfos'];
+
+    final int iconType = asInt(map['iconType']);
+
+    Uint8List? asUint8List(dynamic v) {
+      if (v == null) return null;
+      if (v is Uint8List) return v;
+      // 极少数情况下可能被解成 List<int>
+      if (v is List) {
+        return Uint8List.fromList(v.cast<int>());
+      }
+      return null;
+    }
+
+    // Android 端 iconPng 可能仅在 iconType 变化时下发；这里按 iconType 缓存上一张图标，确保 UI 可持续展示
+    final Uint8List? iconPng = asUint8List(map['iconPng']);
+    if (iconPng != null && iconPng.isNotEmpty) {
+      _iconPngCache[iconType] = iconPng;
+    }
+
+    return NaviInfo(
+      iconType: iconType,
+      curStepRetainDistance: asInt(map['curStepRetainDistance']),
+      nextRoadName: asString(map['nextRoadName']),
+      pathRetainDistance: asInt(map['pathRetainDistance']),
+      pathRetainTime: asInt(map['pathRetainTime']),
+      iconPng: iconPng ?? _iconPngCache[iconType],
+      hasIcon: map['hasIcon'] as bool?,
+      pathId: (map['pathId'] as num?)?.toInt(),
+      naviType: (map['naviType'] as num?)?.toInt(),
+      curStep: (map['curStep'] as num?)?.toInt(),
+      curLink: (map['curLink'] as num?)?.toInt(),
+      curPoint: (map['curPoint'] as num?)?.toInt(),
+      currentRoadName: map['currentRoadName'] as String?,
+      curStepRetainTime: (map['curStepRetainTime'] as num?)?.toInt(),
+      routeRemainLightCount: (map['routeRemainLightCount'] as num?)?.toInt(),
+      currentSpeed: (map['currentSpeed'] as num?)?.toInt(),
+      exitDirectionInfo: NaviExitDirectionInfo.decodeFromAny(exitDirectionAny),
+      notAvoidInfo: NaviNotAvoidInfo.decodeFromAny(notAvoidAny),
+      toViaInfos: NaviToViaInfo.decodeListFromAny(toViaInfosAny),
+      raw: map['raw'] as String?,
+    );
+  }
+
+  NaviInfo copyWith({
+    int? iconType,
+    int? curStepRetainDistance,
+    int? curStepRetainTime,
+    String? nextRoadName,
+    String? currentRoadName,
+    int? pathRetainDistance,
+    int? pathRetainTime,
+    Uint8List? iconPng,
+    bool? hasIcon,
+    int? pathId,
+    int? naviType,
+    int? curStep,
+    int? curLink,
+    int? curPoint,
+    int? routeRemainLightCount,
+    int? currentSpeed,
+    NaviExitDirectionInfo? exitDirectionInfo,
+    NaviNotAvoidInfo? notAvoidInfo,
+    List<NaviToViaInfo>? toViaInfos,
+    String? raw,
+  }) {
+    return NaviInfo(
+      iconType: iconType ?? this.iconType,
+      curStepRetainDistance: curStepRetainDistance ?? this.curStepRetainDistance,
+      curStepRetainTime: curStepRetainTime ?? this.curStepRetainTime,
+      nextRoadName: nextRoadName ?? this.nextRoadName,
+      currentRoadName: currentRoadName ?? this.currentRoadName,
+      pathRetainDistance: pathRetainDistance ?? this.pathRetainDistance,
+      pathRetainTime: pathRetainTime ?? this.pathRetainTime,
+      iconPng: iconPng ?? this.iconPng,
+      hasIcon: hasIcon ?? this.hasIcon,
+      pathId: pathId ?? this.pathId,
+      naviType: naviType ?? this.naviType,
+      curStep: curStep ?? this.curStep,
+      curLink: curLink ?? this.curLink,
+      curPoint: curPoint ?? this.curPoint,
+      routeRemainLightCount: routeRemainLightCount ?? this.routeRemainLightCount,
+      currentSpeed: currentSpeed ?? this.currentSpeed,
+      exitDirectionInfo: exitDirectionInfo ?? this.exitDirectionInfo,
+      notAvoidInfo: notAvoidInfo ?? this.notAvoidInfo,
+      toViaInfos: toViaInfos ?? this.toViaInfos,
+      raw: raw ?? this.raw,
+    );
+  }
+
+  // ==================== 内部缓存（用于“只在变化时下发 iconPng”） ====================
+
+  static final Map<int, Uint8List> _iconPngCache = <int, Uint8List>{};
+}
+
+/// 出口方向信息（来自 Android 端 exitDirectionInfoToFlutter）
+class NaviExitDirectionInfo {
+  const NaviExitDirectionInfo({
+    required this.raw,
+    this.text,
+    this.exitName,
+    this.directionType,
+    this.distance,
+  });
+
+  /// 原始信息（toString 或原始字符串）
+  final String raw;
+
+  /// 可读文本（如果 Android 端能提取到）
+  final String? text;
+
+  /// 出口名称（如果有）
+  final String? exitName;
+
+  /// 方向类型/枚举（具体含义以 SDK 为准）
+  final int? directionType;
+
+  /// 距离（单位以 SDK 为准，通常为米）
+  final double? distance;
+
+  static NaviExitDirectionInfo? decodeFromAny(Object? value) {
+    if (value == null) return null;
+    if (value is String) {
+      return NaviExitDirectionInfo(raw: value, text: value);
+    }
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      return NaviExitDirectionInfo(
+        raw: map['raw'] as String? ?? map.toString(),
+        text: map['text'] as String?,
+        exitName: map['exitName'] as String?,
+        directionType: (map['directionType'] as num?)?.toInt(),
+        distance: (map['distance'] as num?)?.toDouble(),
+      );
+    }
+    return NaviExitDirectionInfo(raw: value.toString());
+  }
+}
+
+/// 不可避让信息（来自 Android 端 notAvoidInfoToFlutter）
+class NaviNotAvoidInfo {
+  const NaviNotAvoidInfo({
+    required this.raw,
+    this.type,
+    this.title,
+    this.content,
+    this.roadName,
+    this.distance,
+    this.time,
+    this.coord,
+  });
+
+  final String raw;
+  final int? type;
+  final String? title;
+  final String? content;
+  final String? roadName;
+  final double? distance;
+  final double? time;
+  final Position? coord;
+
+  static NaviNotAvoidInfo? decodeFromAny(Object? value) {
+    if (value == null) return null;
+    if (value is String) return NaviNotAvoidInfo(raw: value, content: value);
+    if (value is! Map) return NaviNotAvoidInfo(raw: value.toString());
+
+    final map = Map<String, dynamic>.from(value);
+    final coordAny = map['coord'];
+    Position? coord;
+    if (coordAny is Map) {
+      final c = Map<String, dynamic>.from(coordAny);
+      coord = Position(
+        latitude: (c['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (c['longitude'] as num?)?.toDouble() ?? 0.0,
+      );
+    }
+
+    return NaviNotAvoidInfo(
+      raw: map['raw'] as String? ?? map.toString(),
+      type: (map['type'] as num?)?.toInt(),
+      title: map['title'] as String?,
+      content: map['content'] as String?,
+      roadName: map['roadName'] as String?,
+      distance: (map['distance'] as num?)?.toDouble(),
+      time: (map['time'] as num?)?.toDouble(),
+      coord: coord,
+    );
+  }
+}
+
+/// 到途经点信息（来自 Android 端 toViaInfosToFlutter）
+class NaviToViaInfo {
+  const NaviToViaInfo({
+    required this.raw,
+    this.viaIndex,
+    this.name,
+    this.distance,
+    this.time,
+    this.coord,
+  });
+
+  final String raw;
+  final int? viaIndex;
+  final String? name;
+  final double? distance;
+  final double? time;
+  final Position? coord;
+
+  static NaviToViaInfo? decodeFromAny(Object? value) {
+    if (value == null) return null;
+    if (value is String) return NaviToViaInfo(raw: value, name: value);
+    if (value is! Map) return NaviToViaInfo(raw: value.toString());
+
+    final map = Map<String, dynamic>.from(value);
+    final coordAny = map['coord'];
+    Position? coord;
+    if (coordAny is Map) {
+      final c = Map<String, dynamic>.from(coordAny);
+      coord = Position(
+        latitude: (c['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (c['longitude'] as num?)?.toDouble() ?? 0.0,
+      );
+    }
+
+    return NaviToViaInfo(
+      raw: map['raw'] as String? ?? map.toString(),
+      viaIndex: (map['viaIndex'] as num?)?.toInt(),
+      name: map['name'] as String?,
+      distance: (map['distance'] as num?)?.toDouble(),
+      time: (map['time'] as num?)?.toDouble(),
+      coord: coord,
+    );
+  }
+
+  static List<NaviToViaInfo>? decodeListFromAny(Object? value) {
+    if (value == null) return null;
+    if (value is List) {
+      return value
+          .map((e) => NaviToViaInfo.decodeFromAny(e as Object?))
+          .whereType<NaviToViaInfo>()
+          .toList();
+    }
+    final single = NaviToViaInfo.decodeFromAny(value);
+    return single == null ? null : <NaviToViaInfo>[single];
+  }
+}
+
+/// 导航定位信息
+class NaviLocation {
+  NaviLocation({
+    required this.position,
+    this.bearing,
+    this.roadBearing,
+    this.speed,
+    this.accuracy,
+    this.altitude,
+    this.time,
+    this.matchStatus,
+    this.locationDataType,
+    this.locationType,
+    this.curStepIndex,
+    this.curLinkIndex,
+    this.curPointIndex,
+    this.raw,
+  });
+
+  /// 坐标位置
+  final Position position;
+
+  /// 方向角度
+  final double? bearing;
+
+  /// 道路方向角（地图匹配后的道路方向；单位以 SDK 为准，通常为度）
+  final double? roadBearing;
+
+  /// 速度（km/h，来自高德原生回调）
+  final double? speed;
+
+  /// 定位精度
+  final double? accuracy;
+
+  /// 海拔高度（单位：米）
+  final double? altitude;
+
+  /// 定位时间戳（毫秒）
+  final int? time;
+
+  /// 道路匹配状态（枚举含义以 SDK 为准）
+  final int? matchStatus;
+
+  /// AMapNaviLocation 的 type 字段（注意：事件字段名 type 已被占用，所以这里命名为 locationDataType）
+  final int? locationDataType;
+
+  /// 定位来源类型/定位方式（枚举含义以 SDK 为准）
+  final int? locationType;
+
+  /// 当前导航 Step/Link/Point 索引（用于定位导航进度）
+  final int? curStepIndex;
+  final int? curLinkIndex;
+  final int? curPointIndex;
+
+  /// SDK 原始 toString()（排查问题用）
+  final String? raw;
+
+  Object encode() {
+    return <Object?>[
+      position.encode(),
+      bearing,
+      roadBearing,
+      speed,
+      accuracy,
+      altitude,
+      time,
+      matchStatus,
+      locationDataType,
+      locationType,
+      curStepIndex,
+      curLinkIndex,
+      curPointIndex,
+      raw,
+    ];
+  }
+
+  static NaviLocation decode(List<Object?> result) {
+    // 兼容历史版本：旧结构可能只有 [position, bearing, speed, accuracy]
+    Object? at(int index) => index < result.length ? result[index] : null;
+    return NaviLocation(
+      position: Position.decode(result[0]! as List<Object?>),
+      bearing: at(1) as double?,
+      roadBearing: at(2) as double?,
+      speed: at(3) as double?,
+      accuracy: at(4) as double?,
+      altitude: at(5) as double?,
+      time: at(6) as int?,
+      matchStatus: at(7) as int?,
+      locationDataType: at(8) as int?,
+      locationType: at(9) as int?,
+      curStepIndex: at(10) as int?,
+      curLinkIndex: at(11) as int?,
+      curPointIndex: at(12) as int?,
+      raw: at(13) as String?,
+    );
+  }
+
+  /// 从 Map 解码（用于 EventChannel）
+  static NaviLocation decodeFromMap(Map<String, dynamic> map) {
+    return NaviLocation(
+      position: Position(
+        latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+      ),
+      bearing: (map['bearing'] as num?)?.toDouble(),
+      roadBearing: (map['roadBearing'] as num?)?.toDouble(),
+      speed: (map['speed'] as num?)?.toDouble(),
+      accuracy: (map['accuracy'] as num?)?.toDouble(),
+      altitude: (map['altitude'] as num?)?.toDouble(),
+      time: (map['time'] as num?)?.toInt(),
+      matchStatus: (map['matchStatus'] as num?)?.toInt(),
+      locationDataType: (map['locationDataType'] as num?)?.toInt(),
+      locationType: (map['locationType'] as num?)?.toInt(),
+      curStepIndex: (map['curStepIndex'] as num?)?.toInt(),
+      curLinkIndex: (map['curLinkIndex'] as num?)?.toInt(),
+      curPointIndex: (map['curPointIndex'] as num?)?.toInt(),
+      raw: map['raw'] as String?,
+    );
+  }
+
+  NaviLocation copyWith({
+    Position? position,
+    double? bearing,
+    double? roadBearing,
+    double? speed,
+    double? accuracy,
+    double? altitude,
+    int? time,
+    int? matchStatus,
+    int? locationDataType,
+    int? locationType,
+    int? curStepIndex,
+    int? curLinkIndex,
+    int? curPointIndex,
+    String? raw,
+  }) {
+    return NaviLocation(
+      position: position ?? this.position,
+      bearing: bearing ?? this.bearing,
+      roadBearing: roadBearing ?? this.roadBearing,
+      speed: speed ?? this.speed,
+      accuracy: accuracy ?? this.accuracy,
+      altitude: altitude ?? this.altitude,
+      time: time ?? this.time,
+      matchStatus: matchStatus ?? this.matchStatus,
+      locationDataType: locationDataType ?? this.locationDataType,
+      locationType: locationType ?? this.locationType,
+      curStepIndex: curStepIndex ?? this.curStepIndex,
+      curLinkIndex: curLinkIndex ?? this.curLinkIndex,
+      curPointIndex: curPointIndex ?? this.curPointIndex,
+      raw: raw ?? this.raw,
+    );
+  }
+}
