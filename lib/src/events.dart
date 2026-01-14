@@ -1,4 +1,4 @@
-part of '../amap_flutter.dart';
+part of '../flutter_amap.dart';
 
 /// Generic event used as a base class for all events that might be triggered from map.
 abstract class MapEvent<T> {

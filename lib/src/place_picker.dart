@@ -1,4 +1,4 @@
-part of '../amap_flutter.dart';
+part of '../flutter_amap.dart';
 
 /// 地点选择器配置
 class PlacePickerConfig {

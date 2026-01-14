@@ -1,4 +1,4 @@
-import 'package:flutter_amap/amap_flutter.dart';
+import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 地图限制区域页面

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/amap_flutter.dart';
+import 'package:flutter_amap/flutter_amap.dart';
 
 /// 地点选择示例页面
 class PlacePickerPage extends StatefulWidget {

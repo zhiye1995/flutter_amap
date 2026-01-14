@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter_amap/amap_flutter.dart';
+import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 导航示例页面

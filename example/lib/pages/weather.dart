@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/amap_flutter.dart';
+import 'package:flutter_amap/flutter_amap.dart';
 
 /// 天气查询示例页面
 class WeatherPage extends StatefulWidget {
@@ -227,7 +227,8 @@ class _WeatherPageState extends State<WeatherPage> {
                         child: Text(
                           _errorMessage!,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -258,11 +259,7 @@ class _WeatherPageState extends State<WeatherPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  _getWeatherIcon(weather.weather),
-                  size: 48,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                weather.icon,
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -278,7 +275,10 @@ class _WeatherPageState extends State<WeatherPage> {
                       Text(
                         '区域编码: ${weather.adCode ?? '未知'}',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer
+                              .withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -297,7 +297,10 @@ class _WeatherPageState extends State<WeatherPage> {
               '发布时间: ${weather.reportTime ?? '未知'}',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onPrimaryContainer
+                    .withOpacity(0.6),
               ),
             ),
           ],
@@ -336,7 +339,10 @@ class _WeatherPageState extends State<WeatherPage> {
                       Text(
                         '区域编码: ${forecast.adCode ?? '未知'}',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSecondaryContainer.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer
+                              .withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -354,7 +360,10 @@ class _WeatherPageState extends State<WeatherPage> {
               '发布时间: ${forecast.reportTime ?? '未知'}',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSecondaryContainer.withOpacity(0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSecondaryContainer
+                    .withOpacity(0.6),
               ),
             ),
           ],
@@ -389,18 +398,17 @@ class _WeatherPageState extends State<WeatherPage> {
                   day.weekName,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.7),
                   ),
                 ),
               ],
             ),
           ),
           // 天气图标
-          Icon(
-            _getWeatherIcon(day.dayWeather),
-            size: 32,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          day.icon,
           const SizedBox(width: 12),
           // 温度
           Expanded(
@@ -418,7 +426,10 @@ class _WeatherPageState extends State<WeatherPage> {
                   '${day.dayWeather ?? ''} → ${day.nightWeather ?? ''}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.7),
                   ),
                 ),
               ],
@@ -436,7 +447,8 @@ class _WeatherPageState extends State<WeatherPage> {
                 '${day.dayPower ?? ''}级',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -456,7 +468,10 @@ class _WeatherPageState extends State<WeatherPage> {
             child: Text(
               label,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onPrimaryContainer
+                    .withOpacity(0.7),
               ),
             ),
           ),
@@ -474,27 +489,26 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  IconData _getWeatherIcon(String? weather) {
-    /// https://lbs.amap.com/api/android-sdk/guide/map-tools/weather-code  天气对照表
-    if (weather == null) return Icons.wb_cloudy;
-
-    if (weather.contains('晴')) {
-      return Icons.wb_sunny;
-    } else if (weather.contains('云') || weather.contains('阴')) {
-      return Icons.cloud;
-    } else if (weather.contains('雨')) {
-      return Icons.umbrella;
-    } else if (weather.contains('雪')) {
-      return Icons.ac_unit;
-    } else if (weather.contains('雾') || weather.contains('霾')) {
-      return Icons.blur_on;
-    } else if (weather.contains('雷')) {
-      return Icons.flash_on;
-    } else if (weather.contains('风')) {
-      return Icons.air;
-    }
-
-    return Icons.wb_cloudy;
-  }
+// IconData _getWeatherIcon(String? weather) {
+//   /// https://lbs.amap.com/api/android-sdk/guide/map-tools/weather-code  天气对照表
+//   if (weather == null) return Icons.wb_cloudy;
+//
+//   if (weather.contains('晴')) {
+//     return Icons.wb_sunny;
+//   } else if (weather.contains('云') || weather.contains('阴')) {
+//     return Icons.cloud;
+//   } else if (weather.contains('雨')) {
+//     return Icons.umbrella;
+//   } else if (weather.contains('雪')) {
+//     return Icons.ac_unit;
+//   } else if (weather.contains('雾') || weather.contains('霾')) {
+//     return Icons.blur_on;
+//   } else if (weather.contains('雷')) {
+//     return Icons.flash_on;
+//   } else if (weather.contains('风')) {
+//     return Icons.air;
+//   }
+//
+//   return Icons.wb_cloudy;
+// }
 }
-

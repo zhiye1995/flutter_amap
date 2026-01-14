@@ -1,4 +1,4 @@
-part of '../../../amap_flutter.dart';
+part of '../../../flutter_amap.dart';
 
 // ==================== 天气相关类型 ====================
 
@@ -118,6 +118,8 @@ class LocalWeatherLive {
       reportTime: reportTime ?? this.reportTime,
     );
   }
+
+  Widget get icon => WeatherIcon(weather: weather);
 
   @override
   String toString() {
@@ -264,6 +266,9 @@ class LocalDayWeatherForecast {
     }
   }
 
+  Widget get icon => WeatherIcon(weather: dayWeather);
+
+
   @override
   String toString() {
     return 'LocalDayWeatherForecast(date: $date, week: $weekName, dayWeather: $dayWeather, dayTemp: $dayTemp°C, nightTemp: $nightTemp°C)';
@@ -354,5 +359,129 @@ class LocalWeatherForecast {
   @override
   String toString() {
     return 'LocalWeatherForecast(city: $city, reportTime: $reportTime, casts: ${casts?.length ?? 0} days)';
+  }
+}
+
+
+class WeatherIcon extends StatelessWidget {
+  const WeatherIcon({
+    super.key,
+    this.weather,
+    this.width = 40,
+    this.height = 40,
+  });
+
+  /// 天气名称
+  final String? weather;
+
+  /// 图标宽度
+  final double width;
+
+  /// 图标高度
+  final double height;
+
+  /// 天气名称到图标ID的映射
+  static const Map<String, int> _weatherIconMap = {
+    '晴': 1,
+    '少云': 2,
+    '晴间多云': 3,
+    '多云': 4,
+    '阴': 5,
+    '有风': 6,
+    '平静': 7,
+    '微风': 8,
+    '和风': 9,
+    '清风': 10,
+    '强风/劲风': 11,
+    '疾风': 12,
+    '大风': 13,
+    '烈风': 14,
+    '风暴': 15,
+    '狂爆风': 16,
+    '飓风': 17,
+    '热带风暴': 18,
+    '霾': 19,
+    '中度霾': 20,
+    '重度霾': 21,
+    '严重霾': 22,
+    '阵雨': 23,
+    '雷阵雨': 24,
+    '雷阵雨并伴有冰雹': 25,
+    '小雨': 26,
+    '中雨': 27,
+    '大雨': 28,
+    '暴雨': 29,
+    '大暴雨': 30,
+    '特大暴雨': 31,
+    '强阵雨': 32,
+    '强雷阵雨': 33,
+    '极端降雨': 34,
+    '毛毛雨/细雨': 35,
+    '雨': 36,
+    '小雨-中雨': 37,
+    '中雨-大雨': 38,
+    '大雨-暴雨': 39,
+    '暴雨-大暴雨': 40,
+    '大暴雨-特大暴雨': 41,
+    '雨雪天气': 42,
+    '雨夹雪': 43,
+    '阵雨夹雪': 44,
+    '冻雨': 45,
+    '雪': 46,
+    '阵雪': 47,
+    '小雪': 48,
+    '中雪': 49,
+    '大雪': 50,
+    '暴雪': 51,
+    '小雪-中雪': 52,
+    '中雪-大雪': 53,
+    '大雪-暴雪': 54,
+    '浮尘': 55,
+    '扬沙': 56,
+    '沙尘暴': 57,
+    '强沙尘暴': 58,
+    '龙卷风': 59,
+    '雾': 60,
+    '浓雾': 61,
+    '强浓雾': 62,
+    '轻雾': 63,
+    '大雾': 64,
+    '特强浓雾': 65,
+    '热': 66,
+    '冷': 67,
+    '未知': 68,
+  };
+
+  /// 根据天气名称获取图标ID
+  static int _getWeatherIconId(String? weatherName) {
+    if (weatherName == null || weatherName.isEmpty) {
+      return 68; // 默认使用未知图标
+    }
+    return _weatherIconMap[weatherName] ?? 68;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (weather == null || weather!.isEmpty) {
+      // 如果天气名称为空，加载默认图标
+      return SizedBox();
+    }
+    int iconId = _getWeatherIconId(weather);
+    String iconName = 'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+    return Image.asset(
+      iconName,
+      package: 'flutter_amap',
+      width: width,
+      height: height,
+      errorBuilder: (context, error, stackTrace) {
+        // 如果主图标加载失败，尝试加载默认图标
+        return Image.asset(
+          'assets/weather/weather68.png',
+          package: 'flutter_amap',
+          width: width,
+          height: height,
+        );
+      },
+    );
   }
 }
