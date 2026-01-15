@@ -121,6 +121,12 @@ class LocalWeatherLive {
 
   Widget get icon => WeatherIcon(weather: weather);
 
+  String get iconPath {
+    int iconId = WeatherIcon._getWeatherIconId(weather);
+    // return 'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+    return 'packages/flutter_amap/assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+  }
+
   @override
   String toString() {
     return 'LocalWeatherLive(city: $city, weather: $weather, temperature: $temperature°C, humidity: $humidity%)';
@@ -267,6 +273,12 @@ class LocalDayWeatherForecast {
   }
 
   Widget get icon => WeatherIcon(weather: dayWeather);
+
+  String get iconPath {
+    int iconId = WeatherIcon._getWeatherIconId(dayWeather);
+    // return 'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+    return 'packages/flutter_amap/assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+  }
 
 
   @override
