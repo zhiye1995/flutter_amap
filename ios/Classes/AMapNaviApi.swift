@@ -97,15 +97,10 @@ class AMapNaviApi: NSObject {
             startPoint = AMapNaviPoint.location(withLatitude: CGFloat(lat), longitude: CGFloat(lng))
         }
         
-        // 构建终点
+        // 构建终点（允许为空，交由导航页选择）
         var endPoint: AMapNaviPoint?
         if let lat = endLat, let lng = endLng {
             endPoint = AMapNaviPoint.location(withLatitude: CGFloat(lat), longitude: CGFloat(lng))
-        }
-        
-        guard let endPoint = endPoint else {
-            result(FlutterError(code: "INVALID_ARGUMENTS", message: "终点不能为空", details: nil))
-            return
         }
         
         // 构建途经点
@@ -124,11 +119,17 @@ class AMapNaviApi: NSObject {
         // 导航类型和页面类型
         let naviType = AMapNaviType(rawValue: naviTypeIndex) ?? .driver
         let pageType = AMapNaviPageType(rawValue: pageTypeIndex) ?? .route
+
+        // 步行/骑行导航必须要有终点
+        if endPoint == nil && (naviType == .walk || naviType == .ride) {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "步行/骑行导航需要终点", details: nil))
+            return
+        }
         
         // 保存当前导航类型
         self.currentNaviType = naviType
         
-        print("[AMapNaviApi] startNavigation: naviType=\(naviTypeIndex), pageType=\(pageType), start=\(String(describing: startPoint)), end=\(endPoint), wayPoints=\(wayPoints.count)")
+        print("[AMapNaviApi] startNavigation: naviType=\(naviTypeIndex), pageType=\(pageType), start=\(String(describing: startPoint)), end=\(String(describing: endPoint)), wayPoints=\(wayPoints.count)")
         
         // 根据导航类型选择不同的导航方式
         switch naviType {
@@ -145,6 +146,10 @@ class AMapNaviApi: NSObject {
                 result: result
             )
         case .walk:
+            guard let endPoint = endPoint else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "步行/骑行导航需要终点", details: nil))
+                return
+            }
             // 步行导航 - 使用 AMapNaviWalkManager
             startWalkNavigation(
                 startPoint: startPoint,
@@ -154,6 +159,10 @@ class AMapNaviApi: NSObject {
                 result: result
             )
         case .ride:
+            guard let endPoint = endPoint else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "步行/骑行导航需要终点", details: nil))
+                return
+            }
             // 骑行导航 - 使用 AMapNaviRideManager
             startRideNavigation(
                 startPoint: startPoint,
@@ -170,7 +179,7 @@ class AMapNaviApi: NSObject {
     private func startDriveNavigation(
         startPoint: AMapNaviPoint?,
         startName: String,
-        endPoint: AMapNaviPoint,
+        endPoint: AMapNaviPoint?,
         endName: String,
         wayPoints: [AMapNaviPoint],
         carNumber: String?,
@@ -217,13 +226,15 @@ class AMapNaviApi: NSObject {
                 )
             }
             
-            // 设置终点
-            let _ = config.setRoutePlanPOIType(
-                .end,
-                location: endPoint,
-                name: endName,
-                poiId: nil
-            )
+            // 设置终点（允许为空，交由页面选择）
+            if let endPoint = endPoint {
+                let _ = config.setRoutePlanPOIType(
+                    .end,
+                    location: endPoint,
+                    name: endName,
+                    poiId: nil
+                )
+            }
             
             // 设置途经点（最多支持3个）
             for (index, wayPoint) in wayPoints.prefix(3).enumerated() {
@@ -243,11 +254,11 @@ class AMapNaviApi: NSObject {
             }
             
             // 根据页面类型设置是否直接开始导航
-            if pageType == .navi {
+            if pageType == .navi && endPoint != nil {
                 // 直接导航模式：跳过路线规划页面，直接开始导航
                 config.setStartNaviDirectly(true)
             } else {
-                // 路线规划模式：显示路线规划页面
+                // 路线规划模式：显示路线规划页面（终点为空时强制走路线规划）
                 config.setStartNaviDirectly(false)
             }
             
