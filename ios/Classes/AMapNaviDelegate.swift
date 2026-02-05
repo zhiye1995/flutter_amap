@@ -35,11 +35,6 @@ class AMapNaviDelegate: NSObject {
     /// 转向图标 PNG 数据缓存：同一个 iconType 只编码一次
     private var iconPngCache: [Int: FlutterStandardTypedData] = [:]
     
-    /// 最新收到的转向图标数据（由 updateTurnIconImage 回调更新）
-    /// 用于在 navInfo 回调中合并发送，实现与 Android 一致的行为
-    private var latestTurnIconType: Int = Int.min
-    private var latestTurnIconData: FlutterStandardTypedData?
-    
     // MARK: - 发送事件
     
     func sendEvent(_ data: [String: Any?]) {
@@ -262,7 +257,9 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
         guard let info = naviInfo else { return }
         
         let iconType = Int(info.iconType.rawValue)
+        let needIconData = iconType > 0 && iconType != lastIconType
         
+        // 构建基础数据
         var data: [String: Any?] = [
             "type": "navInfo",
             
@@ -295,22 +292,39 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
             
             // 调试
             "raw": "\(info)",
-            "hasIcon": iconType > 0
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        // 处理转向图标（与 Android 保持一致：只在 iconType 变化时下发图标字节）
-        if iconType > 0 && iconType != lastIconType {
-            lastIconType = iconType
-            // 优先从缓存取（避免重复编码），其次从最新收到的图标取
-            if let cachedPng = iconPngCache[iconType] {
-                data["iconPng"] = cachedPng
-            } else if latestTurnIconType == iconType, let pngData = latestTurnIconData {
-                iconPngCache[iconType] = pngData
-                data["iconPng"] = pngData
+        // 如果 iconType 变化，尝试从缓存获取图标数据
+        if needIconData {
+            // 在后台队列处理等待逻辑，避免阻塞 SDK 回调
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self else { return }
+                
+                var iconPngData: FlutterStandardTypedData? = nil
+                
+                // 循环等待最多4次，每次5毫秒
+                for _ in 0..<4 {
+                    if let cachedData = self.iconPngCache[iconType] {
+                        iconPngData = cachedData
+                        break
+                    }
+                    // 等待5毫秒
+                    Thread.sleep(forTimeInterval: 0.005)
+                }
+                
+                // 更新 lastIconType 并添加图标数据
+                self.lastIconType = iconType
+                if let pngData = iconPngData {
+                    data["iconPng"] = pngData
+                }
+                
+                self.sendEvent(data)
             }
+        } else {
+            // iconType 没变化，直接发送
+            sendEvent(data)
         }
-        
-        sendEvent(data)
     }
     
     /// 自车位置更新回调
@@ -397,22 +411,15 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
         ])
     }
     
-    /// 转向图标更新回调
-    /// 缓存图标数据，在 navInfo 回调中合并发送（与 Android 行为一致）
+    /// 转向图标更新回调 - 只缓存图标数据，在 navInfo 回调中一起发送（和 Android 保持一致）
     func driveManager(_ driveManager: AMapNaviDriveManager, updateTurnIconImage turnIconImage: UIImage?, turn turnIconType: AMapNaviIconType) {
         let iconType = Int(turnIconType.rawValue)
-        print("[AMapNaviDelegate-Data] updateTurnIconImage: type=\(iconType)")
+        print("[AMapNaviDelegate-Data] updateTurnIconImage: type=\(iconType), caching only")
         
-        // 缓存最新的图标数据，供 navInfo 回调使用
-        if let image = turnIconImage, let pngData = imageToPngData(image) {
-            latestTurnIconType = iconType
-            latestTurnIconData = pngData
-            // 同时放入长期缓存
+        // 只缓存图标数据，不单独发送事件
+        if iconType > 0, let image = turnIconImage, let pngData = imageToPngData(image) {
             iconPngCache[iconType] = pngData
         }
-        
-        // 不再单独发送 turnIconUpdate 事件，图标数据会在 navInfo 事件中一起发送
-        // 这样与 Android 端行为保持一致
     }
 }
 
@@ -442,8 +449,6 @@ extension AMapNaviDelegate: AMapNaviWalkManagerDelegate {
     func walkManager(_ walkManager: AMapNaviWalkManager, update naviInfo: AMapNaviInfo?) {
         guard let info = naviInfo else { return }
         
-        let iconType = Int(info.iconType.rawValue)
-        
         var data: [String: Any?] = [
             "type": "navInfo",
             "pathId": 0,
@@ -464,18 +469,13 @@ extension AMapNaviDelegate: AMapNaviWalkManagerDelegate {
             "notAvoidInfo": nil,
             "toViaInfos": nil,
             "raw": "\(info)",
-            "hasIcon": iconType > 0
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        // 处理转向图标（与 Android 保持一致：只在 iconType 变化时下发图标字节）
+        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
+        let iconType = Int(info.iconType.rawValue)
         if iconType > 0 && iconType != lastIconType {
             lastIconType = iconType
-            if let cachedPng = iconPngCache[iconType] {
-                data["iconPng"] = cachedPng
-            } else if latestTurnIconType == iconType, let pngData = latestTurnIconData {
-                iconPngCache[iconType] = pngData
-                data["iconPng"] = pngData
-            }
         }
         
         sendEvent(data)
@@ -571,8 +571,6 @@ extension AMapNaviDelegate: AMapNaviRideManagerDelegate {
     func rideManager(_ rideManager: AMapNaviRideManager, update naviInfo: AMapNaviInfo?) {
         guard let info = naviInfo else { return }
         
-        let iconType = Int(info.iconType.rawValue)
-        
         var data: [String: Any?] = [
             "type": "navInfo",
             "pathId": 0,
@@ -593,18 +591,13 @@ extension AMapNaviDelegate: AMapNaviRideManagerDelegate {
             "notAvoidInfo": nil,
             "toViaInfos": nil,
             "raw": "\(info)",
-            "hasIcon": iconType > 0
+            "hasIcon": info.iconType.rawValue > 0
         ]
         
-        // 处理转向图标（与 Android 保持一致：只在 iconType 变化时下发图标字节）
+        // 处理转向图标（新版 SDK 移除了 iconImage，只传递 iconType）
+        let iconType = Int(info.iconType.rawValue)
         if iconType > 0 && iconType != lastIconType {
             lastIconType = iconType
-            if let cachedPng = iconPngCache[iconType] {
-                data["iconPng"] = cachedPng
-            } else if latestTurnIconType == iconType, let pngData = latestTurnIconData {
-                iconPngCache[iconType] = pngData
-                data["iconPng"] = pngData
-            }
         }
         
         sendEvent(data)
