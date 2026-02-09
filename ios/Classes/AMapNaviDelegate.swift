@@ -259,7 +259,7 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
         let iconType = Int(info.iconType.rawValue)
         let needIconData = iconType > 0 && iconType != lastIconType
         
-        // 构建基础数据
+        // 构建基础数据（hasIcon 先设为 false，后面根据缓存结果更新）
         var data: [String: Any?] = [
             "type": "navInfo",
             
@@ -292,7 +292,7 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
             
             // 调试
             "raw": "\(info)",
-            "hasIcon": info.iconType.rawValue > 0
+            "hasIcon": false  // 先设为 false，后面根据缓存结果更新
         ]
         
         // 如果 iconType 变化，尝试从缓存获取图标数据
@@ -303,8 +303,8 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
                 
                 var iconPngData: FlutterStandardTypedData? = nil
                 
-                // 循环等待最多4次，每次5毫秒
-                for _ in 0..<4 {
+                // 循环等待最多6次，每次5毫秒，共30ms
+                for _ in 0..<6 {
                     if let cachedData = self.iconPngCache[iconType] {
                         iconPngData = cachedData
                         break
@@ -317,12 +317,16 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
                 self.lastIconType = iconType
                 if let pngData = iconPngData {
                     data["iconPng"] = pngData
+                    data["hasIcon"] = true  // 缓存中找到图标
                 }
                 
                 self.sendEvent(data)
             }
         } else {
-            // iconType 没变化，直接发送
+            // iconType 没变化，检查缓存中是否有该图标
+            if iconType > 0, let _ = iconPngCache[iconType] {
+                data["hasIcon"] = true
+            }
             sendEvent(data)
         }
     }

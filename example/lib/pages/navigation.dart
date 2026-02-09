@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
+import 'package:saver_gallery/saver_gallery.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// 导航示例页面
 class NavigationPage extends StatefulWidget {
@@ -32,6 +34,9 @@ class _NavigationPageState extends State<NavigationPage> {
   NaviLocation? _lastNaviLocation;
   final List<String> _eventLogs = [];
 
+  // 收集的转向图标：iconType -> PNG bytes
+  final Map<int, Uint8List> _collectedIcons = {};
+
   // 事件订阅
   final List<StreamSubscription> _subscriptions = [];
 
@@ -45,10 +50,20 @@ class _NavigationPageState extends State<NavigationPage> {
     // 导航信息更新
     _subscriptions.add(
       AMapNavi.onNaviInfoUpdate.listen((event) {
-        setState(() {
-          _lastNaviInfo = event.naviInfo;
-        });
         final info = event.naviInfo;
+        
+        // 收集图标：如果有 iconPng 数据且 iconType > 0，收集到 map 中
+        if (info.iconType > 0 && info.iconPng != null && info.iconPng!.isNotEmpty) {
+          final isNew = !_collectedIcons.containsKey(info.iconType);
+          _collectedIcons[info.iconType] = info.iconPng!;
+          if (isNew) {
+            _addLog('🎨 收集到新图标: iconType=${info.iconType} (${_getIconTypeName(info.iconType)}), 已收集 ${_collectedIcons.length} 种');
+          }
+        }
+        
+        setState(() {
+          _lastNaviInfo = info;
+        });
         _addLog('========================================= \n'
             '📍 导航信息更新:\n'
             '  当前道路: ${info.currentRoadName ?? "未知"}\n'
@@ -228,6 +243,76 @@ class _NavigationPageState extends State<NavigationPage> {
     return iconTypeNames[iconType] ?? '类型$iconType';
   }
 
+  /// 保存所有收集到的图标到相册
+  Future<void> _saveIconsToGallery() async {
+    if (_collectedIcons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无收集到的图标')),
+      );
+      return;
+    }
+
+    // 请求存储权限（Android）或相册权限（iOS）
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      // Android 13+ 可能需要不同的权限
+      final storageStatus = await Permission.storage.request();
+      if (!storageStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('需要相册/存储权限才能保存图标')),
+          );
+        }
+        return;
+      }
+    }
+
+    int successCount = 0;
+    int failCount = 0;
+
+    for (final entry in _collectedIcons.entries) {
+      final iconType = entry.key;
+      final pngBytes = entry.value;
+      final iconName = _getIconTypeName(iconType);
+
+      try {
+        final result = await SaverGallery.saveImage(
+          pngBytes,
+          quality: 100,
+          fileName: 'navi_icon_${iconType}_$iconName.png',
+          skipIfExists: false,
+        );
+
+        if (result.isSuccess) {
+          successCount++;
+          _addLog('✓ 图标已保存: iconType=$iconType ($iconName)');
+        } else {
+          failCount++;
+          _addLog('✗ 图标保存失败: iconType=$iconType, error=${result.errorMessage}');
+        }
+      } catch (e) {
+        failCount++;
+        _addLog('✗ 图标保存异常: iconType=$iconType, error=$e');
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('保存完成: 成功 $successCount 个, 失败 $failCount 个'),
+        ),
+      );
+    }
+  }
+
+  /// 清空收集的图标
+  void _clearCollectedIcons() {
+    setState(() {
+      _collectedIcons.clear();
+    });
+    _addLog('🗑 已清空收集的图标');
+  }
+
   String _formatMs(int? ms) {
     if (ms == null) return '未知';
     try {
@@ -281,8 +366,8 @@ class _NavigationPageState extends State<NavigationPage> {
                       iconPngBytes,
                       width: 64,
                       height: 64,
-                      fit: BoxFit.contain,
-                      gaplessPlayback: true,
+                      // fit: BoxFit.contain,
+                      // gaplessPlayback: true,
                     ),
                   )
                 else
@@ -378,6 +463,90 @@ class _NavigationPageState extends State<NavigationPage> {
 
             _sectionTitle('raw(调试)'),
             SelectableText(info.raw ?? ''),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建已收集图标展示卡片
+  Widget _buildCollectedIconsCard() {
+    return Card(
+      color: Theme.of(context).colorScheme.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '已收集图标 (${_collectedIcons.length} 种)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _collectedIcons.isEmpty ? null : _clearCollectedIcons,
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text('清空'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: _collectedIcons.isEmpty ? null : _saveIconsToGallery,
+                  icon: const Icon(Icons.download, size: 18),
+                  label: const Text('保存到相册'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_collectedIcons.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('导航过程中会自动收集转向图标'),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _collectedIcons.entries.map((entry) {
+                  final iconType = entry.key;
+                  final pngBytes = entry.value;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Image.memory(
+                          pngBytes,
+                          width: 48,
+                          height: 48,
+                          gaplessPlayback: true,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$iconType',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      Text(
+                        _getIconTypeName(iconType),
+                        style: const TextStyle(fontSize: 9),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),
@@ -686,6 +855,11 @@ class _NavigationPageState extends State<NavigationPage> {
             // 导航信息显示
             if (_lastNaviInfo != null)
               _buildNaviInfoCard(_lastNaviInfo!),
+
+            const SizedBox(height: 12),
+
+            // 已收集的图标展示
+            _buildCollectedIconsCard(),
 
             const SizedBox(height: 12),
 

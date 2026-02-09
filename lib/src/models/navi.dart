@@ -166,6 +166,7 @@ class NaviInfo {
   });
 
   /// 转向图标类型    https://a.amap.com/lbs/static/unzip/Android_Navi_Doc/com/amap/api/navi/enums/IconType.html
+  /// https://a.amap.com/lbs/static/unzip/iOS_Navi_Doc/_a_map_navi_common_obj_8h.html#a33282f5b6d3214a54512f568f025cadc
   final int iconType;
 
   /// 当前路段剩余距离（米）
