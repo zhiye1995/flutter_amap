@@ -148,8 +148,7 @@ class NaviInfo {
     required this.nextRoadName,
     required this.pathRetainDistance,
     required this.pathRetainTime,
-    this.iconPng,
-    this.hasIcon,
+    this.icon,
     this.pathId,
     this.naviType,
     this.curStep,
@@ -164,6 +163,16 @@ class NaviInfo {
     this.toViaInfos,
     this.raw,
   });
+
+  /// 有对应静态资源的 iconType 集合
+  static const Set<int> _availableAssetIconTypes = {
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+    39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 65, 66,
+  };
+
+  /// iconType -> iconPng 缓存（原生端传的图标数据，持续更新）
+  static final Map<int, Uint8List> _iconPngCache = <int, Uint8List>{};
 
   /// 转向图标类型    https://a.amap.com/lbs/static/unzip/Android_Navi_Doc/com/amap/api/navi/enums/IconType.html
   /// https://a.amap.com/lbs/static/unzip/iOS_Navi_Doc/_a_map_navi_common_obj_8h.html#a33282f5b6d3214a54512f568f025cadc
@@ -187,12 +196,9 @@ class NaviInfo {
   /// 整体路径剩余时间（秒）
   final int pathRetainTime;
 
-  /// 转向图标 PNG 字节（Android 端下发 byte[]，Flutter 侧收到 Uint8List，可直接 Image.memory 渲染）
-  /// 说明：Android 端通常只在 iconType 变化时下发；Dart 侧会按 iconType 做一次缓存补全。
-  final Uint8List? iconPng;
-
-  /// 是否存在转向图标（bitmap 不为 null）
-  final bool? hasIcon;
+  /// 转向图标（ImageProvider 类型，可直接用于 Image(image: icon) 渲染）
+  /// 优先使用原生端下发的 PNG 数据（MemoryImage），如果没有则使用静态资源（AssetImage）
+  final ImageProvider? icon;
 
   /// 当前导航路线 ID（Android: pathId）
   final int? pathId;
@@ -230,19 +236,8 @@ class NaviInfo {
       nextRoadName,
       pathRetainDistance,
       pathRetainTime,
-      iconPng,
+      null, // icon 不参与序列化
     ];
-  }
-
-  static NaviInfo decode(List<Object?> result) {
-    return NaviInfo(
-      iconType: result[0]! as int,
-      curStepRetainDistance: result[1]! as int,
-      nextRoadName: result[2]! as String,
-      pathRetainDistance: result[3]! as int,
-      pathRetainTime: result[4]! as int,
-      iconPng: result[5] as Uint8List?,
-    );
   }
 
   /// 从 Map 解码（用于 EventChannel）
@@ -268,10 +263,23 @@ class NaviInfo {
       return null;
     }
 
-    // Android 端 iconPng 可能仅在 iconType 变化时下发；这里按 iconType 缓存上一张图标，确保 UI 可持续展示
     final Uint8List? iconPng = asUint8List(map['iconPng']);
+
+    // 如果原生传了 iconPng，更新缓存
     if (iconPng != null && iconPng.isNotEmpty) {
       _iconPngCache[iconType] = iconPng;
+    }
+
+    // 构建 ImageProvider：优先原生 PNG，其次缓存，最后静态资源
+    ImageProvider? icon;
+    final Uint8List? effectiveIconPng = (iconPng != null && iconPng.isNotEmpty)
+        ? iconPng
+        : _iconPngCache[iconType];
+
+    if (effectiveIconPng != null && effectiveIconPng.isNotEmpty) {
+      icon = MemoryImage(effectiveIconPng);
+    } else if (_availableAssetIconTypes.contains(iconType)) {
+      icon = AssetImage('packages/flutter_amap/assets/navigation/$iconType.png');
     }
 
     return NaviInfo(
@@ -280,8 +288,7 @@ class NaviInfo {
       nextRoadName: asString(map['nextRoadName']),
       pathRetainDistance: asInt(map['pathRetainDistance']),
       pathRetainTime: asInt(map['pathRetainTime']),
-      iconPng: iconPng ?? _iconPngCache[iconType],
-      hasIcon: map['hasIcon'] as bool?,
+      icon: icon,
       pathId: (map['pathId'] as num?)?.toInt(),
       naviType: (map['naviType'] as num?)?.toInt(),
       curStep: (map['curStep'] as num?)?.toInt(),
@@ -306,7 +313,7 @@ class NaviInfo {
     String? currentRoadName,
     int? pathRetainDistance,
     int? pathRetainTime,
-    Uint8List? iconPng,
+    ImageProvider? icon,
     bool? hasIcon,
     int? pathId,
     int? naviType,
@@ -328,8 +335,7 @@ class NaviInfo {
       currentRoadName: currentRoadName ?? this.currentRoadName,
       pathRetainDistance: pathRetainDistance ?? this.pathRetainDistance,
       pathRetainTime: pathRetainTime ?? this.pathRetainTime,
-      iconPng: iconPng ?? this.iconPng,
-      hasIcon: hasIcon ?? this.hasIcon,
+      icon: icon ?? this.icon,
       pathId: pathId ?? this.pathId,
       naviType: naviType ?? this.naviType,
       curStep: curStep ?? this.curStep,
@@ -343,10 +349,6 @@ class NaviInfo {
       raw: raw ?? this.raw,
     );
   }
-
-  // ==================== 内部缓存（用于“只在变化时下发 iconPng”） ====================
-
-  static final Map<int, Uint8List> _iconPngCache = <int, Uint8List>{};
 }
 
 /// 出口方向信息（来自 Android 端 exitDirectionInfoToFlutter）

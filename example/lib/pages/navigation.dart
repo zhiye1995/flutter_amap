@@ -69,41 +69,46 @@ class _NavigationPageState extends State<NavigationPage> {
     _subscriptions.add(
       AMapNavi.onNaviInfoUpdate.listen((event) {
         final info = event.naviInfo;
-        
+
         // 收集所有出现过的 iconType（包括没有图标的）
         if (info.iconType > 0) {
           final isNewType = !_allIconTypes.contains(info.iconType);
           if (isNewType) {
             _allIconTypes.add(info.iconType);
-            _addLog('📌 发现新 iconType: ${info.iconType} (${_getIconTypeName(info.iconType)}), '
+            _addLog(
+                '📌 发现新 iconType: ${info.iconType} (${_getIconTypeName(info.iconType)}), '
                 '已发现 ${_allIconTypes.length} 种类型');
           }
         }
-        
-        // 收集图标：如果有 iconPng 数据且 iconType > 0，计算 MD5 后收集
-        if (info.iconType > 0 && info.iconPng != null && info.iconPng!.isNotEmpty) {
+
+        // 收集图标：仅当图标来自原生端（MemoryImage）且 iconType > 0 时，计算 MD5 后收集
+        // 静态资源图标不需要收集
+        if (info.iconType > 0 && info.icon is MemoryImage) {
+          final memoryImage = info.icon as MemoryImage;
+          final iconBytes = memoryImage.bytes;
           // 计算图标内容的 MD5
-          final iconMd5 = md5.convert(info.iconPng!).toString();
+          final iconMd5 = md5.convert(iconBytes).toString();
           final isNew = !_collectedIcons.containsKey(iconMd5);
-          
+
           if (isNew) {
             _collectedIcons[iconMd5] = CollectedIcon(
               iconType: info.iconType,
-              bytes: info.iconPng!,
+              bytes: iconBytes,
               md5Hash: iconMd5,
             );
-            
+
             // 统计该 iconType 已有几种变体
             final sameTypeCount = _collectedIcons.values
                 .where((icon) => icon.iconType == info.iconType)
                 .length;
-            
-            _addLog('🎨 收集到新图标: iconType=${info.iconType} (${_getIconTypeName(info.iconType)}), '
+
+            _addLog(
+                '🎨 收集到新图标: iconType=${info.iconType} (${_getIconTypeName(info.iconType)}), '
                 '该类型第 $sameTypeCount 种变体, MD5=${iconMd5.substring(0, 8)}..., '
                 '总计 ${_collectedIcons.length} 个图标');
           }
         }
-        
+
         setState(() {
           _lastNaviInfo = info;
         });
@@ -322,7 +327,7 @@ class _NavigationPageState extends State<NavigationPage> {
   Future<void> _saveIconsToGallery() async {
     // 先获取 ScaffoldMessenger 引用，避免异步后 context 失效
     final messenger = ScaffoldMessenger.maybeOf(context);
-    
+
     if (_collectedIcons.isEmpty) {
       messenger?.showSnackBar(
         const SnackBar(content: Text('暂无收集到的图标')),
@@ -336,14 +341,14 @@ class _NavigationPageState extends State<NavigationPage> {
     // Android 9-: WRITE_EXTERNAL_STORAGE
     // iOS: photos 权限
     bool hasPermission = false;
-    
+
     // 先尝试 photos 权限（iOS 和 Android 13+）
     var status = await Permission.photos.status;
     if (status.isDenied) {
       status = await Permission.photos.request();
     }
     hasPermission = status.isGranted || status.isLimited;
-    
+
     // Android 旧版本尝试 storage 权限
     if (!hasPermission) {
       var storageStatus = await Permission.storage.status;
@@ -352,7 +357,7 @@ class _NavigationPageState extends State<NavigationPage> {
       }
       hasPermission = storageStatus.isGranted;
     }
-    
+
     // saver_gallery 在 Android 10+ 使用 MediaStore API，可能不需要权限
     // 所以即使权限未授予，也尝试保存
     _addLog('权限状态: hasPermission=$hasPermission，尝试保存...');
@@ -365,7 +370,8 @@ class _NavigationPageState extends State<NavigationPage> {
       final icon = entry.value;
       final iconName = _getIconTypeName(icon.iconType);
       // 文件名包含 iconType、名称和 MD5 前8位，确保唯一性
-      final fileName = 'navi_icon_${icon.iconType}_${iconName}_${md5Hash.substring(0, 8)}.png';
+      final fileName =
+          'navi_icon_${icon.iconType}_${iconName}_${md5Hash.substring(0, 8)}.png';
 
       try {
         final result = await SaverGallery.saveImage(
@@ -433,8 +439,8 @@ class _NavigationPageState extends State<NavigationPage> {
   }
 
   Widget _buildNaviInfoCard(NaviInfo info) {
-    final Uint8List? iconPngBytes = info.iconPng;
-    final bool hasPngIcon = iconPngBytes != null && iconPngBytes.isNotEmpty;
+    final ImageProvider? icon = info.icon;
+    final bool hasIcon = icon != null;
 
     return Card(
       color: Theme.of(context).colorScheme.primaryContainer,
@@ -452,15 +458,13 @@ class _NavigationPageState extends State<NavigationPage> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                if (hasPngIcon)
+                if (hasIcon)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(
-                      iconPngBytes,
+                    child: Image(
+                      image: icon,
                       width: 64,
                       height: 64,
-                      // fit: BoxFit.contain,
-                      // gaplessPlayback: true,
                     ),
                   )
                 else
@@ -477,12 +481,10 @@ class _NavigationPageState extends State<NavigationPage> {
               ],
             ),
             const SizedBox(height: 8),
-
             _sectionTitle('道路 / 转向'),
             _kv('当前道路', info.currentRoadName ?? ''),
             _kv('下一路段', info.nextRoadName),
-            _kv('转向图标类型(iconType)', '${info.iconType}'),
-
+            _kv('转向图标类型(iconType)', '${info.iconType}--${_getIconTypeName(info.iconType)}'),
             _sectionTitle('剩余距离 / 时间'),
             _kv('当前路段剩余距离', _formatDistance(info.curStepRetainDistance)),
             _kv(
@@ -493,30 +495,28 @@ class _NavigationPageState extends State<NavigationPage> {
             ),
             _kv('全程剩余距离', _formatDistance(info.pathRetainDistance)),
             _kv('预计时间', _formatTime(info.pathRetainTime)),
-
             _sectionTitle('基础 / 进度'),
             _kv('路线ID(pathId)', info.pathId?.toString() ?? '未知'),
             _kv('导航类型(naviType)', info.naviType?.toString() ?? '未知'),
-            _kv('Step/Link/Point', '${info.curStep}/${info.curLink}/${info.curPoint}'),
-
+            _kv('Step/Link/Point',
+                '${info.curStep}/${info.curLink}/${info.curPoint}'),
             _sectionTitle('红绿灯 / 速度'),
-            _kv('剩余红绿灯(routeRemainLightCount)', info.routeRemainLightCount?.toString() ?? '未知'),
+            _kv('剩余红绿灯(routeRemainLightCount)',
+                info.routeRemainLightCount?.toString() ?? '未知'),
             _kv('当前速度(currentSpeed)', info.currentSpeed?.toString() ?? '未知'),
-
             _sectionTitle('图标数据(调试)'),
-            _kv('hasIcon', (info.hasIcon ?? false).toString()),
-            _kv('iconPng', hasPngIcon ? '有(可渲染)' : '无'),
-
+            _kv('icon', hasIcon ? '有(可渲染)' : '无'),
             _sectionTitle('出口方向信息'),
             if (info.exitDirectionInfo == null)
               _kv('exitDirectionInfo', '无')
             else ...[
               _kv('text', info.exitDirectionInfo!.text ?? ''),
               _kv('exitName', info.exitDirectionInfo!.exitName ?? ''),
-              _kv('directionType', info.exitDirectionInfo!.directionType?.toString() ?? ''),
-              _kv('distance', info.exitDirectionInfo!.distance?.toString() ?? ''),
+              _kv('directionType',
+                  info.exitDirectionInfo!.directionType?.toString() ?? ''),
+              _kv('distance',
+                  info.exitDirectionInfo!.distance?.toString() ?? ''),
             ],
-
             _sectionTitle('不可避让信息'),
             if (info.notAvoidInfo == null)
               _kv('notAvoidInfo', '无')
@@ -534,7 +534,6 @@ class _NavigationPageState extends State<NavigationPage> {
                     : '${info.notAvoidInfo!.coord!.latitude},${info.notAvoidInfo!.coord!.longitude}',
               ),
             ],
-
             _sectionTitle('途经点信息(toViaInfos)'),
             if (info.toViaInfos == null || info.toViaInfos!.isEmpty)
               _kv('toViaInfos', '无')
@@ -553,7 +552,6 @@ class _NavigationPageState extends State<NavigationPage> {
                     ),
                 ],
               ),
-
             _sectionTitle('raw(调试)'),
             SelectableText(info.raw ?? ''),
           ],
@@ -580,12 +578,13 @@ class _NavigationPageState extends State<NavigationPage> {
     for (final icon in _collectedIcons.values) {
       typeIconCount[icon.iconType] = (typeIconCount[icon.iconType] ?? 0) + 1;
     }
-    
+
     // 有图标的 iconType
     final typesWithIcon = typeIconCount.keys.toSet();
     // 没有图标的 iconType
-    final typesWithoutIcon = _allIconTypes.difference(typesWithIcon).toList()..sort();
-    
+    final typesWithoutIcon = _allIconTypes.difference(typesWithIcon).toList()
+      ..sort();
+
     return Card(
       color: Theme.of(context).colorScheme.tertiaryContainer,
       child: Padding(
@@ -603,22 +602,23 @@ class _NavigationPageState extends State<NavigationPage> {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: (_collectedIcons.isEmpty && _allIconTypes.isEmpty) 
-                      ? null 
+                  onPressed: (_collectedIcons.isEmpty && _allIconTypes.isEmpty)
+                      ? null
                       : _clearCollectedIcons,
                   icon: const Icon(Icons.delete_outline, size: 18),
                   label: const Text('清空'),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed: _collectedIcons.isEmpty ? null : _saveIconsToGallery,
+                  onPressed:
+                      _collectedIcons.isEmpty ? null : _saveIconsToGallery,
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('保存'),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // 提示文字
             if (_allIconTypes.isEmpty)
               const Center(
@@ -632,7 +632,8 @@ class _NavigationPageState extends State<NavigationPage> {
               if (_collectedIcons.isNotEmpty) ...[
                 Text(
                   '有图标 (${typesWithIcon.length} 种类型, ${_collectedIcons.length} 个图标):',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -641,8 +642,9 @@ class _NavigationPageState extends State<NavigationPage> {
                   children: _collectedIcons.entries.map((entry) {
                     final icon = entry.value;
                     final sameTypeCount = typeIconCount[icon.iconType] ?? 1;
-                    final copyText = '${icon.iconType}: ${_getIconTypeName(icon.iconType)} (MD5: ${icon.md5Hash})';
-                    
+                    final copyText =
+                        '${icon.iconType}: ${_getIconTypeName(icon.iconType)} (MD5: ${icon.md5Hash})';
+
                     return GestureDetector(
                       onTap: () => _copyToClipboard(copyText),
                       child: Column(
@@ -653,7 +655,10 @@ class _NavigationPageState extends State<NavigationPage> {
                               color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outline
+                                    .withOpacity(0.3),
                               ),
                             ),
                             padding: const EdgeInsets.all(4),
@@ -685,12 +690,13 @@ class _NavigationPageState extends State<NavigationPage> {
                 ),
                 const SizedBox(height: 16),
               ],
-              
+
               // 没有图标的部分
               if (typesWithoutIcon.isNotEmpty) ...[
                 Text(
                   '无图标 (${typesWithoutIcon.length} 种类型，点击复制):',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -698,11 +704,12 @@ class _NavigationPageState extends State<NavigationPage> {
                   runSpacing: 8,
                   children: typesWithoutIcon.map((iconType) {
                     final copyText = '$iconType: ${_getIconTypeName(iconType)}';
-                    
+
                     return GestureDetector(
                       onTap: () => _copyToClipboard(copyText),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.errorContainer,
                           borderRadius: BorderRadius.circular(4),
@@ -711,7 +718,8 @@ class _NavigationPageState extends State<NavigationPage> {
                           '$iconType: ${_getIconTypeName(iconType)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -761,26 +769,31 @@ class _NavigationPageState extends State<NavigationPage> {
               ],
             ),
             const SizedBox(height: 8),
-
             _sectionTitle('坐标'),
             _kv('经纬度', '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}'),
             _kv('时间', _formatMs(loc.time)),
-
             _sectionTitle('航向 / 速度 / 精度'),
             _kv('航向(bearing)', loc.bearing?.toStringAsFixed(1) ?? '未知'),
-            _kv('道路方向(roadBearing)', loc.roadBearing?.toStringAsFixed(1) ?? '未知'),
+            _kv('道路方向(roadBearing)',
+                loc.roadBearing?.toStringAsFixed(1) ?? '未知'),
             _kv('速度', _formatSpeed(loc.speed)),
-            _kv('精度(accuracy)', loc.accuracy == null ? '未知' : '${loc.accuracy!.toStringAsFixed(1)} m'),
-            _kv('海拔(altitude)', loc.altitude == null ? '未知' : '${loc.altitude!.toStringAsFixed(1)} m'),
-
+            _kv(
+                '精度(accuracy)',
+                loc.accuracy == null
+                    ? '未知'
+                    : '${loc.accuracy!.toStringAsFixed(1)} m'),
+            _kv(
+                '海拔(altitude)',
+                loc.altitude == null
+                    ? '未知'
+                    : '${loc.altitude!.toStringAsFixed(1)} m'),
             _sectionTitle('导航进度索引'),
-            _kv('Step/Link/Point', '${loc.curStepIndex ?? ''}/${loc.curLinkIndex ?? ''}/${loc.curPointIndex ?? ''}'),
-
+            _kv('Step/Link/Point',
+                '${loc.curStepIndex ?? ''}/${loc.curLinkIndex ?? ''}/${loc.curPointIndex ?? ''}'),
             _sectionTitle('类型 / 匹配'),
             _kv('matchStatus', loc.matchStatus?.toString() ?? '未知'),
             _kv('locationDataType', loc.locationDataType?.toString() ?? '未知'),
             _kv('locationType', loc.locationType?.toString() ?? '未知'),
-
             if ((loc.raw ?? '').isNotEmpty) ...[
               _sectionTitle('raw(调试)'),
               SelectableText(loc.raw ?? ''),
@@ -1026,8 +1039,7 @@ class _NavigationPageState extends State<NavigationPage> {
             const SizedBox(height: 16),
 
             // 导航信息显示
-            if (_lastNaviInfo != null)
-              _buildNaviInfoCard(_lastNaviInfo!),
+            if (_lastNaviInfo != null) _buildNaviInfoCard(_lastNaviInfo!),
 
             const SizedBox(height: 12),
 
