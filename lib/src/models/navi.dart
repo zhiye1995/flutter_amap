@@ -149,6 +149,7 @@ class NaviInfo {
     required this.pathRetainDistance,
     required this.pathRetainTime,
     this.icon,
+    this.isIconFromNative = false,
     this.pathId,
     this.naviType,
     this.curStep,
@@ -176,6 +177,23 @@ class NaviInfo {
   /// iconType -> iconPng 缓存（原生端传的图标数据，持续更新）
   static final Map<int, Uint8List> _iconPngCache = <int, Uint8List>{};
 
+  /// 预加载的静态资源图标缓存（iconType -> Uint8List）
+  static final Map<int, Uint8List> _assetIconCache = <int, Uint8List>{};
+
+  /// 预加载所有静态资源图标（由 AMapFlutter.init() 调用）
+  static Future<void> preloadAssetIcons() async {
+    for (final iconType in _availableAssetIconTypes) {
+      try {
+        final data = await rootBundle.load(
+          'packages/flutter_amap/assets/navigation/$iconType.png',
+        );
+        _assetIconCache[iconType] = data.buffer.asUint8List();
+      } catch (_) {
+        // 资源不存在，跳过
+      }
+    }
+  }
+
   /// 转向图标类型    https://a.amap.com/lbs/static/unzip/Android_Navi_Doc/com/amap/api/navi/enums/IconType.html
   /// https://a.amap.com/lbs/static/unzip/iOS_Navi_Doc/_a_map_navi_common_obj_8h.html#a33282f5b6d3214a54512f568f025cadc
   final int iconType;
@@ -198,9 +216,12 @@ class NaviInfo {
   /// 整体路径剩余时间（秒）
   final int pathRetainTime;
 
-  /// 转向图标（ImageProvider 类型，可直接用于 Image(image: icon) 渲染）
-  /// 优先使用原生端下发的 PNG 数据（MemoryImage），如果没有则使用静态资源（AssetImage）
-  final ImageProvider? icon;
+  /// 转向图标数据（PNG 格式的 Uint8List，可用于 Image.memory() 渲染）
+  /// 优先使用原生端下发的 PNG 数据，如果没有则使用预加载的静态资源
+  final Uint8List? icon;
+
+  /// 图标是否来自原生端（用于区分是原生下发还是静态资源）
+  final bool isIconFromNative;
 
   /// 当前导航路线 ID（Android: pathId）
   final int? pathId;
@@ -272,16 +293,19 @@ class NaviInfo {
       _iconPngCache[iconType] = iconPng;
     }
 
-    // 构建 ImageProvider：优先原生 PNG，其次缓存，最后静态资源
-    ImageProvider? icon;
+    // 构建图标数据：优先原生 PNG，其次运行时缓存，最后预加载的静态资源
+    Uint8List? icon;
+    bool isIconFromNative = false;
     final Uint8List? effectiveIconPng = (iconPng != null && iconPng.isNotEmpty)
         ? iconPng
         : _iconPngCache[iconType];
 
     if (effectiveIconPng != null && effectiveIconPng.isNotEmpty) {
-      icon = MemoryImage(effectiveIconPng);
-    } else if (_availableAssetIconTypes.contains(iconType)) {
-      icon = AssetImage('packages/flutter_amap/assets/navigation/$iconType.png');
+      icon = effectiveIconPng;
+      isIconFromNative = true;
+    } else if (_assetIconCache.containsKey(iconType)) {
+      icon = _assetIconCache[iconType];
+      isIconFromNative = false;
     }
 
     return NaviInfo(
@@ -291,6 +315,7 @@ class NaviInfo {
       pathRetainDistance: asInt(map['pathRetainDistance']),
       pathRetainTime: asInt(map['pathRetainTime']),
       icon: icon,
+      isIconFromNative: isIconFromNative,
       pathId: (map['pathId'] as num?)?.toInt(),
       naviType: (map['naviType'] as num?)?.toInt(),
       curStep: (map['curStep'] as num?)?.toInt(),
@@ -315,8 +340,8 @@ class NaviInfo {
     String? currentRoadName,
     int? pathRetainDistance,
     int? pathRetainTime,
-    ImageProvider? icon,
-    bool? hasIcon,
+    Uint8List? icon,
+    bool? isIconFromNative,
     int? pathId,
     int? naviType,
     int? curStep,
@@ -338,6 +363,7 @@ class NaviInfo {
       pathRetainDistance: pathRetainDistance ?? this.pathRetainDistance,
       pathRetainTime: pathRetainTime ?? this.pathRetainTime,
       icon: icon ?? this.icon,
+      isIconFromNative: isIconFromNative ?? this.isIconFromNative,
       pathId: pathId ?? this.pathId,
       naviType: naviType ?? this.naviType,
       curStep: curStep ?? this.curStep,

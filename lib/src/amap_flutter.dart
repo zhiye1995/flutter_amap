@@ -366,6 +366,8 @@ class AMapFlutter extends StatefulWidget {
     if (!kIsWeb) {
       await AMapFlutterPlatformInterface.instance.agreePrivacy(agreePrivacy);
     }
+    // 预加载导航图标资源
+     NaviInfo.preloadAssetIcons();
   }
 }
 

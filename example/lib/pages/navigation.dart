@@ -81,11 +81,10 @@ class _NavigationPageState extends State<NavigationPage> {
           }
         }
 
-        // 收集图标：仅当图标来自原生端（MemoryImage）且 iconType > 0 时，计算 MD5 后收集
+        // 收集图标：仅当图标来自原生端且 iconType > 0 时，计算 MD5 后收集
         // 静态资源图标不需要收集
-        if (info.iconType > 0 && info.icon is MemoryImage) {
-          final memoryImage = info.icon as MemoryImage;
-          final iconBytes = memoryImage.bytes;
+        if (info.iconType > 0 && info.icon != null && info.isIconFromNative) {
+          final iconBytes = info.icon!;
           // 计算图标内容的 MD5
           final iconMd5 = md5.convert(iconBytes).toString();
           final isNew = !_collectedIcons.containsKey(iconMd5);
@@ -439,7 +438,7 @@ class _NavigationPageState extends State<NavigationPage> {
   }
 
   Widget _buildNaviInfoCard(NaviInfo info) {
-    final ImageProvider? icon = info.icon;
+    final Uint8List? icon = info.icon;
     final bool hasIcon = icon != null;
 
     return Card(
@@ -461,8 +460,8 @@ class _NavigationPageState extends State<NavigationPage> {
                 if (hasIcon)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image(
-                      image: icon,
+                    child: Image.memory(
+                      icon,
                       width: 64,
                       height: 64,
                     ),
