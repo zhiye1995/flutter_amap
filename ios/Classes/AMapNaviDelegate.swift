@@ -414,11 +414,27 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
     /// 转向图标更新回调 - 只缓存图标数据，在 navInfo 回调中一起发送（和 Android 保持一致）
     func driveManager(_ driveManager: AMapNaviDriveManager, updateTurnIconImage turnIconImage: UIImage?, turn turnIconType: AMapNaviIconType) {
         let iconType = Int(turnIconType.rawValue)
-        print("[AMapNaviDelegate-Data] updateTurnIconImage: type=\(iconType), caching only")
         
-        // 只缓存图标数据，不单独发送事件
+        // 检查图标资源是否存在
+        let hasImage = turnIconImage != nil
+        let imageSize = hasImage ? "\(turnIconImage!.size)" : "nil"
+        
+        print("[AMapNaviDelegate-Data] updateTurnIconImage: type=\(iconType), hasImage=\(hasImage), size=\(imageSize)")
+        
+        // 缓存图标数据，每次都重新写入（即使已存在）
         if iconType > 0, let image = turnIconImage, let pngData = imageToPngData(image) {
+            let isUpdate = iconPngCache[iconType] != nil
             iconPngCache[iconType] = pngData
+            let action = isUpdate ? "更新缓存" : "首次缓存"
+            print("[AMapNaviDelegate-Data] ✓ 图标\(action): type=\(iconType), pngSize=\(pngData.data.count) bytes")
+        } else {
+            if iconType <= 0 {
+                print("[AMapNaviDelegate-Data] ✗ iconType 无效: \(iconType)")
+            } else if turnIconImage == nil {
+                print("[AMapNaviDelegate-Data] ✗ turnIconImage 为 nil")
+            } else {
+                print("[AMapNaviDelegate-Data] ✗ PNG 转换失败")
+            }
         }
     }
 }
