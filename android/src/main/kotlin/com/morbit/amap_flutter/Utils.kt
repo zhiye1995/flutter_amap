@@ -38,7 +38,7 @@ fun UIControlAnchor.toLogoPosition(): Int? {
 fun UIControlAnchor.toZoomPosition(): Int? {
   return when (this) {
     UIControlAnchor.CENTER_RIGHT -> AMapOptions.ZOOM_POSITION_RIGHT_CENTER
-    UIControlAnchor.BOTTOM_RIGHT -> AMapOptions.ZOOM_POSITION_RIGHT_BUTTOM
+    UIControlAnchor.BOTTOM_RIGHT -> AMapOptions.ZOOM_POSITION_RIGHT_BOTTOM
     else -> null
   }
 }
