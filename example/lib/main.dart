@@ -3,21 +3,8 @@ import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'pages/add_remove_marker.dart';
-import 'pages/map_controls.dart';
-import 'pages/map_controls_position.dart';
-import 'pages/map_events.dart';
-import 'pages/map_features.dart';
-import 'pages/map_layers.dart';
-import 'pages/map_restriction.dart';
-import 'pages/map_setting.dart';
-import 'pages/map_styles.dart';
-import 'pages/map_types.dart';
-import 'pages/map_view.dart';
-import 'pages/navigation.dart';
-import 'pages/place_picker.dart';
-import 'pages/user_location.dart';
-import 'pages/weather.dart';
+import 'pages/3d_map/index.dart';
+import 'pages/navigation/index.dart';
 
 void main() {
   runApp(const App());
@@ -113,556 +100,99 @@ class FeatureListPage extends StatelessWidget {
         centerTitle: true,
       ),
       body: ListView(
-        children: const [
-          _CategorySection(
-            title: '地图',
+        padding: const EdgeInsets.all(16),
+        children: [
+          _CategoryCard(
+            title: '3D地图目录',
+            subtitle: '包含地图显示、图层、覆盖物、定位等功能',
             icon: Icons.map,
-            children: [
-              _SubCategorySection(
-                title: '创建地图',
-                children: [
-                  _FeatureItem(
-                    title: '显示地图',
-                    isCompleted: true,
-                    page: MapSettingPage(),
-                  ),
-                  _FeatureItem(
-                    title: '显示定位蓝点',
-                    isCompleted: true,
-                    page: UserLocationPage(),
-                  ),
-                  _FeatureItem(
-                    title: '显示室内地图',
-                    isCompleted: true,
-                    page: MapLayersPage(),
-                  ),
-                  _FeatureItem(
-                    title: '切换地图图层',
-                    isCompleted: true,
-                    page: MapTypesPage(),
-                  ),
-                  _FeatureItem(
-                    title: '使用离线地图',
-                    isCompleted: true,
-                    page: MapSettingPage(),
-                  ),
-                  _FeatureItem(
-                    title: '显示英文地图',
-                    isCompleted: true,
-                    page: MapSettingPage(),
-                  ),
-                  _FeatureItem(
-                    title: '自定义地图',
-                    isCompleted: true,
-                    page: MapStylesPage(),
-                    webOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '地图显示要素',
-                    isCompleted: true,
-                    page: MapFeaturesPage(),
-                    webOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '地图限制区域',
-                    isCompleted: true,
-                    page: MapRestrictionPage(),
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '与地图交互',
-                children: [
-                  _FeatureItem(
-                    title: '控件交互',
-                    isCompleted: true,
-                    page: MapControlsPage(),
-                  ),
-                  _FeatureItem(
-                    title: '控件位置调整',
-                    isCompleted: true,
-                    page: MapControlsPositionPage(),
-                  ),
-                  _FeatureItem(
-                    title: '手势交互',
-                    isCompleted: true,
-                    page: MapSettingPage(),
-                  ),
-                  _FeatureItem(
-                    title: '调用方法交互',
-                    isCompleted: true,
-                    page: MapViewPage(),
-                  ),
-                  _FeatureItem(
-                    title: '地图截屏功能',
-                    isCompleted: true,
-                    page: MapEventsPage(),
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '在地图上绘制',
-                children: [
-                  _FeatureItem(
-                    title: '绘制点标记',
-                    isCompleted: true,
-                    page: AddRemoveMarkerPage(),
-                  ),
-                  _FeatureItem(
-                    title: '绘制折线',
-                    isCompleted: true,
-                    page: MapEventsPage(),
-                  ),
-                  _FeatureItem(
-                    title: '绘制面',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '轨迹纠偏',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '点平滑移动',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '绘制海量点图层',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '地图计算工具',
-                children: [
-                  _FeatureItem(
-                    title: '坐标转换',
-                    isCompleted: true,
-                    page: MapViewPage(),
-                  ),
-                  _FeatureItem(
-                    title: '距离/面积计算',
-                    isCompleted: true,
-                    page: MapViewPage(),
-                  ),
-                  _FeatureItem(
-                    title: '距离测量',
-                    isCompleted: true,
-                    page: MapViewPage(),
-                  ),
-                ],
-              ),
-            ],
+            color: Colors.blue,
+            onTap: () => Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => const Map3dIndexPage()),
+            ),
           ),
-          _CategorySection(
-            title: '搜索',
-            icon: Icons.search,
-            children: [
-              _SubCategorySection(
-                title: '获取地图数据',
-                children: [
-                  _FeatureItem(
-                    title: '获取POI数据',
-                    isCompleted: true,
-                    page: PlacePickerPage(),
-                    mobileOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '获取地址描述数据',
-                    isCompleted: true,
-                    page: PlacePickerPage(),
-                    mobileOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '获取行政区划数据',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '获取公交数据',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '获取天气数据',
-                    isCompleted: true,
-                    page: WeatherPage(),
-                    mobileOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '获取业务数据（云图功能）',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '获取交通态势信息',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '出行线路规划',
-                children: [
-                  _FeatureItem(
-                    title: '驾车出行路线规划',
-                    isCompleted: true,
-                    page: NavigationPage(),
-                    mobileOnly: true,
-                  ),
-                  _FeatureItem(
-                    title: '步行出行路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '公交出行路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '骑行出行路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '货车出行路线规划',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          _CategorySection(
-            title: '导航',
+          const SizedBox(height: 16),
+          _CategoryCard(
+            title: '导航目录',
+            subtitle: '包含路线规划、导航组件、HUD模式等功能',
             icon: Icons.navigation,
-            children: [
-              _SubCategorySection(
-                title: '导航组件',
-                children: [
-                  _FeatureItem(
-                    title: '使用导航组件',
-                    isCompleted: true,
-                    page: NavigationPage(),
-                    mobileOnly: true,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '出行路线规划',
-                children: [
-                  _FeatureItem(
-                    title: '驾车路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '货车路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '步行路线规划',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '骑行路线规划',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '在地图上导航',
-                children: [
-                  _FeatureItem(
-                    title: '实时导航',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '模拟导航',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '智能巡航',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '传入外部GPS数据',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '导航UI定制化',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: 'HUD导航模式',
-                children: [
-                  _FeatureItem(
-                    title: 'HUD导航',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '获取导航数据',
-                children: [
-                  _FeatureItem(
-                    title: '导航数据',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '语音播报',
-                children: [
-                  _FeatureItem(
-                    title: '语音合成',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-            ],
+            color: Colors.green,
+            onTap: () => Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => const NavigationIndexPage()),
+            ),
           ),
-          _CategorySection(
-            title: '定位',
-            icon: Icons.my_location,
-            children: [
-              _SubCategorySection(
-                title: '获取位置',
-                children: [
-                  _FeatureItem(
-                    title: '获取定位数据',
-                    isCompleted: true,
-                    page: UserLocationPage(),
-                  ),
-                ],
-              ),
-              _SubCategorySection(
-                title: '辅助功能',
-                children: [
-                  _FeatureItem(
-                    title: '地理围栏',
-                    isCompleted: false,
-                  ),
-                  _FeatureItem(
-                    title: '坐标转换与位置判断',
-                    isCompleted: false,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 32),
         ],
       ),
     );
   }
 }
 
-/// 一级分类区块
-class _CategorySection extends StatelessWidget {
+/// 大类卡片
+class _CategoryCard extends StatelessWidget {
   final String title;
+  final String subtitle;
   final IconData icon;
-  final List<Widget> children;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _CategorySection({
+  const _CategoryCard({
     required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.children,
+    required this.color,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ExpansionTile(
-      initiallyExpanded: true,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          color: colorScheme.onPrimaryContainer,
-          size: 22,
-        ),
-      ),
-      title: Text(
-        title,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      childrenPadding: const EdgeInsets.only(left: 16),
-      children: children,
-    );
-  }
-}
-
-/// 二级分类区块
-class _SubCategorySection extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  const _SubCategorySection({
-    required this.title,
-    required this.children,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ExpansionTile(
-      initiallyExpanded: false,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-      title: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: colorScheme.secondary,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-      childrenPadding: const EdgeInsets.only(left: 24),
-      children: children,
-    );
-  }
-}
-
-/// 功能项
-class _FeatureItem extends StatelessWidget {
-  final String title;
-  final bool isCompleted;
-  final Widget? page;
-  final bool webOnly;
-  final bool mobileOnly;
-
-  const _FeatureItem({
-    required this.title,
-    required this.isCompleted,
-    this.page,
-    this.webOnly = false,
-    this.mobileOnly = false,
-  });
-
-  bool get _isAvailable {
-    if (!isCompleted) return false;
-    if (webOnly && !kIsWeb) return false;
-    if (mobileOnly && kIsWeb) return false;
-    return page != null;
-  }
-
-  String get _platformHint {
-    if (webOnly) return ' (仅Web)';
-    if (mobileOnly) return ' (仅移动端)';
-    return '';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: Icon(
-        isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-        color: isCompleted ? Colors.green : colorScheme.outline,
-        size: 20,
-      ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: _isAvailable
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurface.withOpacity(0.5),
-              ),
-            ),
-          ),
-          if (_platformHint.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                _platformHint.trim(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 10,
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: Icon(icon, color: color, size: 32),
               ),
-            ),
-        ],
-      ),
-      trailing: _isAvailable
-          ? Icon(
-              Icons.chevron_right,
-              color: colorScheme.onSurface.withOpacity(0.3),
-              size: 20,
-            )
-          : isCompleted
-              ? null
-              : Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '开发中',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSecondaryContainer,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
-      onTap: () {
-        if (_isAvailable && page != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => page!),
-          );
-        } else if (!isCompleted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('「$title」功能正在开发中，敬请期待！'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else if (webOnly && !kIsWeb) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('「$title」功能仅在 Web 端可用'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else if (mobileOnly && kIsWeb) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('「$title」功能仅在移动端可用'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      },
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
