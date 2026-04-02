@@ -232,6 +232,24 @@ data class Location(
   }
 }
 
+/** 离线自定义地图样式（对应 style.data / style_extra.data） */
+data class CustomStyleOptions(
+  val enabled: Boolean,
+  val styleData: ByteArray? = null,
+  val styleExtraData: ByteArray? = null,
+) {
+  companion object {
+    fun fromList(list: List<Any?>): CustomStyleOptions {
+      val enabled = list[0] as Boolean
+      val styleData = list[1] as? ByteArray
+      val styleExtraData = list[2] as? ByteArray
+      return CustomStyleOptions(enabled, styleData, styleExtraData)
+    }
+  }
+
+  fun toList(): List<Any?> = listOf(enabled, styleData, styleExtraData)
+}
+
 /** 地图初始化属性配置 **/
 data class MapInitConfig(
   /** 地图类型 */
@@ -296,6 +314,8 @@ data class MapInitConfig(
   val roofColor: Color?,
   /** 天空颜色，3D模式下带有俯仰角时会显示 */
   val skyColor: Color?,
+  /** 自定义离线样式 */
+  val customStyleOptions: CustomStyleOptions? = null,
 ) {
   companion object {
     fun fromList(list: List<Any?>): MapInitConfig {
@@ -331,6 +351,12 @@ data class MapInitConfig(
       val wallColor = (list[28] as Int?)?.let { Color.valueOf(it) }
       val roofColor = (list[29] as Int?)?.let { Color.valueOf(it) }
       val skyColor = (list[30] as Int?)?.let { Color.valueOf(it) }
+      val customStyleOptions =
+        if (list.size > 31) {
+          (list[31] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
+        } else {
+          null
+        }
       return MapInitConfig(
         mapType,
         mapStyle,
@@ -363,6 +389,7 @@ data class MapInitConfig(
         wallColor,
         roofColor,
         skyColor,
+        customStyleOptions,
       )
     }
   }
@@ -400,6 +427,7 @@ data class MapInitConfig(
       wallColor?.toArgb(),
       roofColor?.toArgb(),
       skyColor?.toArgb(),
+      customStyleOptions?.toList(),
     )
   }
 }
@@ -428,6 +456,7 @@ data class MapUpdateConfig(
   val showSatelliteLayer: Boolean? = null,
   val showRoadNetLayer: Boolean? = null,
   val userLocationConfig: UserLocationConfig? = null,
+  val customStyleOptions: CustomStyleOptions? = null,
 ) {
 
   companion object {
@@ -458,6 +487,12 @@ data class MapUpdateConfig(
       val showRoadNetLayer = list[20] as Boolean?
       val userLocationConfig =
         (list[21] as List<Any?>?)?.let { UserLocationConfig.fromList(it) }
+      val customStyleOptions =
+        if (list.size > 22) {
+          (list[22] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
+        } else {
+          null
+        }
       return MapUpdateConfig(
         mapType,
         mapStyle,
@@ -481,6 +516,7 @@ data class MapUpdateConfig(
         showSatelliteLayer,
         showRoadNetLayer,
         userLocationConfig,
+        customStyleOptions,
       )
     }
   }
@@ -509,6 +545,7 @@ data class MapUpdateConfig(
       showSatelliteLayer,
       showRoadNetLayer,
       userLocationConfig?.toList(),
+      customStyleOptions?.toList(),
     )
   }
 }

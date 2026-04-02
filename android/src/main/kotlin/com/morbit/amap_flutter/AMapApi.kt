@@ -1,6 +1,8 @@
 package com.morbit.amap_flutter
 
+import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.CustomMapStyleOptions
 import com.amap.api.maps.model.LatLngBounds
 
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
@@ -24,6 +26,19 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     }
     config?.minZoom?.let { mapView.map.minZoomLevel = it.toFloat() }
     config?.maxZoom?.let { mapView.map.maxZoomLevel = it.toFloat() }
+    config?.customStyleOptions?.let { applyCustomStyle(it) }
+  }
+
+  private fun applyCustomStyle(opts: CustomStyleOptions) {
+    // 离线自定义样式仅作用在标准底图上；若仍为卫星/导航等类型，样式不会正确叠加
+    if (opts.enabled) {
+      mapView.map.mapType = AMap.MAP_TYPE_NORMAL
+    }
+    val style = CustomMapStyleOptions()
+    style.isEnable = opts.enabled
+    opts.styleData?.let { style.styleData = it }
+    opts.styleExtraData?.let { style.styleExtraData = it }
+    mapView.map.setCustomMapStyle(style)
   }
 
   fun updateMapConfig(config: MapUpdateConfig) {
@@ -46,6 +61,7 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
       it.userLocationStyle?.toLocationStyle(amap.binding)?.let { style -> mapView.map.myLocationStyle = style }
       it.showUserLocation?.let { showLocation -> mapView.map.isMyLocationEnabled = showLocation }
     }
+    config.customStyleOptions?.let { applyCustomStyle(it) }
   }
 
   fun moveCamera(position: CameraPosition, duration: Long) {

@@ -151,6 +151,61 @@ class EdgePadding {
   }
 }
 
+/// 离线自定义地图样式（iOS / Android），对应高德导出的 style.data / style_extra.data
+class CustomStyleOptions {
+  CustomStyleOptions(
+    this.enabled, {
+    this.styleData,
+    this.styleExtraData,
+  });
+
+  /// 是否启用自定义样式
+  bool enabled;
+
+  /// style.data 二进制
+  Uint8List? styleData;
+
+  /// style_extra.data 二进制
+  Uint8List? styleExtraData;
+
+  List<Object?> encode() {
+    return <Object?>[
+      enabled,
+      styleData,
+      styleExtraData,
+    ];
+  }
+
+  static CustomStyleOptions? decode(List<Object?>? list) {
+    if (list == null || list.isEmpty) {
+      return null;
+    }
+    return CustomStyleOptions(
+      list[0] as bool,
+      styleData: list[1] as Uint8List?,
+      styleExtraData: list[2] as Uint8List?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is CustomStyleOptions &&
+        enabled == other.enabled &&
+        listEquals(styleData, other.styleData) &&
+        listEquals(styleExtraData, other.styleExtraData);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        enabled,
+        styleData == null ? null : Object.hashAll(styleData!),
+        styleExtraData == null ? null : Object.hashAll(styleExtraData!),
+      );
+}
+
 /// 初始化地图属性
 class MapInitConfig {
   MapInitConfig({
@@ -185,6 +240,7 @@ class MapInitConfig {
     this.wallColor,
     this.roofColor,
     this.skyColor,
+    this.customStyleOptions,
   });
 
   /// 设置地图类型
@@ -280,6 +336,9 @@ class MapInitConfig {
   /// 天空颜色，3D模式下带有俯仰角时会显示(Web Only)
   final Color? skyColor;
 
+  /// 自定义离线样式（iOS / Android）
+  final CustomStyleOptions? customStyleOptions;
+
   Object encode() {
     return <Object?>[
       mapType?.index,
@@ -313,6 +372,7 @@ class MapInitConfig {
       wallColor?.value,
       roofColor?.value,
       skyColor?.value,
+      customStyleOptions?.encode(),
     ];
   }
 
@@ -352,6 +412,9 @@ class MapInitConfig {
       wallColor: result[28] != null ? Color(result[28] as int) : null,
       roofColor: result[29] != null ? Color(result[29] as int) : null,
       skyColor: result[30] != null ? Color(result[30] as int) : null,
+      customStyleOptions: result.length > 31 && result[31] != null
+          ? CustomStyleOptions.decode(result[31]! as List<Object?>)
+          : null,
     );
   }
 
@@ -387,6 +450,7 @@ class MapInitConfig {
     Color? wallColor,
     Color? roofColor,
     Color? skyColor,
+    CustomStyleOptions? customStyleOptions,
   }) {
     return MapInitConfig(
       mapType: mapType ?? this.mapType,
@@ -420,6 +484,7 @@ class MapInitConfig {
       wallColor: wallColor ?? this.wallColor,
       roofColor: roofColor ?? this.roofColor,
       skyColor: skyColor ?? this.skyColor,
+      customStyleOptions: customStyleOptions ?? this.customStyleOptions,
     );
   }
 }
@@ -449,6 +514,7 @@ class MapUpdateConfig {
     this.showSatelliteLayer,
     this.showRoadNetLayer,
     this.userLocationConfig,
+    this.customStyleOptions,
   });
 
   /// 设置地图类型
@@ -517,6 +583,9 @@ class MapUpdateConfig {
   /// 用户定位配置
   UserLocationConfig? userLocationConfig;
 
+  /// 自定义离线样式（iOS / Android）
+  CustomStyleOptions? customStyleOptions;
+
   Object encode() {
     return <Object?>[
       mapType?.index,
@@ -541,6 +610,7 @@ class MapUpdateConfig {
       showSatelliteLayer,
       showRoadNetLayer,
       userLocationConfig?.encode(),
+      customStyleOptions?.encode(),
     ];
   }
 
@@ -573,6 +643,9 @@ class MapUpdateConfig {
       showRoadNetLayer: result[20] as bool?,
       userLocationConfig:
           result[21] != null ? UserLocationConfig.decode(result[21]! as List<Object?>) : null,
+      customStyleOptions: result.length > 22 && result[22] != null
+          ? CustomStyleOptions.decode(result[22]! as List<Object?>)
+          : null,
     );
   }
 
@@ -599,6 +672,7 @@ class MapUpdateConfig {
     bool? showSatelliteLayer,
     bool? showRoadNetLayer,
     UserLocationConfig? userLocationConfig,
+    CustomStyleOptions? customStyleOptions,
   }) {
     return MapUpdateConfig(
       mapType: mapType ?? this.mapType,
@@ -623,6 +697,7 @@ class MapUpdateConfig {
       showSatelliteLayer: showSatelliteLayer ?? this.showSatelliteLayer,
       showRoadNetLayer: showRoadNetLayer ?? this.showRoadNetLayer,
       userLocationConfig: userLocationConfig ?? this.userLocationConfig,
+      customStyleOptions: customStyleOptions ?? this.customStyleOptions,
     );
   }
 }

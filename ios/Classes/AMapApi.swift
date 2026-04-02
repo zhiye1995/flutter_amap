@@ -91,6 +91,23 @@ class _AMapApi: NSObject {
       if let scaleControlEnabled = config.scaleControlEnabled {
         mapView.showsScale = scaleControlEnabled
       }
+      if let custom = config.customStyleOptions {
+        applyCustomStyle(custom)
+      }
+    }
+  }
+
+  private func applyCustomStyle(_ options: CustomStyleOptions) {
+    // 离线自定义样式仅作用在标准底图上；若仍为卫星/导航等类型，样式不会正确叠加
+    if options.enabled {
+      mapView.mapType = MAMapType.standard
+    }
+    mapView.customMapStyleEnabled = options.enabled
+    if options.enabled {
+      let styleOption = MAMapCustomStyleOptions()
+      styleOption.styleData = options.styleData
+      styleOption.styleExtraData = options.styleExtraData
+      mapView.setCustomMapStyleOptions(styleOption)
     }
   }
 
@@ -144,6 +161,9 @@ class _AMapApi: NSObject {
         }
         mapView.update(userLocationStyle.toUserLocationRepresentation(registrar: registrar))
       }
+    }
+    if let custom = config.customStyleOptions {
+      applyCustomStyle(custom)
     }
   }
 

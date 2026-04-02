@@ -48,6 +48,7 @@ class AMapFlutter extends StatefulWidget {
     this.showUserLocation,
     this.geolocationControlEnabled,
     this.userLocationStyle,
+    this.customStyleOptions,
     this.onMapCreated,
     this.onMapInitComplete,
     this.onMapCompleted,
@@ -236,6 +237,9 @@ class AMapFlutter extends StatefulWidget {
   /// 用户定位样式
   final UserLocationStyle? userLocationStyle;
 
+  /// 离线自定义地图样式（iOS / Android），Web 端忽略
+  final CustomStyleOptions? customStyleOptions;
+
   /// 地图创建完成事件回调函数
   ///
   /// 可以使用参数 [AMapController] 调用地图方法
@@ -420,6 +424,7 @@ class AMapFlutterState extends State<AMapFlutter> {
               wallColor: widget.wallColor,
               roofColor: widget.roofColor,
               skyColor: widget.skyColor,
+              customStyleOptions: widget.customStyleOptions,
             ).encode(),
           },
           creationParamsCodec: const AMapApiCodec(),
@@ -459,6 +464,7 @@ class AMapFlutterState extends State<AMapFlutter> {
               wallColor: widget.wallColor,
               roofColor: widget.roofColor,
               skyColor: widget.skyColor,
+              customStyleOptions: widget.customStyleOptions,
             ).encode(),
           },
           creationParamsCodec: const AMapApiCodec(),
@@ -561,6 +567,9 @@ class AMapFlutterState extends State<AMapFlutter> {
             showUserLocation: widget.showUserLocation,
           );
     }
+    if (widget.customStyleOptions != oldWidget.customStyleOptions) {
+      config.customStyleOptions = widget.customStyleOptions;
+    }
     AMapFlutterPlatformInterface.instance.updateMapConfig(config, mapId: mapId);
   }
 
@@ -601,6 +610,7 @@ class AMapFlutterState extends State<AMapFlutter> {
           showUserLocation: widget.showUserLocation,
           userLocationStyle: widget.userLocationStyle,
         ),
+        customStyleOptions: widget.customStyleOptions,
       );
       AMapFlutterPlatformInterface.instance.updateMapConfig(
         config,

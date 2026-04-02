@@ -206,6 +206,32 @@ struct Location {
   }
 }
 
+/// 离线自定义地图样式
+struct CustomStyleOptions {
+  var enabled: Bool
+  var styleData: Data?
+  var styleExtraData: Data?
+
+  static func fromList(_ list: [Any?]) -> CustomStyleOptions {
+    let enabled = list[0] as! Bool
+    let styleData = (list[1] as? FlutterStandardTypedData)?.data
+    let styleExtraData = (list[2] as? FlutterStandardTypedData)?.data
+    return CustomStyleOptions(
+      enabled: enabled,
+      styleData: styleData,
+      styleExtraData: styleExtraData
+    )
+  }
+
+  func toList() -> [Any?] {
+    return [
+      enabled,
+      styleData.map { FlutterStandardTypedData(bytes: $0) },
+      styleExtraData.map { FlutterStandardTypedData(bytes: $0) },
+    ]
+  }
+}
+
 /// 初始化地图属性
 struct MapInitConfig {
   var mapType: MapType? = nil
@@ -239,6 +265,7 @@ struct MapInitConfig {
   var wallColor: UIColor? = nil
   var roofColor: UIColor? = nil
   var skyColor: UIColor? = nil
+  var customStyleOptions: CustomStyleOptions? = nil
 
   static func fromList(_ list: [Any?]) -> MapInitConfig {
     var mapType: MapType? = nil
@@ -293,6 +320,10 @@ struct MapInitConfig {
     if let color: UInt = nilOrValue(list[30]) {
       skyColor = UIColor(hex: color)
     }
+    var customStyleOptions: CustomStyleOptions? = nil
+    if list.count > 31, let customList: [Any?] = nilOrValue(list[31]) {
+      customStyleOptions = CustomStyleOptions.fromList(customList)
+    }
     return MapInitConfig(
       mapType: mapType,
       mapStyle: mapStyle,
@@ -324,7 +355,8 @@ struct MapInitConfig {
       terrain: terrain,
       wallColor: wallColor,
       roofColor: roofColor,
-      skyColor: skyColor
+      skyColor: skyColor,
+      customStyleOptions: customStyleOptions
     )
   }
 
@@ -361,6 +393,7 @@ struct MapInitConfig {
       wallColor?.hex,
       roofColor?.hex,
       skyColor?.hex,
+      customStyleOptions?.toList(),
     ]
   }
 }
@@ -389,6 +422,7 @@ struct MapUpdateConfig {
   var showSatelliteLayer: Bool? = nil
   var showRoadNetLayer: Bool? = nil
   var userLocationConfig: UserLocationConfig? = nil
+  var customStyleOptions: CustomStyleOptions? = nil
 
   static func fromList(_ list: [Any?]) -> MapUpdateConfig {
     var mapType: MapType? = nil
@@ -431,6 +465,10 @@ struct MapUpdateConfig {
     if let userLocationConfigList: [Any?] = nilOrValue(list[21]) {
       userLocationConfig = UserLocationConfig.fromList(userLocationConfigList)
     }
+    var customStyleOptions: CustomStyleOptions? = nil
+    if list.count > 22, let customList: [Any?] = nilOrValue(list[22]) {
+      customStyleOptions = CustomStyleOptions.fromList(customList)
+    }
     return MapUpdateConfig(
       mapType: mapType,
       mapStyle: mapStyle,
@@ -453,7 +491,8 @@ struct MapUpdateConfig {
       showIndoorMap: showIndoorMap,
       showSatelliteLayer: showSatelliteLayer,
       showRoadNetLayer: showRoadNetLayer,
-      userLocationConfig: userLocationConfig
+      userLocationConfig: userLocationConfig,
+      customStyleOptions: customStyleOptions
     )
   }
 
@@ -481,6 +520,7 @@ struct MapUpdateConfig {
       showSatelliteLayer,
       showRoadNetLayer,
       userLocationConfig?.toList(),
+      customStyleOptions?.toList(),
     ]
   }
 }

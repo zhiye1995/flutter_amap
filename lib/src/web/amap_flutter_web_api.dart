@@ -31,6 +31,7 @@ class AMapFlutterWebApi {
   final Map<String, MarkerJS> markers = {};
 
   Future<void> updateMapConfig(MapUpdateConfig config) async {
+    // customStyleOptions（离线 style.data）仅 iOS/Android 原生支持，Web 端忽略
     if (config.mapStyle != null) {
       aMap.setMapStyle(config.mapStyle!);
     }
