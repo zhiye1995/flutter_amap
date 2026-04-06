@@ -32,4 +32,5 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 build/
 /official_demo/
+/official_example/
 official_demo\Android_3D_Demo

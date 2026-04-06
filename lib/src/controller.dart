@@ -1,7 +1,7 @@
 part of '../flutter_amap.dart';
 
 /// Controller for a single AMap instance running on the host platform,
-/// which passed in [AMapFlutter.onMapCreated] callback.
+/// which passed in [AMapWidget.onMapCreated] callback.
 class AMapController {
   AMapController(
     this._aMapFlutter, {
@@ -14,7 +14,7 @@ class AMapController {
   final int mapId;
 
   /// The map state for a single AMap instance
-  final AMapFlutter _aMapFlutter;
+  final AMapWidget _aMapFlutter;
 
   final Completer<void> _mapCompletedCompleter = Completer<void>();
   bool _isDestroyed = false;

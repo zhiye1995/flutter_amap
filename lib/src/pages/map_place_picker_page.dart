@@ -382,7 +382,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             child: Stack(
               children: [
                 // 地图
-                AMapFlutter(
+                AMapWidget(
                   showUserLocation: true,
                   // 连续定位，蓝点跟随设备移动，但不自动移动地图中心
                   userLocationStyle: UserLocationStyle(

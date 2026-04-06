@@ -7,7 +7,7 @@ import 'js/js.dart';
 import 'utils.dart';
 
 class AMapFlutterWebApi {
-  AMapFlutterWebApi(int mapId, {AMapFlutter? aMapFlutter})
+  AMapFlutterWebApi(int mapId, {AMapWidget? aMapFlutter})
       : aMap = AMap(
           mapId.toString(),
           aMapFlutter?.mapOptions ?? MapOptions(),

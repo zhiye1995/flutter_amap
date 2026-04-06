@@ -61,7 +61,7 @@ class _UserLocationPageState extends State<UserLocationPage> {
           ),
         ],
       ),
-      body: AMapFlutter(
+      body: AMapWidget(
         initCameraPosition: CameraPosition(
           zoom: 16
         ),

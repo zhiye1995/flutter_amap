@@ -64,7 +64,7 @@ class _MapControlsPageState extends State<MapControlsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text(MapControlsPage.title)),
-      body: AMapFlutter(
+      body: AMapWidget(
         initCameraPosition: CameraPosition(
           position: Position(latitude: 39.984120, longitude: 116.307484),
           zoom: 17.2,

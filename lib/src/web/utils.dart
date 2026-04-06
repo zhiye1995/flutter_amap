@@ -41,7 +41,7 @@ extension Size$Ext on Size {
   }
 }
 
-extension AMapFlutter$Ext on AMapFlutter {
+extension AMapFlutter$Ext on AMapWidget {
   js.MapOptions get mapOptions {
     final options = js.MapOptions();
     if (mapStyle != null) options.mapStyle = mapStyle!.toJS;

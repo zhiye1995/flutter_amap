@@ -47,7 +47,7 @@ class _MapViewPageState extends State<MapViewPage> {
         ],
       ),
       body: Stack(children: [
-        AMapFlutter(
+        AMapWidget(
           initCameraPosition: CameraPosition(
             position: Position(latitude: 39.984120, longitude: 116.307484),
             zoom: 17.2,

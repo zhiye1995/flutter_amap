@@ -21,7 +21,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> init(int mapId, AMapFlutter? aMapFlutter) {
+  Future<void> init(int mapId, AMapWidget? aMapFlutter) {
     throw UnimplementedError('init() has not been implemented.');
   }
 

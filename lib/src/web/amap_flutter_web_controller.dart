@@ -22,7 +22,7 @@ class AMapFlutterWebController extends AMapFlutterPlatformInterface {
   }
 
   @override
-  Future<void> init(int mapId, AMapFlutter? aMapFlutter) async {
+  Future<void> init(int mapId, AMapWidget? aMapFlutter) async {
     final Completer<void> completer = Completer<void>();
     AMapFlutterWebApi? map = _maps[mapId];
     if (map == null) {

@@ -40,7 +40,7 @@ class _MapSettingPageState extends State<MapSettingPage> {
         title: const Text(MapSettingPage.title),
       ),
       body: configured
-          ? AMapFlutter(
+          ? AMapWidget(
               initCameraPosition: CameraPosition(
                 position: Position(latitude: 39.984120, longitude: 116.307484),
                 zoom: 17.2,

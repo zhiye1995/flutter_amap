@@ -7,7 +7,7 @@ import 'map_events.dart';
 import 'map_layers.dart';
 import 'map_restriction.dart';
 import 'map_setting.dart';
-import 'map_styles.dart';
+import 'map_listview.dart';
 import 'map_types.dart';
 import 'map_view.dart';
 import 'show_map.dart';
@@ -43,7 +43,7 @@ class _CategoryData {
 final List<_CategoryData> _menuData = [
   _CategoryData('创建地图', [
     _ItemData('显示地图', pageBuilder: () => const ShowMapPage(), isCompleted: true),
-    _ItemData('地图ListView'),
+    _ItemData('地图ListView', pageBuilder: () => const MapListViewPage(), isCompleted: true),
     _ItemData('地图Recycle'),
     _ItemData('显示地图(6种实现地图的方式)'),
     _ItemData('ViewPager TextureMapView'),
@@ -146,23 +146,25 @@ class Map3dIndexPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('3D地图目录'),
-        centerTitle: true,
-      ),
-      backgroundColor: Colors.white,
-      // ListView.builder 按需构建，仅渲染可见区域
-      body: ListView.builder(
-        itemCount: _menuData.length,
-        // 每个分类作为一个独立的 StatefulWidget，
-        // 折叠 / 展开只重建自身，不会触发整个列表重建
-        itemBuilder: (context, index) {
-          return _CategoryTile(
-            key: ValueKey(index),
-            category: _menuData[index],
-          );
-        },
+    return ScaffoldMessenger(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('3D地图目录'),
+          centerTitle: true,
+        ),
+        backgroundColor: Colors.white,
+        // ListView.builder 按需构建，仅渲染可见区域
+        body: ListView.builder(
+          itemCount: _menuData.length,
+          // 每个分类作为一个独立的 StatefulWidget，
+          // 折叠 / 展开只重建自身，不会触发整个列表重建
+          itemBuilder: (context, index) {
+            return _CategoryTile(
+              key: ValueKey(index),
+              category: _menuData[index],
+            );
+          },
+        ),
       ),
     );
   }
@@ -236,7 +238,7 @@ class _CategoryTileState extends State<_CategoryTile> {
 class _FeatureItemTile extends StatelessWidget {
   final _ItemData item;
 
-  const _FeatureItemTile({super.key, required this.item});
+  const _FeatureItemTile({required this.item});
 
   @override
   Widget build(BuildContext context) {

@@ -13,7 +13,7 @@ import "package:stream_transform/stream_transform.dart";
 
 import "src/widgets/marker_pointer_painter.dart";
 
-part "src/amap_flutter.dart";
+part "src/amap_widget.dart";
 part 'src/controller.dart';
 part 'src/errors.dart';
 part 'src/events.dart';

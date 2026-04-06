@@ -1,8 +1,8 @@
 part of '../flutter_amap.dart';
 
 /// 高德地图
-class AMapFlutter extends StatefulWidget {
-  const AMapFlutter({
+class AMapWidget extends StatefulWidget {
+  const AMapWidget({
     super.key,
     this.mapType,
     this.mapStyle,
@@ -357,7 +357,7 @@ class AMapFlutter extends StatefulWidget {
   final void Function(Location)? onUserLocationChange;
 
   @override
-  createState() => AMapFlutterState();
+  createState() => AMapWidgetState();
 
   /// 初始化 SDK，显示地图前必须调用
   /// 请确保用户设置高德地图SDK API key
@@ -375,7 +375,7 @@ class AMapFlutter extends StatefulWidget {
   }
 }
 
-class AMapFlutterState extends State<AMapFlutter> {
+class AMapWidgetState extends State<AMapWidget> {
   static final defaultUIControlOffset = UIControlOffset(x: 0, y: 0);
   late final int mapId;
 

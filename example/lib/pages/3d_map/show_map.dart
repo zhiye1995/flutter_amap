@@ -80,7 +80,7 @@ class _ShowMapPageState extends State<ShowMapPage> {
           // 底层地图：必须用 Positioned.fill，否则 Stack 中非 Positioned 子节点约束异常，
           // 易与 PlatformView 语义树冲突触发 '!semantics.parentDataDirty'
           Positioned.fill(
-            child: AMapFlutter(
+            child: AMapWidget(
               initCameraPosition: CameraPosition(
                 position: Position(latitude: 39.984120, longitude: 116.307484),
                 zoom: 17.2,
