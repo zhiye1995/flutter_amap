@@ -9,6 +9,7 @@ import 'map_restriction.dart';
 import 'map_setting.dart';
 import 'map_listview.dart';
 import 'map_types.dart';
+import 'two_map.dart';
 import 'map_view.dart';
 import 'show_map.dart';
 import 'user_location.dart';
@@ -47,7 +48,7 @@ final List<_CategoryData> _menuData = [
     _ItemData('地图Recycle'),
     _ItemData('显示地图(6种实现地图的方式)'),
     _ItemData('ViewPager TextureMapView'),
-    _ItemData('地图多实例'),
+    _ItemData('地图多实例', pageBuilder: () => const TwoMapPage(), isCompleted: true),
     _ItemData('室内地图功能'),
     _ItemData('AMapOptions实现地图'),
   ]),
