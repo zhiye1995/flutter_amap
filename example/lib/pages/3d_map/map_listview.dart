@@ -117,20 +117,18 @@ class _MapItemTileState extends State<_MapItemTile> with AutomaticKeepAliveClien
     List<Position> points = widget.item['points'];
     return Container(
       height: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      // 增加一些边界和阴影，让它看起来是一个独立的地图块
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
+      // decoration: BoxDecoration(
+      //   color: Colors.grey[200],
+      //   // borderRadius: BorderRadius.circular(8),
+      //   boxShadow: const [
+      //     BoxShadow(
+      //       color: Colors.black12,
+      //       blurRadius: 4,
+      //       offset: Offset(0, 2),
+      //     ),
+      //   ],
+      // ),
+      // clipBehavior: Clip.antiAlias,
       child: AMapWidget(
         initCameraPosition: CameraPosition(
           position: widget.item['position'],
