@@ -25,6 +25,8 @@ class _MapControlsPageState extends State<MapControlsPage> {
   static const androidSupport = [compass, scale, zoom, geolocation];
   static const iOSSupport = [compass, scale];
 
+  AMapController? _controller;
+
   final _state = {
     compass: true,
     scale: true,
@@ -62,23 +64,51 @@ class _MapControlsPageState extends State<MapControlsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text(MapControlsPage.title)),
-      body: AMapWidget(
-        initCameraPosition: CameraPosition(
-          position: Position(latitude: 39.984120, longitude: 116.307484),
-          zoom: 17.2,
+    return ScaffoldMessenger(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(MapControlsPage.title),
+          actions: [
+            Builder(builder: (context) {
+              return TextButton(
+                onPressed: _controller == null
+                    ? null
+                    : () async {
+                        final scalePerPixel =
+                            await _controller!.getScalePerPixel();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('每像素代表 $scalePerPixel 米'),
+                          ),
+                        );
+                      },
+                child: const Text('获取比例尺'),
+              );
+            }),
+          ],
         ),
-        compassControlEnabled: _state[compass]!,
-        scaleControlEnabled: _state[scale]!,
-        zoomControlEnabled: _state[zoom]!,
-        geolocationControlEnabled: _state[geolocation]!,
-        hawkEyeControlEnabled: _state[hawkEye]!,
-        mapTypeControlEnabled: _state[mapType]!,
-      ),
-      bottomNavigationBar: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: items,
+        body: AMapWidget(
+          initCameraPosition: CameraPosition(
+            position: Position(latitude: 39.984120, longitude: 116.307484),
+            zoom: 17.2,
+          ),
+          compassControlEnabled: _state[compass]!,
+          scaleControlEnabled: _state[scale]!,
+          zoomControlEnabled: _state[zoom]!,
+          geolocationControlEnabled: _state[geolocation]!,
+          hawkEyeControlEnabled: _state[hawkEye]!,
+          mapTypeControlEnabled: _state[mapType]!,
+          onMapCreated: (controller) {
+            setState(() {
+              _controller = controller;
+            });
+          },
+        ),
+        bottomNavigationBar: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: items,
+        ),
       ),
     );
   }

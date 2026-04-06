@@ -485,6 +485,13 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     return result;
   }
 
+  /// 获取当前比例尺（每像素代表多少米）
+  @override
+  Future<double> getScalePerPixel({required int mapId}) async {
+    final result = await _channel(mapId).invokeMethod<double>("getScalePerPixel");
+    return result ?? 0.0;
+  }
+
   /// 开始
   @override
   Future<void> start({required int mapId}) {

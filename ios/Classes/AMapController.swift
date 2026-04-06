@@ -27,6 +27,9 @@ class AMapController: NSObject {
     else if(call.method == "getUserLocation") {
       result(api.getUserLocation())
     }
+    else if(call.method == "getScalePerPixel") {
+      result(api.getScalePerPixel())
+    }
     else if(call.method == "moveCamera") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let position = arguments["position"] as! CameraPosition

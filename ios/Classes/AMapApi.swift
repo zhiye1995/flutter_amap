@@ -242,6 +242,10 @@ class _AMapApi: NSObject {
     return mapView.userLocation?.toLocation
   }
 
+  func getScalePerPixel() -> Double {
+    return mapView.metersPerPointForCurrentZoom
+  }
+
   func start() { }
 
   func pause() { }

@@ -328,6 +328,13 @@ class AMapController {
         .timeout(timeout);
   }
 
+  /// 获取当前比例尺（每像素代表多少米）
+  ///
+  /// 返回当前缩放级别下，地图上每个像素代表的实际距离（单位：米）
+  Future<double> getScalePerPixel() {
+    return AMapFlutterPlatformInterface.instance.getScalePerPixel(mapId: mapId);
+  }
+
   /// 获取当前缩放级别
   ///
   /// 返回当前地图的缩放级别，如果尚未获取到则返回 null

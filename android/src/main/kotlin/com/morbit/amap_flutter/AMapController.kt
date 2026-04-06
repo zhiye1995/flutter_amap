@@ -31,6 +31,10 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(api.getUserLocation())
       }
 
+      "getScalePerPixel" -> {
+        result.success(api.getScalePerPixel())
+      }
+
       "moveCamera" -> {
         val position = call.argument<CameraPosition>("position")!!
         val duration = call.argument<Long>("duration")!!

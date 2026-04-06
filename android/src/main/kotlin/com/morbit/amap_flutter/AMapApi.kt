@@ -144,6 +144,10 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     return mapView.map.myLocation?.toLocation()
   }
 
+  fun getScalePerPixel(): Double {
+    return mapView.map.scalePerPixel.toDouble()
+  }
+
   fun start() {
     mapView.onCreate(null)
   }

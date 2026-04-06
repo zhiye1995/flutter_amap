@@ -253,6 +253,11 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('getUserLocation() has not been implemented.');
   }
 
+  /// 获取当前比例尺（每像素代表多少米）
+  Future<double> getScalePerPixel({required int mapId}) {
+    throw UnimplementedError('getScalePerPixel() has not been implemented.');
+  }
+
   /// 开始
   Future<void> start({required int mapId}) {
     throw UnimplementedError('start() has not been implemented.');
