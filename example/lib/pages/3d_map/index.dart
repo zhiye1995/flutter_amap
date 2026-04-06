@@ -48,7 +48,7 @@ final List<_CategoryData> _menuData = [
     _ItemData('显示地图(6种实现地图的方式)'),
     _ItemData('ViewPager TextureMapView'),
     _ItemData('地图多实例'),
-    _ItemData('室内地图功能', pageBuilder: () => const MapLayersPage(), isCompleted: true),
+    _ItemData('室内地图功能'),
     _ItemData('AMapOptions实现地图'),
   ]),
   _CategoryData('地图交互', [
