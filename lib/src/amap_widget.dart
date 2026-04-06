@@ -573,12 +573,26 @@ class AMapWidgetState extends State<AMapWidget> {
     AMapFlutterPlatformInterface.instance.updateMapConfig(config, mapId: mapId);
   }
 
+  AMapController? _controller;
+
   _onPlatformViewCreated(int id) async {
     mapId = id;
     await AMapFlutterPlatformInterface.instance.init(id, widget);
-    final AMapController controller = AMapController(widget, mapId: id);
+    _controller = AMapController(widget, mapId: id);
+    
+    if (!mounted) {
+      _controller?.destroy();
+      return;
+    }
+
     _initMap();
-    widget.onMapCreated?.call(controller);
+    widget.onMapCreated?.call(_controller!);
+  }
+
+  @override
+  void dispose() {
+    _controller?.destroy();
+    super.dispose();
   }
 
   _initMap() {
