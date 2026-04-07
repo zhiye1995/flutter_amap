@@ -7,7 +7,6 @@ import 'map_events.dart';
 import 'map_restriction.dart';
 import 'map_setting.dart';
 import 'map_listview.dart';
-import 'map_types.dart';
 import 'two_map.dart';
 import 'map_view.dart';
 import 'show_map.dart';
@@ -54,7 +53,7 @@ final List<_CategoryData> _menuData = [
   _CategoryData('地图交互', [
     _ItemData('UI Settings功能', pageBuilder: () => const MapControlsPage(), isCompleted: true),
     _ItemData('地图Logo位置', pageBuilder: () => const MapControlsPositionPage(), isCompleted: true),
-    _ItemData('Layers图层功能', pageBuilder: () => const MapTypesPage(), isCompleted: true),
+    _ItemData('Layers图层功能'),
     _ItemData('手势交互', pageBuilder: () => const MapSettingPage(), isCompleted: true),
     _ItemData('Events功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
     _ItemData('地图Poi点击功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),

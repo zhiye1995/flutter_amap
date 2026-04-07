@@ -1,8 +1,8 @@
-import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_amap/flutter_amap.dart';
 
-/// 地图初始化设置页面
+/// 地图初始化设置页面（地图全屏 + Stack 浮层；右上角 UI 与 [ShowMapPage] 地图类型按钮组一致）
 class MapSettingPage extends StatefulWidget {
   /// 地图初始化设置页面构造函数
   const MapSettingPage({super.key});
@@ -15,7 +15,6 @@ class MapSettingPage extends StatefulWidget {
 }
 
 class _MapSettingPageState extends State<MapSettingPage> {
-  bool configured = false;
   bool dragEnable = true;
   bool zoomEnable = true;
   bool jogEnable = true;
@@ -33,14 +32,40 @@ class _MapSettingPageState extends State<MapSettingPage> {
   bool showBuildingBlock = true;
   bool showIndoorMap = false;
 
+  /// 与 [ShowMapPage] 中 `_buildMapTypeButton` 视觉一致：开启为蓝底，关闭为白底
+  Widget _buildSettingButton(
+      String title, bool enabled, VoidCallback onPressed) {
+    return SizedBox(
+      height: 40,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Row(
+          children: [
+            Checkbox(value: enabled, onChanged: (value) => onPressed()),
+            Text(title),
+            SizedBox(width: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(MapSettingPage.title),
       ),
-      body: configured
-          ? AMapWidget(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: AMapWidget(
               initCameraPosition: CameraPosition(
                 position: Position(latitude: 39.984120, longitude: 116.307484),
                 zoom: 17.2,
@@ -62,135 +87,44 @@ class _MapSettingPageState extends State<MapSettingPage> {
               terrain: is3DMode ? true : false,
               showBuildingBlock: showBuildingBlock,
               showIndoorMap: showIndoorMap,
-            )
-          : SingleChildScrollView(
-              child: Center(
-                child: Container(
-                  margin: const EdgeInsets.all(50),
-                  width: 500,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _labelCheckbox(
-                        "地图是否允许拖拽",
-                        dragEnable,
-                        () => setState(() => dragEnable = !dragEnable),
-                      ),
-                      _labelCheckbox(
-                        "地图是否允许缩放",
-                        zoomEnable,
-                        () => setState(() => zoomEnable = !zoomEnable),
-                      ),
-                      _labelCheckbox(
-                        "地图是否允许俯仰",
-                        tiltEnable,
-                        () => setState(() => tiltEnable = !tiltEnable),
-                      ),
-                      _labelCheckbox(
-                        "地图是否允许旋转",
-                        rotateEnable,
-                        () => setState(() => rotateEnable = !rotateEnable),
-                      ),
-                      if (kIsWeb)
-                        ExpansionTile(
-                          title: const Text('Web端初始化设置'),
-                          children: <Widget>[
-                            _labelCheckbox(
-                              "是否使用缓动效果",
-                              jogEnable,
-                              () => setState(() => jogEnable = !jogEnable),
-                            ),
-                            _labelCheckbox(
-                              "平移过程中是否使用动画",
-                              animateEnable,
-                              () => setState(
-                                () => animateEnable = !animateEnable,
-                              ),
-                            ),
-                            _labelCheckbox(
-                              "是否可通过键盘控制",
-                              keyboardEnable,
-                              () => setState(
-                                () => keyboardEnable = !keyboardEnable,
-                              ),
-                            ),
-                            _labelCheckbox(
-                              "是否可通过双击鼠标缩放地图",
-                              doubleClickZoom,
-                              () => setState(
-                                () => doubleClickZoom = !doubleClickZoom,
-                              ),
-                            ),
-                            _labelCheckbox(
-                              "是否可通过鼠标滚轮缩放地图",
-                              scrollWheel,
-                              () => setState(() => scrollWheel = !scrollWheel),
-                            ),
-                            _labelCheckbox(
-                              "是否可通过多点触控缩放地图",
-                              touchZoom,
-                              () => setState(() => touchZoom = !touchZoom),
-                            ),
-                            _labelCheckbox(
-                              "手机端双指缩放是否以地图中心为中心",
-                              touchZoomCenter,
-                              () => setState(
-                                () => touchZoomCenter = !touchZoomCenter,
-                              ),
-                            ),
-                            _labelCheckbox(
-                              "显示文字标注",
-                              showLabel,
-                              () => setState(() => showLabel = !showLabel),
-                            ),
-                            _labelCheckbox(
-                              "是否开启地图热点和标注的悬停效果",
-                              isHotspot,
-                              () => setState(() => isHotspot = !isHotspot),
-                            ),
-                            _labelCheckbox(
-                              "3D地形图模式",
-                              is3DMode,
-                              () => setState(() => is3DMode = !is3DMode),
-                            ),
-                            _labelCheckbox(
-                              "是否展示地图 3D 楼块",
-                              showBuildingBlock,
-                              () => setState(
-                                () => showBuildingBlock = !showBuildingBlock,
-                              ),
-                            ),
-                            _labelCheckbox(
-                              "是否自动展示室内地图",
-                              showIndoorMap,
-                              () => setState(
-                                () => showIndoorMap = !showIndoorMap,
-                              ),
-                            ),
-                          ],
-                        ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            configured = true;
-                          });
-                        },
-                        child: const Text("显示地图"),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
-    );
-  }
-
-  Widget _labelCheckbox(String text, bool value, VoidCallback onPressed) {
-    return CheckboxListTile(
-      controlAffinity: ListTileControlAffinity.leading,
-      title: Text(text),
-      value: value,
-      onChanged: (_) => onPressed(),
+          ),
+          // 右上角叠加面板：与 show_map 地图类型切换组相同结构（Positioned + Column.end + 竖排按钮）
+          Positioned(
+            top: 20,
+            right: 12,
+            child: Column(
+              // crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSettingButton(
+                  '允许拖拽',
+                  dragEnable,
+                  () => setState(() => dragEnable = !dragEnable),
+                ),
+                const SizedBox(height: 8),
+                _buildSettingButton(
+                  '允许缩放',
+                  zoomEnable,
+                  () => setState(() => zoomEnable = !zoomEnable),
+                ),
+                const SizedBox(height: 8),
+                _buildSettingButton(
+                  '允许倾斜',
+                  tiltEnable,
+                  () => setState(() => tiltEnable = !tiltEnable),
+                ),
+                const SizedBox(height: 8),
+                _buildSettingButton(
+                  '允许旋转',
+                  rotateEnable,
+                  () => setState(() => rotateEnable = !rotateEnable),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
