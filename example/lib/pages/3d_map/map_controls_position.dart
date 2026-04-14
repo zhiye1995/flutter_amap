@@ -1,5 +1,4 @@
 import 'package:flutter_amap/flutter_amap.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -59,156 +58,108 @@ class _MapControlsPositionPageState extends State<MapControlsPositionPage> {
     ),
   };
 
+  bool _showPanel = false;
+
   void _showOptions() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter sheetSetState) {
-            final media = MediaQuery.of(context);
-            final maxH = media.size.height * 0.62;
+    setState(() {
+      _showPanel = !_showPanel;
+    });
+  }
 
-            void bump(String key, UIControlPosition next) {
-              sheetSetState(() => _positions[key] = next);
-              setState(() => _positions[key] = next);
-            }
+  Widget _buildOptionsContent() {
+    void bump(String key, UIControlPosition next) {
+      setState(() => _positions[key] = next);
+    }
 
-            return Padding(
-              padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxH),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                      child: Text(
-                        '控件显示位置',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 48), // Placeholder to center text
+              Text(
+                '控件显示位置',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (PlatformUtil.isAndroid) ...[
-                              _AndroidLogoSection(
-                                position: _positions[logo]!,
-                                onChanged: (p) => bump(logo, p),
-                              ),
-                              const SizedBox(height: 16),
-                              _AndroidZoomSection(
-                                position: _positions[zoom]!,
-                                onChanged: (p) => bump(zoom, p),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                '说明：Android 高德地图 SDK 仅支持设置 Logo 与缩放按钮的锚点位置；'
-                                '比例尺、指南针为系统默认布局，本页不提供位置项。',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ] else if (PlatformUtil.isIOS) ...[
-                              _IosWebControlCard(
-                                title: logo,
-                                position: _positions[logo]!,
-                                anchors: UIControlAnchor.values,
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(logo, p),
-                              ),
-                              const SizedBox(height: 12),
-                              _IosWebControlCard(
-                                title: compass,
-                                position: _positions[compass]!,
-                                anchors: UIControlAnchor.values,
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(compass, p),
-                              ),
-                              const SizedBox(height: 12),
-                              _IosWebControlCard(
-                                title: scale,
-                                position: _positions[scale]!,
-                                anchors: UIControlAnchor.values,
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(scale, p),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '说明：iOS 端暂不在原生层应用缩放按钮位置，此处仅调整比例尺与指南针。',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ] else if (kIsWeb) ...[
-                              _IosWebControlCard(
-                                title: scale,
-                                position: _positions[scale]!,
-                                anchors: const [
-                                  UIControlAnchor.topLeft,
-                                  UIControlAnchor.topRight,
-                                  UIControlAnchor.bottomLeft,
-                                  UIControlAnchor.bottomRight,
-                                ],
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(scale, p),
-                              ),
-                              const SizedBox(height: 12),
-                              _IosWebControlCard(
-                                title: compass,
-                                position: _positions[compass]!,
-                                anchors: const [
-                                  UIControlAnchor.topLeft,
-                                  UIControlAnchor.topRight,
-                                  UIControlAnchor.bottomLeft,
-                                  UIControlAnchor.bottomRight,
-                                ],
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(compass, p),
-                              ),
-                              const SizedBox(height: 12),
-                              _IosWebControlCard(
-                                title: zoom,
-                                position: _positions[zoom]!,
-                                anchors: const [
-                                  UIControlAnchor.topLeft,
-                                  UIControlAnchor.topRight,
-                                  UIControlAnchor.bottomLeft,
-                                  UIControlAnchor.bottomRight,
-                                ],
-                                offsetEnabled: true,
-                                onChanged: (p) => bump(zoom, p),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      child: FilledButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('完成'),
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            );
-          },
-        );
-      },
+              IconButton(
+                onPressed: () => setState(() => _showPanel = false),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+        ),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (PlatformUtil.isAndroid) ...[
+                    _AndroidLogoSection(
+                      position: _positions[logo]!,
+                      onChanged: (p) => bump(logo, p),
+                    ),
+                    const SizedBox(height: 8),
+                    _AndroidZoomSection(
+                      position: _positions[zoom]!,
+                      onChanged: (p) => bump(zoom, p),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHelpText('说明：Android 仅支持设置 Logo 与缩放按钮的锚点。'),
+                  ] else if (PlatformUtil.isIOS) ...[
+                    _IosControlCard(
+                      title: logo,
+                      position: _positions[logo]!,
+                      anchors: UIControlAnchor.values,
+                      offsetEnabled: true,
+                      onChanged: (p) => bump(logo, p),
+                    ),
+                    const SizedBox(height: 8),
+                    _IosControlCard(
+                      title: compass,
+                      position: _positions[compass]!,
+                      anchors: UIControlAnchor.values,
+                      offsetEnabled: true,
+                      onChanged: (p) => bump(compass, p),
+                    ),
+                    const SizedBox(height: 8),
+                    _IosControlCard(
+                      title: scale,
+                      position: _positions[scale]!,
+                      anchors: UIControlAnchor.values,
+                      offsetEnabled: true,
+                      onChanged: (p) => bump(scale, p),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildHelpText('说明：iOS 端目前调整比例尺与指南针位置。'),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHelpText(String text) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
     );
   }
 
@@ -225,6 +176,18 @@ class _MapControlsPositionPageState extends State<MapControlsPositionPage> {
           ),
         ],
       ),
+      bottomNavigationBar: Material(
+        elevation: 16,
+        color: Theme.of(context).colorScheme.surface,
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastOutSlowIn,
+          alignment: Alignment.topCenter,
+          child: _showPanel
+              ? _buildOptionsContent()
+              : const SizedBox(width: double.infinity, height: 0),
+        ),
+      ),
       body: AMapWidget(
         initCameraPosition: CameraPosition(
           position: Position(latitude: 39.984120, longitude: 116.307484),
@@ -233,13 +196,10 @@ class _MapControlsPositionPageState extends State<MapControlsPositionPage> {
         scaleControlEnabled: true,
         zoomControlEnabled: true,
         compassControlEnabled: true,
-        logoPosition: !kIsWeb ? _positions[logo] : null,
-        scaleControlPosition:
-            (PlatformUtil.isIOS || kIsWeb) ? _positions[scale] : null,
-        compassControlPosition:
-            (PlatformUtil.isIOS || kIsWeb) ? _positions[compass] : null,
-        zoomControlPosition:
-            (PlatformUtil.isAndroid || kIsWeb) ? _positions[zoom] : null,
+        logoPosition: _positions[logo],
+        scaleControlPosition: PlatformUtil.isIOS ? _positions[scale] : null,
+        compassControlPosition: PlatformUtil.isIOS ? _positions[compass] : null,
+        zoomControlPosition: PlatformUtil.isAndroid ? _positions[zoom] : null,
       ),
     );
   }
@@ -266,27 +226,28 @@ class _AndroidLogoSection extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: [
             Text(
               'Logo 位置',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             SegmentedButton<UIControlAnchor>(
               showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               segments: _MapControlsPositionPageState.androidLogoAnchors
                   .map(
                     (a) => ButtonSegment<UIControlAnchor>(
                       value: a,
-                      label: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(_labels[a]!, textAlign: TextAlign.center),
-                      ),
+                      label: Text(_labels[a]!,
+                          style: const TextStyle(fontSize: 12)),
                     ),
                   )
                   .toList(),
@@ -323,27 +284,28 @@ class _AndroidZoomSection extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: [
             Text(
-              '缩放按钮位置',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              '缩放按钮',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             SegmentedButton<UIControlAnchor>(
               showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               segments: _MapControlsPositionPageState.androidZoomAnchors
                   .map(
                     (a) => ButtonSegment<UIControlAnchor>(
                       value: a,
-                      label: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(_labels[a]!),
-                      ),
+                      label: Text(_labels[a]!,
+                          style: const TextStyle(fontSize: 12)),
                     ),
                   )
                   .toList(),
@@ -360,9 +322,9 @@ class _AndroidZoomSection extends StatelessWidget {
   }
 }
 
-/// iOS / Web：锚点 + 偏移
-class _IosWebControlCard extends StatelessWidget {
-  const _IosWebControlCard({
+/// iOS：锚点 + 偏移
+class _IosControlCard extends StatelessWidget {
+  const _IosControlCard({
     required this.title,
     required this.position,
     required this.anchors,
@@ -395,68 +357,61 @@ class _IosWebControlCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Icon(Icons.place_outlined, size: 20, color: scheme.primary),
-                const SizedBox(width: 8),
+                Icon(Icons.place_outlined, size: 16, color: scheme.primary),
+                const SizedBox(width: 4),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                 ),
+                const Spacer(),
+                DropdownButton<UIControlAnchor>(
+                  value: position.anchor,
+                  underline: const SizedBox(),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  items: anchors.map((a) {
+                    return DropdownMenuItem(
+                      value: a,
+                      child: Text(_anchorLabels[a]!),
+                    );
+                  }).toList(),
+                  onChanged: (a) {
+                    if (a != null) onChanged(position.copyWith(anchor: a));
+                  },
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<UIControlAnchor>(
-              key: ValueKey('$title-${position.anchor}'),
-              initialValue: position.anchor,
-              decoration: InputDecoration(
-                labelText: '锚点',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              items: anchors.map((a) {
-                return DropdownMenuItem(
-                  value: a,
-                  child: Text(_anchorLabels[a]!),
-                );
-              }).toList(),
-              onChanged: (a) {
-                if (a != null) onChanged(position.copyWith(anchor: a));
-              },
-            ),
             if (offsetEnabled) ...[
-              const SizedBox(height: 12),
+              const Divider(height: 1, thickness: 0.5),
+              const SizedBox(height: 4),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: _MiniTextField(
-                      label: 'X',
-                      initValue: position.offset.x.toStringAsFixed(0),
-                      onChanged: (v) => onChanged(
-                        position.copyWith(
-                          offset: position.offset.copyWith(x: v),
-                        ),
+                  const Text('偏移: ',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  _CompactMiniTextField(
+                    label: 'X',
+                    initValue: position.offset.x.toStringAsFixed(0),
+                    onChanged: (v) => onChanged(
+                      position.copyWith(
+                        offset: position.offset.copyWith(x: v),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _MiniTextField(
-                      label: 'Y',
-                      initValue: position.offset.y.toStringAsFixed(0),
-                      onChanged: (v) => onChanged(
-                        position.copyWith(
-                          offset: position.offset.copyWith(y: v),
-                        ),
+                  const SizedBox(width: 8),
+                  _CompactMiniTextField(
+                    label: 'Y',
+                    initValue: position.offset.y.toStringAsFixed(0),
+                    onChanged: (v) => onChanged(
+                      position.copyWith(
+                        offset: position.offset.copyWith(y: v),
                       ),
                     ),
                   ),
@@ -464,6 +419,41 @@ class _IosWebControlCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactMiniTextField extends StatelessWidget {
+  const _CompactMiniTextField({
+    required this.label,
+    required this.initValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String initValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 50,
+      child: TextFormField(
+        initialValue: initValue,
+        onChanged: (value) {
+          onChanged(value.isNotEmpty ? double.tryParse(value) ?? 0 : 0);
+        },
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12),
+        decoration: InputDecoration(
+          prefixText: '$label: ',
+          prefixStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          border: const UnderlineInputBorder(),
         ),
       ),
     );
