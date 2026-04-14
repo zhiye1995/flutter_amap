@@ -58,30 +58,32 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: CupertinoApp(
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          DefaultMaterialLocalizations.delegate,
-          DefaultCupertinoLocalizations.delegate,
-          DefaultWidgetsLocalizations.delegate,
-        ],
-        home: FutureBuilder<void>(
-          future: _bootstrapFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (snapshot.hasError) {
-              return Scaffold(
-                body: Center(
-                  child: Text("Init failed: ${snapshot.error}"),
-                ),
-              );
-            }
-            return const FeatureListPage();
-          },
+      child: ScaffoldMessenger(
+        child: CupertinoApp(
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            DefaultMaterialLocalizations.delegate,
+            DefaultCupertinoLocalizations.delegate,
+            DefaultWidgetsLocalizations.delegate,
+          ],
+          home: FutureBuilder<void>(
+            future: _bootstrapFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return Scaffold(
+                  body: Center(
+                    child: Text("Init failed: ${snapshot.error}"),
+                  ),
+                );
+              }
+              return const FeatureListPage();
+            },
+          ),
         ),
       ),
     );

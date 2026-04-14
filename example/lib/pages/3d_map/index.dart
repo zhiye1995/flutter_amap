@@ -12,6 +12,7 @@ import 'map_view.dart';
 import 'show_map.dart';
 import 'user_location.dart';
 import 'weather.dart';
+import 'poi_click.dart';
 import '../navigation/navigation.dart';
 import '../navigation/place_picker.dart';
 
@@ -57,7 +58,7 @@ final List<_CategoryData> _menuData = [
     _ItemData('手势交互', pageBuilder: () => const MapSettingPage(), isCompleted: true),
     
     _ItemData('Events功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
-    _ItemData('地图Poi点击功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
+    _ItemData('地图Poi点击功能', pageBuilder: () => const PoiClickPage(), isCompleted: true),
     _ItemData('改变地图中心点', pageBuilder: () => const MapViewPage(), isCompleted: true),
     _ItemData('地图动画效果'),
     _ItemData('自定义缩放', pageBuilder: () => const MapViewPage(), isCompleted: true),
@@ -146,25 +147,23 @@ class Map3dIndexPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldMessenger(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('3D地图目录'),
-          centerTitle: true,
-        ),
-        backgroundColor: Colors.white,
-        // ListView.builder 按需构建，仅渲染可见区域
-        body: ListView.builder(
-          itemCount: _menuData.length,
-          // 每个分类作为一个独立的 StatefulWidget，
-          // 折叠 / 展开只重建自身，不会触发整个列表重建
-          itemBuilder: (context, index) {
-            return _CategoryTile(
-              key: ValueKey(index),
-              category: _menuData[index],
-            );
-          },
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('3D地图目录'),
+        centerTitle: true,
+      ),
+      backgroundColor: Colors.white,
+      // ListView.builder 按需构建，仅渲染可见区域
+      body: ListView.builder(
+        itemCount: _menuData.length,
+        // 每个分类作为一个独立的 StatefulWidget，
+        // 折叠 / 展开只重建自身，不会触发整个列表重建
+        itemBuilder: (context, index) {
+          return _CategoryTile(
+            key: ValueKey(index),
+            category: _menuData[index],
+          );
+        },
       ),
     );
   }
