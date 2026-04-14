@@ -179,13 +179,21 @@ class _MapControlsPositionPageState extends State<MapControlsPositionPage> {
       bottomNavigationBar: Material(
         elevation: 16,
         color: Theme.of(context).colorScheme.surface,
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.fastOutSlowIn,
-          alignment: Alignment.topCenter,
-          child: _showPanel
-              ? _buildOptionsContent()
-              : const SizedBox(width: double.infinity, height: 0),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.fastOutSlowIn,
+              alignment: Alignment.topCenter,
+              child: _showPanel
+                  ? _buildOptionsContent()
+                  : const SizedBox(width: double.infinity, height: 0),
+            ),
+          ),
         ),
       ),
       body: AMapWidget(
