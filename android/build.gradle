@@ -64,7 +64,8 @@ android {
         // 定位
 //        implementation 'com.amap.api:location:latest.integration'
 
-        implementation 'com.amap.api:navi-3dmap-location-search:latest.integration'
+//        implementation 'com.amap.api:navi-3dmap-location-search:latest.integration'
+        implementation 'com.amap.api:navi-3dmap-location-search:10.1.600_3dmap10.1.600_loc6.5.1_sea9.7.4'
 
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.mockito:mockito-core:5.0.0")
