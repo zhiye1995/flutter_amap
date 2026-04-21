@@ -30,6 +30,13 @@ class AMapController: NSObject {
     else if(call.method == "getScalePerPixel") {
       result(api.getScalePerPixel())
     }
+    else if(call.method == "takeMapSnapshot") {
+      api.takeMapSnapshot(result: result)
+    }
+    else if(call.method == "stopCameraAnimation") {
+      api.stopCameraAnimation()
+      result(nil)
+    }
     else if(call.method == "moveCamera") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let position = arguments["position"] as! CameraPosition

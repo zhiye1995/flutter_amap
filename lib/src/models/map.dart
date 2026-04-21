@@ -515,6 +515,8 @@ class MapUpdateConfig {
     this.showRoadNetLayer,
     this.userLocationConfig,
     this.customStyleOptions,
+    this.minZoom,
+    this.maxZoom,
   });
 
   /// 设置地图类型
@@ -586,6 +588,12 @@ class MapUpdateConfig {
   /// 自定义离线样式（iOS / Android）
   CustomStyleOptions? customStyleOptions;
 
+  /// 最小缩放级别（热更新，与 [MapInitConfig.minZoom] 语义一致）
+  double? minZoom;
+
+  /// 最大缩放级别（热更新，与 [MapInitConfig.maxZoom] 语义一致）
+  double? maxZoom;
+
   Object encode() {
     return <Object?>[
       mapType?.index,
@@ -611,6 +619,8 @@ class MapUpdateConfig {
       showRoadNetLayer,
       userLocationConfig?.encode(),
       customStyleOptions?.encode(),
+      minZoom,
+      maxZoom,
     ];
   }
 
@@ -646,6 +656,8 @@ class MapUpdateConfig {
       customStyleOptions: result.length > 22 && result[22] != null
           ? CustomStyleOptions.decode(result[22]! as List<Object?>)
           : null,
+      minZoom: result.length > 23 ? result[23] as double? : null,
+      maxZoom: result.length > 24 ? result[24] as double? : null,
     );
   }
 
@@ -673,6 +685,8 @@ class MapUpdateConfig {
     bool? showRoadNetLayer,
     UserLocationConfig? userLocationConfig,
     CustomStyleOptions? customStyleOptions,
+    double? minZoom,
+    double? maxZoom,
   }) {
     return MapUpdateConfig(
       mapType: mapType ?? this.mapType,
@@ -698,6 +712,8 @@ class MapUpdateConfig {
       showRoadNetLayer: showRoadNetLayer ?? this.showRoadNetLayer,
       userLocationConfig: userLocationConfig ?? this.userLocationConfig,
       customStyleOptions: customStyleOptions ?? this.customStyleOptions,
+      minZoom: minZoom ?? this.minZoom,
+      maxZoom: maxZoom ?? this.maxZoom,
     );
   }
 }

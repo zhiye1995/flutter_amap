@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:typed_data';
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter_amap/flutter_amap.dart';
@@ -223,6 +224,9 @@ class AMapFlutterWebController extends AMapFlutterPlatformInterface {
   }
 
   @override
+  Future<void> stopCameraAnimation({required int mapId}) async {}
+
+  @override
   Future<void> moveCameraToFitPosition(
     List<Position>? positions,
     EdgePadding padding,
@@ -279,6 +283,11 @@ class AMapFlutterWebController extends AMapFlutterPlatformInterface {
   @override
   Future<Location> getUserLocation({required int mapId}) async {
     return _map(mapId).getUserLocation();
+  }
+
+  @override
+  Future<Uint8List> takeMapSnapshot({required int mapId}) async {
+    throw UnsupportedError("takeMapSnapshot() is not supported on web.");
   }
 
   @override

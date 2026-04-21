@@ -335,6 +335,30 @@ class AMapController {
     return AMapFlutterPlatformInterface.instance.getScalePerPixel(mapId: mapId);
   }
 
+  /// 截取当前地图可视区域为 PNG 图片字节（对齐高德 Android [AMap.getMapScreenShot] /
+  /// iOS [MAMapView takeSnapshotInRect:]）。
+  ///
+  /// 建议在地图加载完成后再调用，以免底图未就绪时得到空白图。
+  Future<Uint8List> takeMapSnapshot({
+    bool waitForMapCompletedBeforeSnapshot = true,
+  }) async {
+    if (_isDestroyed) {
+      throw StateError("AMapController destroyed");
+    }
+    if (waitForMapCompletedBeforeSnapshot) {
+      await waitForMapCompleted();
+      if (_isDestroyed) {
+        throw StateError("AMapController destroyed");
+      }
+    }
+    return AMapFlutterPlatformInterface.instance.takeMapSnapshot(mapId: mapId);
+  }
+
+  /// 停止当前相机动画（Android 对应 [AMap.stopAnimation]；iOS 无 SDK 等价能力，为兼容调用空实现）
+  Future<void> stopCameraAnimation() {
+    return AMapFlutterPlatformInterface.instance.stopCameraAnimation(mapId: mapId);
+  }
+
   /// 获取当前缩放级别
   ///
   /// 返回当前地图的缩放级别，如果尚未获取到则返回 null

@@ -165,6 +165,16 @@ class _AMapApi: NSObject {
     if let custom = config.customStyleOptions {
       applyCustomStyle(custom)
     }
+    if let minZoom = config.minZoom {
+      mapView.minZoomLevel = minZoom
+    }
+    if let maxZoom = config.maxZoom {
+      mapView.maxZoomLevel = maxZoom
+    }
+  }
+
+  /// MAMapView 无与 Android `AMap.stopAnimation` 完全一致的 API，此处保留空实现以兼容 Dart 调用。
+  func stopCameraAnimation() {
   }
 
   func moveCamera(position: CameraPosition, duration: Int64) {
@@ -244,6 +254,26 @@ class _AMapApi: NSObject {
 
   func getScalePerPixel() -> Double {
     return mapView.metersPerPointForCurrentZoom
+  }
+
+  /// 与高德 iOS `takeSnapshotInRect:withCompletionBlock:` 一致：可视区域截图（PNG）。
+  func takeMapSnapshot(result: @escaping FlutterResult) {
+    let rect = mapView.bounds
+    mapView.takeSnapshot(in: rect, withCompletionBlock: { image, _ in
+      guard let image = image else {
+        result(
+          FlutterError(
+            code: "SNAPSHOT_FAILED", message: "image is nil", details: nil))
+        return
+      }
+      guard let data = image.pngData() else {
+        result(
+          FlutterError(
+            code: "SNAPSHOT_FAILED", message: "pngData failed", details: nil))
+        return
+      }
+      result(data)
+    })
   }
 
   func start() { }

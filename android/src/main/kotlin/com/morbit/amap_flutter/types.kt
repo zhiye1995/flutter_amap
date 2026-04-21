@@ -457,6 +457,8 @@ data class MapUpdateConfig(
   val showRoadNetLayer: Boolean? = null,
   val userLocationConfig: UserLocationConfig? = null,
   val customStyleOptions: CustomStyleOptions? = null,
+  val minZoom: Double? = null,
+  val maxZoom: Double? = null,
 ) {
 
   companion object {
@@ -493,6 +495,8 @@ data class MapUpdateConfig(
         } else {
           null
         }
+      val minZoom = if (list.size > 23) (list[23] as Number?)?.toDouble() else null
+      val maxZoom = if (list.size > 24) (list[24] as Number?)?.toDouble() else null
       return MapUpdateConfig(
         mapType,
         mapStyle,
@@ -517,6 +521,8 @@ data class MapUpdateConfig(
         showRoadNetLayer,
         userLocationConfig,
         customStyleOptions,
+        minZoom,
+        maxZoom,
       )
     }
   }
@@ -546,6 +552,8 @@ data class MapUpdateConfig(
       showRoadNetLayer,
       userLocationConfig?.toList(),
       customStyleOptions?.toList(),
+      minZoom,
+      maxZoom,
     )
   }
 }

@@ -570,6 +570,12 @@ class AMapWidgetState extends State<AMapWidget> {
     if (widget.customStyleOptions != oldWidget.customStyleOptions) {
       config.customStyleOptions = widget.customStyleOptions;
     }
+    if (widget.minZoom != oldWidget.minZoom) {
+      config.minZoom = widget.minZoom;
+    }
+    if (widget.maxZoom != oldWidget.maxZoom) {
+      config.maxZoom = widget.maxZoom;
+    }
     AMapFlutterPlatformInterface.instance.updateMapConfig(config, mapId: mapId);
   }
 
@@ -625,6 +631,8 @@ class AMapWidgetState extends State<AMapWidget> {
           userLocationStyle: widget.userLocationStyle,
         ),
         customStyleOptions: widget.customStyleOptions,
+        minZoom: widget.minZoom,
+        maxZoom: widget.maxZoom,
       );
       AMapFlutterPlatformInterface.instance.updateMapConfig(
         config,

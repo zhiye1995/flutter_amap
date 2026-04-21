@@ -2,8 +2,8 @@ import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 改变地图中心点 — 行为对齐高德 Android_3D_Demo `CameraActivity` 中
-/// 预设视点（中关村 / 陆家嘴）、动画开关与方恒参考点 Marker；像素 scrollBy、
-/// stopAnimation 等接口当前插件未暴露，故未做对应按钮。
+/// 预设视点（中关村 / 陆家嘴）、动画开关与方恒参考点 Marker。
+/// 像素级 scrollBy、停止动画等见「地图动画效果」页。
 class ChangeMapCenterPage extends StatefulWidget {
   const ChangeMapCenterPage({super.key});
 
@@ -133,7 +133,7 @@ class _ChangeMapCenterPageState extends State<ChangeMapCenterPage> {
             right: 16,
             bottom: 16,
             child: Text(
-              '说明：像素级 scrollBy、stopAnimation 等接口当前插件未暴露。',
+              '说明：像素平移与「停止动画」见「地图动画效果」示例页。',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.black.withValues(alpha: 0.45),

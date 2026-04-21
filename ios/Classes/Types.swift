@@ -423,6 +423,8 @@ struct MapUpdateConfig {
   var showRoadNetLayer: Bool? = nil
   var userLocationConfig: UserLocationConfig? = nil
   var customStyleOptions: CustomStyleOptions? = nil
+  var minZoom: Double? = nil
+  var maxZoom: Double? = nil
 
   static func fromList(_ list: [Any?]) -> MapUpdateConfig {
     var mapType: MapType? = nil
@@ -469,6 +471,8 @@ struct MapUpdateConfig {
     if list.count > 22, let customList: [Any?] = nilOrValue(list[22]) {
       customStyleOptions = CustomStyleOptions.fromList(customList)
     }
+    let minZoom: Double? = list.count > 23 ? nilOrValue(list[23]) : nil
+    let maxZoom: Double? = list.count > 24 ? nilOrValue(list[24]) : nil
     return MapUpdateConfig(
       mapType: mapType,
       mapStyle: mapStyle,
@@ -492,7 +496,9 @@ struct MapUpdateConfig {
       showSatelliteLayer: showSatelliteLayer,
       showRoadNetLayer: showRoadNetLayer,
       userLocationConfig: userLocationConfig,
-      customStyleOptions: customStyleOptions
+      customStyleOptions: customStyleOptions,
+      minZoom: minZoom,
+      maxZoom: maxZoom
     )
   }
 
@@ -521,6 +527,8 @@ struct MapUpdateConfig {
       showRoadNetLayer,
       userLocationConfig?.toList(),
       customStyleOptions?.toList(),
+      minZoom,
+      maxZoom,
     ]
   }
 }

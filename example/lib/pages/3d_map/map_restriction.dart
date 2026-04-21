@@ -1,13 +1,11 @@
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
-/// 地图限制区域页面
+/// 限制地图显示区域 — 对应高德 Android `AMap.setMapStatusLimits` / 本插件 [AMapController.setRestrictRegion]。
 class MapRestrictionPage extends StatefulWidget {
-  /// 地图限制区域页面构造函数
   const MapRestrictionPage({super.key});
 
-  /// 地图限制区域页面标题
-  static const title = '地图限制区域';
+  static const title = '限制显示区域功能';
 
   @override
   State<MapRestrictionPage> createState() => _MapRestrictionPageState();
@@ -21,7 +19,7 @@ class _MapRestrictionPageState extends State<MapRestrictionPage> {
     west: 116.31363,
   );
 
-  late AMapController controller;
+  AMapController? _controller;
   var restricted = false;
 
   @override
@@ -29,33 +27,52 @@ class _MapRestrictionPageState extends State<MapRestrictionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(MapRestrictionPage.title),
+        centerTitle: true,
         actions: [
-          Row(children: [
-            const Text('限制'),
-            Switch(
-              value: restricted,
-              onChanged: (value) {
-                setState(() {
-                  restricted = value;
-                  if (value) {
-                    controller.setRestrictRegion(restrictedRegion);
-                  } else {
-                    controller.removeRestrictRegion();
-                  }
-                });
-              },
-            ),
-          ]),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('限制区域'),
+              Switch(
+                value: restricted,
+                onChanged: (value) {
+                  final c = _controller;
+                  if (c == null) return;
+                  setState(() {
+                    restricted = value;
+                    if (value) {
+                      c.setRestrictRegion(restrictedRegion);
+                    } else {
+                      c.removeRestrictRegion();
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
         ],
       ),
-      body: Stack(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AMapWidget(
-            initCameraPosition: CameraPosition(
-              position: Position(latitude: 39.984120, longitude: 116.307484),
-              zoom: 17.2,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(
+              restricted
+                  ? '地图中心与视野被限制在预设矩形内，不可拖出该区域。'
+                  : '未限制：可自由拖动地图。',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            onMapCreated: (controller) => this.controller = controller,
+          ),
+          Expanded(
+            child: AMapWidget(
+              initCameraPosition: CameraPosition(
+                position: Position(latitude: 39.984120, longitude: 116.307484),
+                zoom: 17.2,
+              ),
+              onMapCreated: (c) => setState(() => _controller = c),
+            ),
           ),
         ],
       ),

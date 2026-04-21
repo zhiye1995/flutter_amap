@@ -492,6 +492,25 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     return result ?? 0.0;
   }
 
+  /// 地图可视区域 PNG 截图
+  @override
+  Future<Uint8List> takeMapSnapshot({required int mapId}) async {
+    final Object? result =
+        await _channel(mapId).invokeMethod<Object>("takeMapSnapshot");
+    if (result is Uint8List && result.isNotEmpty) {
+      return result;
+    }
+    if (result is List<int>) {
+      return Uint8List.fromList(result);
+    }
+    throw StateError("takeMapSnapshot: unexpected native result");
+  }
+
+  @override
+  Future<void> stopCameraAnimation({required int mapId}) {
+    return _channel(mapId).invokeMethod("stopCameraAnimation");
+  }
+
   /// 开始
   @override
   Future<void> start({required int mapId}) {

@@ -258,6 +258,17 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('getScalePerPixel() has not been implemented.');
   }
 
+  /// 截取当前地图可视区域为 PNG 字节（与高德 Android [AMap.getMapScreenShot]、
+  /// iOS [MAMapView takeSnapshotInRect:] 对齐）。
+  Future<Uint8List> takeMapSnapshot({required int mapId}) {
+    throw UnimplementedError('takeMapSnapshot() has not been implemented.');
+  }
+
+  /// 停止当前相机动画（与高德 Android [AMap.stopAnimation] 对齐；Web 无操作）
+  Future<void> stopCameraAnimation({required int mapId}) {
+    throw UnimplementedError('stopCameraAnimation() has not been implemented.');
+  }
+
   /// 开始
   Future<void> start({required int mapId}) {
     throw UnimplementedError('start() has not been implemented.');

@@ -5,10 +5,14 @@ import 'map_controls.dart';
 import 'map_controls_position.dart';
 import 'map_events.dart';
 import 'map_restriction.dart';
+import 'map_zoom_restriction.dart';
 import 'map_setting.dart';
 import 'map_listview.dart';
 import 'two_map.dart';
 import 'change_map_center.dart';
+import 'map_animation.dart';
+import 'custom_zoom.dart';
+import 'map_screenshot.dart';
 import 'map_view.dart';
 import 'show_map.dart';
 import 'user_location.dart';
@@ -67,11 +71,31 @@ final List<_CategoryData> _menuData = [
       pageBuilder: () => const ChangeMapCenterPage(),
       isCompleted: true,
     ),
-    _ItemData('地图动画效果'),
-    _ItemData('自定义缩放', pageBuilder: () => const MapViewPage(), isCompleted: true),
-    _ItemData('地图截屏功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
-    _ItemData('限制缩放级别功能', pageBuilder: () => const MapRestrictionPage(), isCompleted: true),
-    _ItemData('限制显示区域功能', pageBuilder: () => const MapRestrictionPage(), isCompleted: true),
+    _ItemData(
+      '地图动画效果',
+      pageBuilder: () => const MapAnimationPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '自定义缩放',
+      pageBuilder: () => const CustomZoomPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '地图截屏功能',
+      pageBuilder: () => const MapScreenshotPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '限制缩放级别功能',
+      pageBuilder: () => const MapZoomRestrictionPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '限制显示区域功能',
+      pageBuilder: () => const MapRestrictionPage(),
+      isCompleted: true,
+    ),
   ]),
   _CategoryData('地图上绘制', [
     _ItemData('Markers功能', pageBuilder: () => const AddRemoveMarkerPage(), isCompleted: true),

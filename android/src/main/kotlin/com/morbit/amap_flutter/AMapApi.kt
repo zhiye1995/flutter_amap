@@ -1,9 +1,13 @@
 package com.morbit.amap_flutter
 
+import android.graphics.Bitmap
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.model.CustomMapStyleOptions
 import com.amap.api.maps.model.LatLngBounds
+import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
   private val mapView = amap.view
@@ -62,6 +66,8 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
       it.showUserLocation?.let { showLocation -> mapView.map.isMyLocationEnabled = showLocation }
     }
     config.customStyleOptions?.let { applyCustomStyle(it) }
+    config.minZoom?.let { mapView.map.minZoomLevel = it.toFloat() }
+    config.maxZoom?.let { mapView.map.maxZoomLevel = it.toFloat() }
   }
 
   fun moveCamera(position: CameraPosition, duration: Long) {
@@ -144,8 +150,52 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     return mapView.map.myLocation?.toLocation()
   }
 
+  fun stopCameraAnimation() {
+    mapView.map.stopAnimation()
+  }
+
   fun getScalePerPixel(): Double {
     return mapView.map.scalePerPixel.toDouble()
+  }
+
+  /// 与高德 Android Demo「地图截屏」一致：截取当前可视地图区域（PNG）。
+  fun takeMapSnapshot(result: MethodChannel.Result) {
+    val finished = AtomicBoolean(false)
+    mapView.map.getMapScreenShot(
+      object : AMap.OnMapScreenShotListener {
+        override fun onMapScreenShot(bitmap: Bitmap?) {
+          deliver(bitmap)
+        }
+
+        override fun onMapScreenShot(bitmap: Bitmap?, status: Int) {
+          deliver(bitmap)
+        }
+
+        private fun deliver(bitmap: Bitmap?) {
+          if (!finished.compareAndSet(false, true)) {
+            return
+          }
+          if (bitmap == null || bitmap.isRecycled) {
+            result.error(
+              "SNAPSHOT_FAILED",
+              "bitmap is null or recycled",
+              null,
+            )
+            return
+          }
+          try {
+            val stream = ByteArrayOutputStream()
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
+              result.error("SNAPSHOT_FAILED", "PNG compress failed", null)
+              return
+            }
+            result.success(stream.toByteArray())
+          } finally {
+            bitmap.recycle()
+          }
+        }
+      },
+    )
   }
 
   fun start() {
