@@ -72,6 +72,8 @@ class Marker {
     required this.id,
     required this.position,
     this.bitmap,
+    this.title,
+    this.snippet,
   });
 
   /// 标记点ID
@@ -83,11 +85,19 @@ class Marker {
   /// 标记点自定义图标信息
   Bitmap? bitmap;
 
+  /// InfoWindow 标题（Android [MarkerOptions.title]；iOS callout `title`）
+  String? title;
+
+  /// InfoWindow 副标题（Android [MarkerOptions.snippet]；iOS callout `subtitle`）
+  String? snippet;
+
   Object encode() {
     return <Object?>[
       id,
       position.encode(),
       bitmap?.encode(),
+      title,
+      snippet,
     ];
   }
 
@@ -96,6 +106,8 @@ class Marker {
       id: result[0]! as String,
       position: Position.decode(result[1]! as List<Object?>),
       bitmap: result[2] != null ? Bitmap.decode(result[2]! as List<Object?>) : null,
+      title: result.length > 3 ? result[3] as String? : null,
+      snippet: result.length > 4 ? result[4] as String? : null,
     );
   }
 
@@ -103,11 +115,15 @@ class Marker {
     String? id,
     Position? position,
     Bitmap? bitmap,
+    String? title,
+    String? snippet,
   }) {
     return Marker(
       id: id ?? this.id,
       position: position ?? this.position,
       bitmap: bitmap ?? this.bitmap,
+      title: title ?? this.title,
+      snippet: snippet ?? this.snippet,
     );
   }
 }

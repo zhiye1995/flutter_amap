@@ -293,6 +293,20 @@ class AMapFlutterWebController extends AMapFlutterPlatformInterface {
   }
 
   @override
+  Future<void> showInfoWindow(String markerId, {required int mapId}) async {
+    throw UnsupportedError(
+      'showInfoWindow() is not supported on web（JS InfoWindow 未接入）。',
+    );
+  }
+
+  @override
+  Future<void> hideInfoWindow({required int mapId}) async {
+    throw UnsupportedError(
+      'hideInfoWindow() is not supported on web（JS InfoWindow 未接入）。',
+    );
+  }
+
+  @override
   Future<Location> getUserLocation({required int mapId}) async {
     return _map(mapId).getUserLocation();
   }

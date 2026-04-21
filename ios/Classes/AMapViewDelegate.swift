@@ -40,6 +40,9 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         annotationView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: annotation.id)
       }
       annotationView.isDraggable = true
+      let t = _annotation.title ?? ""
+      let s = _annotation.subtitle ?? ""
+      annotationView.canShowCallout = !t.isEmpty || !s.isEmpty
       return annotationView
     }
     return nil
@@ -67,6 +70,11 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
 
   /// 单击地图回调，返回经纬度
   func mapView(_ mapView: MAMapView!, didSingleTappedAt coordinate: CLLocationCoordinate2D) {
+    if let selected = mapView.selectedAnnotations as? [Any] {
+      for case let ann as MAAnnotation in selected {
+        mapView.deselectAnnotation(ann, animated: true)
+      }
+    }
     controller.onMapPress(position: coordinate.position)
   }
 
@@ -146,6 +154,12 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   /// 标注view被点击时，触发该回调。（since 5.7.0）
   func mapView(_ mapView: MAMapView!, didAnnotationViewTapped view: MAAnnotationView!) {
     controller.onMarkerClick(view.annotation.hash)
+    let ann = view.annotation!
+    let t = ann.title ?? ""
+    let s = ann.subtitle ?? ""
+    if !t.isEmpty || !s.isEmpty {
+      mapView.selectAnnotation(ann, animated: true)
+    }
   }
 
   /// 标注view的calloutview整体点击时，触发该回调。只有使用默认calloutview时才生效。

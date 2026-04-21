@@ -566,13 +566,19 @@ data class Marker(
   val position: Position,
   /** 标记点自定义图标信息 */
   val bitmap: Bitmap?,
+  /** InfoWindow 标题 */
+  val title: String? = null,
+  /** InfoWindow 副标题 */
+  val snippet: String? = null,
 ) {
   companion object {
     fun fromList(list: List<Any?>): Marker {
       val id = list[0] as String
       val position = Position.fromList(list[1] as List<Any?>)
       val bitmap = (list[2] as List<Any?>?)?.let { Bitmap.fromList(it) }
-      return Marker(id, position, bitmap)
+      val title = if (list.size > 3) list[3] as? String else null
+      val snippet = if (list.size > 4) list[4] as? String else null
+      return Marker(id, position, bitmap, title, snippet)
     }
   }
 
@@ -581,6 +587,8 @@ data class Marker(
       id,
       position.toList(),
       bitmap?.toList(),
+      title,
+      snippet,
     )
   }
 }

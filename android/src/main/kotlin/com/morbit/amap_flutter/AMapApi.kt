@@ -17,7 +17,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
-  private val mapView = amap.view
+  private val mapView = amap.getView()
 
   fun initMap() {
     // 处理仅设置 zoom/tilt/bearing 但不传 position 的情况：
@@ -150,6 +150,17 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
       marker.remove()
       amap.markers.remove(id)
       amap.aMapMarkerIdToDartMarkerId.remove(marker.id)
+    }
+  }
+
+  fun showInfoWindow(markerId: String) {
+    val m: AMapMarker = amap.markers[markerId] ?: return
+    m.showInfoWindow()
+  }
+
+  fun hideInfoWindow() {
+    for (m in amap.markers.values) {
+      m.hideInfoWindow()
     }
   }
 

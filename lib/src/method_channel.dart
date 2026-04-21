@@ -487,6 +487,19 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  @override
+  Future<void> showInfoWindow(String markerId, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "showInfoWindow",
+      <String, dynamic>{"markerId": markerId},
+    );
+  }
+
+  @override
+  Future<void> hideInfoWindow({required int mapId}) {
+    return _channel(mapId).invokeMethod("hideInfoWindow");
+  }
+
   /// 获取当前定位信息
   @override
   Future<Location> getUserLocation({required int mapId}) async {

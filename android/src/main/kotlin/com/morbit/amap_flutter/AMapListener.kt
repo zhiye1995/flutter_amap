@@ -16,6 +16,11 @@ class AMapListener(private val amap: AMapFlutter) : TencentMapListenerInterface 
   }
 
   override fun onMapClick(latLng: LatLng) {
+    for (m in amap.markers.values) {
+      if (m.isInfoWindowShown) {
+        m.hideInfoWindow()
+      }
+    }
     amap.controller.onMapPress(latLng.toPosition())
   }
 
@@ -38,6 +43,11 @@ class AMapListener(private val amap: AMapFlutter) : TencentMapListenerInterface 
   override fun onMarkerClick(marker: AMapMarker): Boolean {
     val markerId: String = amap.aMapMarkerIdToDartMarkerId[marker.id] ?: return false
     amap.controller.onMarkerClick(markerId)
+    val hasInfo =
+      !marker.title.isNullOrBlank() || !marker.snippet.isNullOrBlank()
+    if (hasInfo) {
+      marker.showInfoWindow()
+    }
     return true
   }
 

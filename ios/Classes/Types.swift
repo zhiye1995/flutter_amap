@@ -541,6 +541,10 @@ struct Marker {
   var position: Position
   /// 标记点自定义图标信息
   var bitmap: Bitmap?
+  /// InfoWindow 标题（iOS callout）
+  var title: String?
+  /// InfoWindow 副标题（iOS callout subtitle）
+  var snippet: String?
 
   static func fromList(_ list: [Any?]) -> Marker {
     let id = list[0] as! String
@@ -549,10 +553,14 @@ struct Marker {
     if let bitmapList: [Any?] = nilOrValue(list[2]) {
       bitmap = Bitmap.fromList(bitmapList)
     }
+    let title: String? = list.count > 3 ? (list[3] as? String) : nil
+    let snippet: String? = list.count > 4 ? (list[4] as? String) : nil
     return Marker(
       id: id,
       position: position,
-      bitmap: bitmap
+      bitmap: bitmap,
+      title: title,
+      snippet: snippet
     )
   }
 
@@ -561,6 +569,8 @@ struct Marker {
       id,
       position.toList(),
       bitmap?.toList(),
+      title,
+      snippet,
     ]
   }
 }

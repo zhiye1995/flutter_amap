@@ -92,6 +92,8 @@ fun Marker.toMarkerOptions(binding: FlutterPluginBinding): MarkerOptions {
     return MarkerOptions().let { options ->
         position.toPosition().let { options.position(it) }
         bitmap?.toBitmapDescriptor(binding)?.let { options.icon(it) }
+        title?.takeIf { it.isNotBlank() }?.let { options.title(it) }
+        snippet?.takeIf { it.isNotBlank() }?.let { options.snippet(it) }
         options
     }
 }

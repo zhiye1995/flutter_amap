@@ -136,7 +136,11 @@ extension UIControlPosition$Ext on UIControlPosition {
 
 extension Marker$Ext on Marker {
   js.MarkerOptions get marker {
-    return js.MarkerOptions()..position = position.lngLat;
+    final o = js.MarkerOptions()..position = position.lngLat;
+    if (title != null && title!.isNotEmpty) {
+      o.title = title!.toJS;
+    }
+    return o;
   }
 }
 

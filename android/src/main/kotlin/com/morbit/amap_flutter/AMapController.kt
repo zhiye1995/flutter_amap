@@ -97,6 +97,17 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "showInfoWindow" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.showInfoWindow(markerId)
+        result.success(null)
+      }
+
+      "hideInfoWindow" -> {
+        api.hideInfoWindow()
+        result.success(null)
+      }
+
       "start" -> {
         api.start()
         result.success(null)

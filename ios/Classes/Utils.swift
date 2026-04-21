@@ -17,11 +17,17 @@ class Annotation: MAPointAnnotation {
   let id: String
   let bitmap: Bitmap?
 
-  init(id: String, position: Position, bitmap: Bitmap?) {
+  init(id: String, position: Position, bitmap: Bitmap?, title: String?, snippet: String?) {
     self.id = id
     self.bitmap = bitmap
     super.init()
     self.coordinate = position.coordinate
+    if let t = title, !t.isEmpty {
+      self.title = t
+    }
+    if let s = snippet, !s.isEmpty {
+      self.subtitle = s
+    }
   }
 }
 
@@ -149,7 +155,7 @@ extension MapType {
 
 extension Marker {
   var annotation: Annotation {
-    return Annotation(id: id, position: position, bitmap: bitmap)
+    return Annotation(id: id, position: position, bitmap: bitmap, title: title, snippet: snippet)
   }
 }
 

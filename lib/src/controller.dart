@@ -327,6 +327,21 @@ class AMapController {
     );
   }
 
+  /// 显示指定点标记的 InfoWindow / callout（需 [Marker.title] 或 [Marker.snippet] 有内容）。
+  Future<void> showInfoWindow(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.showInfoWindow(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 隐藏当前 InfoWindow / callout。
+  Future<void> hideInfoWindow() async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.hideInfoWindow(mapId: mapId);
+  }
+
   /// 获取当前定位
   Future<Location> getUserLocation() {
     return AMapFlutterPlatformInterface.instance.getUserLocation(mapId: mapId);

@@ -245,6 +245,35 @@ class _AMapApi: NSObject {
     }
   }
 
+  func showInfoWindow(markerId: String) {
+    guard let ann = markers[markerId] else { return }
+    let run = { [weak self] in
+      guard let self = self else { return }
+      self.mapView.selectAnnotation(ann, animated: true)
+    }
+    if Thread.isMainThread {
+      run()
+    } else {
+      DispatchQueue.main.async(execute: run)
+    }
+  }
+
+  func hideInfoWindow() {
+    let run = { [weak self] in
+      guard let self = self else { return }
+      if let selected = self.mapView.selectedAnnotations as? [Any] {
+        for case let a as MAAnnotation in selected {
+          self.mapView.deselectAnnotation(a, animated: true)
+        }
+      }
+    }
+    if Thread.isMainThread {
+      run()
+    } else {
+      DispatchQueue.main.async(execute: run)
+    }
+  }
+
   /// 与 Dart [MarkerAnimationKind] 下标一致；在 annotation 视图上做 UIView 动画（iOS 无与 Android 同名的 Marker Animation API）。
   func animateMarker(markerId: String, kind: Int, durationMs: Int) {
     guard let annotation = markers[markerId] else { return }
