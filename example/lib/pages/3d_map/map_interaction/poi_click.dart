@@ -1,6 +1,6 @@
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
-import '../../utils.dart';
+import '../../../utils.dart';
 
 /// 地图Poi点击功能页面
 class PoiClickPage extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../utils.dart';
+import '../../../utils.dart';
 
 /// 地图控件位置设置页面。
 ///

@@ -1,6 +1,6 @@
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
-import '../../utils.dart';
+import '../../../utils.dart';
 
 /// 地图控件加载页面
 class MapControlsPage extends StatefulWidget {
