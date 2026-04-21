@@ -2,6 +2,24 @@ part of '../../../flutter_amap.dart';
 
 // ==================== 标记点和POI相关类型 ====================
 
+/// 点标记动画类型（Android 使用高德 [Marker.setAnimation]；iOS 对 [MAAnnotationView] 做 UIView 动画，语义对齐）。
+enum MarkerAnimationKind {
+  /// 缩放脉冲（偏官方 Demo「呼吸」：1↔略放大 + REVERSE）。
+  pulseScale,
+
+  /// 绕锚点旋转一周
+  rotateOnce,
+
+  /// 透明度起伏
+  fadePulse,
+
+  /// 生长：一次性从 0 缩放到正常尺寸（对齐官方常用 `ScaleAnimation(0,1,0,1)`）。
+  growOnce,
+
+  /// 移动：沿经纬度短距离移动再复原（Android [TranslateAnimation]；iOS 对 annotation `coordinate` 插值）。
+  moveRoundTrip,
+}
+
 /// 图片信息
 class Bitmap {
   Bitmap({

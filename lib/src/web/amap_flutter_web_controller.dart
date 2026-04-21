@@ -281,6 +281,18 @@ class AMapFlutterWebController extends AMapFlutterPlatformInterface {
   }
 
   @override
+  Future<void> animateMarker(
+    String markerId,
+    MarkerAnimationKind kind,
+    int durationMs, {
+    required int mapId,
+  }) async {
+    throw UnsupportedError(
+      'animateMarker() is not supported on web (marker view animation / AMap JS 未接入)。',
+    );
+  }
+
+  @override
   Future<Location> getUserLocation({required int mapId}) async {
     return _map(mapId).getUserLocation();
   }

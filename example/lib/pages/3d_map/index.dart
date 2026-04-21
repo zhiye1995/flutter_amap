@@ -15,6 +15,7 @@ import 'map_interaction/map_setting.dart';
 import 'map_interaction/map_zoom_restriction.dart';
 import 'map_interaction/poi_click.dart';
 import 'map_overlay/add_remove_marker.dart';
+import 'map_overlay/marker_animation_page.dart';
 import 'map_overlay/marker_click_callback_page.dart';
 import 'map_overlay/user_location.dart';
 import 'map_query/weather.dart';
@@ -116,7 +117,11 @@ final List<_CategoryData> _menuData = [
       pageBuilder: () => const MarkerClickCallbackPage(),
       isCompleted: true,
     ),
-    _ItemData('Marker动画功能'),
+    _ItemData(
+      'Marker动画功能',
+      pageBuilder: () => const MarkerAnimationPage(),
+      isCompleted: true,
+    ),
     _ItemData('InfoWindow功能'),
     _ItemData('自定义Marker'),
     _ItemData('Location几种模式',

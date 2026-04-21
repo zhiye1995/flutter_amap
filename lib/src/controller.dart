@@ -312,6 +312,21 @@ class AMapController {
     );
   }
 
+  /// 播放点标记动画（Android：高德 SDK Marker 动画；iOS：标注视图 UIView 动画）。
+  Future<void> animateMarker(
+    String markerId, {
+    required MarkerAnimationKind kind,
+    int durationMs = 800,
+  }) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.animateMarker(
+      markerId,
+      kind,
+      durationMs,
+      mapId: mapId,
+    );
+  }
+
   /// 获取当前定位
   Future<Location> getUserLocation() {
     return AMapFlutterPlatformInterface.instance.getUserLocation(mapId: mapId);

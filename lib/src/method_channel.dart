@@ -469,6 +469,24 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  /// 点标记动画
+  @override
+  Future<void> animateMarker(
+    String markerId,
+    MarkerAnimationKind kind,
+    int durationMs, {
+    required int mapId,
+  }) {
+    return _channel(mapId).invokeMethod(
+      "animateMarker",
+      <String, dynamic>{
+        "markerId": markerId,
+        "kind": kind.index,
+        "durationMs": durationMs,
+      },
+    );
+  }
+
   /// 获取当前定位信息
   @override
   Future<Location> getUserLocation({required int mapId}) async {

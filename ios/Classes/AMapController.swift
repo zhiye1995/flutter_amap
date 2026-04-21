@@ -81,6 +81,14 @@ class AMapController: NSObject {
       api.removeMarker(id: id)
       result(nil)
     }
+    else if(call.method == "animateMarker") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let markerId = arguments["markerId"] as! String
+      let kind = (arguments["kind"] as! NSNumber).intValue
+      let durationMs = (arguments["durationMs"] as? NSNumber)?.intValue ?? 800
+      api.animateMarker(markerId: markerId, kind: kind, durationMs: durationMs)
+      result(nil)
+    }
     else if(call.method == "start") {
       api.start()
       result(nil)

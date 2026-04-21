@@ -1,4 +1,5 @@
 import Flutter
+import QuartzCore
 // `MAMapKit` 通常来自 `AMap3DMap`。
 // 但在一些集成方式下（例如仅引入 `AMapNavi`），`MAMapKit` 这个 Swift module 可能不存在，
 // 地图相关类型会通过 `AMapNaviKit` 暴露出来；因此这里做条件导入以兼容两种情况。
@@ -241,6 +242,118 @@ class _AMapApi: NSObject {
       mapView.removeAnnotation(annotation)
       markers.removeValue(forKey: id)
       markerIds.removeValue(forKey: annotation.hash)
+    }
+  }
+
+  /// 与 Dart [MarkerAnimationKind] 下标一致；在 annotation 视图上做 UIView 动画（iOS 无与 Android 同名的 Marker Animation API）。
+  func animateMarker(markerId: String, kind: Int, durationMs: Int) {
+    guard let annotation = markers[markerId] else { return }
+    let run: () -> Void = { [weak self] in
+      guard let self = self else { return }
+      guard let view = self.mapView.view(for: annotation) else { return }
+      view.layer.removeAllAnimations()
+      let dur = Double(min(10_000, max(200, durationMs))) / 1000.0
+      let baseTransform = view.transform
+      let baseAlpha = view.alpha
+
+      switch kind {
+      case 0:
+        UIView.animateKeyframes(
+          withDuration: dur, delay: 0,
+          options: [.calculationModeCubic],
+          animations: {
+            let n = 3
+            for i in 0..<n {
+              let seg = 1.0 / Double(n)
+              UIView.addKeyframe(withRelativeStartTime: Double(i) * seg, relativeDuration: seg * 0.5) {
+                view.transform = baseTransform.scaledBy(x: 1.28, y: 1.28)
+              }
+              UIView.addKeyframe(withRelativeStartTime: Double(i) * seg + seg * 0.5, relativeDuration: seg * 0.5) {
+                view.transform = baseTransform
+              }
+            }
+          },
+          completion: { _ in
+            view.transform = baseTransform
+          })
+
+      case 1:
+        // 整周旋转：affine 的 2π 与恒等等价，必须用 layer 的 rotation 动画才能看见效果。
+        let rot = CABasicAnimation(keyPath: "transform.rotation.z")
+        rot.fromValue = 0
+        rot.toValue = Double.pi * 2
+        rot.duration = dur
+        rot.isRemovedOnCompletion = true
+        view.layer.add(rot, forKey: "flutter_amap_marker_rotate")
+
+      case 2:
+        UIView.animateKeyframes(
+          withDuration: dur, delay: 0,
+          options: [.calculationModeLinear],
+          animations: {
+            let n = 5
+            for i in 0..<n {
+              let seg = 1.0 / Double(n)
+              UIView.addKeyframe(withRelativeStartTime: Double(i) * seg, relativeDuration: seg * 0.5) {
+                view.alpha = 0.32
+              }
+              UIView.addKeyframe(withRelativeStartTime: Double(i) * seg + seg * 0.5, relativeDuration: seg * 0.5) {
+                view.alpha = baseAlpha
+              }
+            }
+          },
+          completion: { _ in
+            view.alpha = baseAlpha
+          })
+
+      case 3:
+        // 生长：从极小缩放到 identity（对齐 Android ScaleAnimation 0→1 语义）。
+        view.transform = baseTransform.scaledBy(x: 0.02, y: 0.02)
+        UIView.animate(
+          withDuration: dur, delay: 0, options: [.curveEaseOut],
+          animations: {
+            view.transform = baseTransform
+          },
+          completion: { _ in
+            view.transform = baseTransform
+          })
+
+      case 4:
+        // 移动：经纬度线性插值往返（与 Android TranslateAnimation 两段语义对齐，不改 Flutter 侧 Marker 模型）。
+        guard let point = annotation as? MAPointAnnotation else { break }
+        let start = point.coordinate
+        let end = CLLocationCoordinate2D(
+          latitude: start.latitude + 0.00015,
+          longitude: start.longitude + 0.00012)
+        let n = 16
+        for i in 0...n {
+          let delay1 = dur / 2 * Double(i) / Double(n)
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay1) {
+            let t = Double(i) / Double(n)
+            point.coordinate = CLLocationCoordinate2D(
+              latitude: start.latitude + (end.latitude - start.latitude) * t,
+              longitude: start.longitude + (end.longitude - start.longitude) * t)
+          }
+        }
+        for i in 0...n {
+          let delay2 = dur / 2 + dur / 2 * Double(i) / Double(n)
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay2) {
+            let t = Double(i) / Double(n)
+            point.coordinate = CLLocationCoordinate2D(
+              latitude: end.latitude - (end.latitude - start.latitude) * t,
+              longitude: end.longitude - (end.longitude - start.longitude) * t)
+          }
+        }
+
+      default:
+        break
+      }
+    }
+
+    if Thread.isMainThread {
+      run()
+    } else {
+      DispatchQueue.main.async(execute: run)
     }
   }
 

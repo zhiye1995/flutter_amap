@@ -89,6 +89,14 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "animateMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        val kind = (call.argument<Any>("kind") as Number).toInt()
+        val durationMs = (call.argument<Any>("durationMs") as? Number)?.toInt() ?: 800
+        api.animateMarker(markerId, kind, durationMs)
+        result.success(null)
+      }
+
       "start" -> {
         api.start()
         result.success(null)

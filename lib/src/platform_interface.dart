@@ -248,6 +248,16 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
+  /// 播放点标记动画（Android：高德 Animation；iOS：annotation 视图动画）
+  Future<void> animateMarker(
+    String markerId,
+    MarkerAnimationKind kind,
+    int durationMs, {
+    required int mapId,
+  }) {
+    throw UnimplementedError('animateMarker() has not been implemented.');
+  }
+
   /// 获取当前定位信息
   Future<Location> getUserLocation({required int mapId}) async {
     throw UnimplementedError('getUserLocation() has not been implemented.');
