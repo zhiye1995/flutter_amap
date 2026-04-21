@@ -8,6 +8,7 @@ import 'map_restriction.dart';
 import 'map_setting.dart';
 import 'map_listview.dart';
 import 'two_map.dart';
+import 'change_map_center.dart';
 import 'map_view.dart';
 import 'show_map.dart';
 import 'user_location.dart';
@@ -59,7 +60,13 @@ final List<_CategoryData> _menuData = [
 
     _ItemData('Events功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
     _ItemData('地图Poi点击功能', pageBuilder: () => const PoiClickPage(), isCompleted: true),
-    _ItemData('改变地图中心点', pageBuilder: () => const MapViewPage(), isCompleted: true),
+
+    //
+    _ItemData(
+      '改变地图中心点',
+      pageBuilder: () => const ChangeMapCenterPage(),
+      isCompleted: true,
+    ),
     _ItemData('地图动画效果'),
     _ItemData('自定义缩放', pageBuilder: () => const MapViewPage(), isCompleted: true),
     _ItemData('地图截屏功能', pageBuilder: () => const MapEventsPage(), isCompleted: true),
