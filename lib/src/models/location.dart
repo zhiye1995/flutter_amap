@@ -179,3 +179,42 @@ class UserLocationStyle {
   }
 }
 
+/// 与高德 Android [MyLocationStyle]、插件 iOS `UserLocationType.userTrackingMode` 映射对照，便于 UI 区分双端差异。
+extension UserLocationTypePlatform on UserLocationType {
+  /// iOS 原生层是否写入对应 `MAUserTrackingMode`（`false` 时 iOS 不切换追踪模式，与 Android 可能不一致）。
+  bool get hasIosNativeTrackingMapping {
+    return switch (this) {
+      UserLocationType.locationTypeShow ||
+      UserLocationType.locationTypeLocate ||
+      UserLocationType.locationTypeFollow ||
+      UserLocationType.locationTypeMapRotate =>
+        true,
+      _ => false,
+    };
+  }
+
+  /// 枚举注释中标注为（Android Only）或与 Android 默认语义强绑定、不以 iOS 为主展示的类型。
+  bool get isAndroidDocumentationOnly {
+    return switch (this) {
+      UserLocationType.locationTypeShow ||
+      UserLocationType.locationTypeLocationRotate ||
+      UserLocationType.locationTypeLocationRotateNoCenter ||
+      UserLocationType.locationTypeFollowNoCenter ||
+      UserLocationType.locationTypeMapRotateNoCenter =>
+        true,
+      _ => false,
+    };
+  }
+
+  /// 一行中文说明，用于示例页 Chip 副标题或 Tooltip。
+  String get platformAvailabilityLabel {
+    if (hasIosNativeTrackingMapping) {
+      if (isAndroidDocumentationOnly) {
+        return 'Android：文档标注 Only；iOS：有基础映射（如仅显/追踪）';
+      }
+      return 'Android / iOS：双端可用';
+    }
+    return 'Android：完整；iOS：不切换 MAUserTrackingMode（与 Android 可能不同）';
+  }
+}
+

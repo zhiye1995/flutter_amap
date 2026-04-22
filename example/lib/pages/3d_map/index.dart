@@ -134,8 +134,11 @@ final List<_CategoryData> _menuData = [
       pageBuilder: () => const CustomMarkerPage(),
       isCompleted: true,
     ),
-    _ItemData('Location几种模式',
-        pageBuilder: () => const UserLocationPage(), isCompleted: true),
+    _ItemData(
+      'Location几种模式',
+      pageBuilder: () => const UserLocationPage(),
+      isCompleted: true,
+    ),
     _ItemData('Location小蓝点自定义功能'),
     _ItemData('Location小蓝点自定义模式'),
     _ItemData('Polylines功能',

@@ -567,6 +567,21 @@ class AMapWidgetState extends State<AMapWidget> {
             showUserLocation: widget.showUserLocation,
           );
     }
+    if (_userLocationStyleFieldsDiffer(
+          widget.userLocationStyle,
+          oldWidget.userLocationStyle,
+        )) {
+      config.userLocationConfig = config.userLocationConfig?.copyWith(
+            userLocationButton: widget.geolocationControlEnabled,
+            showUserLocation: widget.showUserLocation,
+            userLocationStyle: widget.userLocationStyle,
+          ) ??
+          UserLocationConfig(
+            userLocationButton: widget.geolocationControlEnabled,
+            showUserLocation: widget.showUserLocation,
+            userLocationStyle: widget.userLocationStyle,
+          );
+    }
     if (widget.customStyleOptions != oldWidget.customStyleOptions) {
       config.customStyleOptions = widget.customStyleOptions;
     }
@@ -640,4 +655,35 @@ class AMapWidgetState extends State<AMapWidget> {
       );
     });
   }
+}
+
+/// [UserLocationStyle] 未实现 `==`，用于 [AMapWidgetState.didUpdateWidget] 判断是否需要下发定位样式。
+bool _userLocationStyleFieldsDiffer(
+  UserLocationStyle? a,
+  UserLocationStyle? b,
+) {
+  if (identical(a, b)) {
+    return false;
+  }
+  if (a == null && b == null) {
+    return false;
+  }
+  if (a == null || b == null) {
+    return true;
+  }
+  if (a.userLocationType != b.userLocationType) {
+    return true;
+  }
+  if (a.fillColor != b.fillColor) {
+    return true;
+  }
+  if (a.strokeColor != b.strokeColor) {
+    return true;
+  }
+  if (a.lineWidth != b.lineWidth) {
+    return true;
+  }
+  final List<Object?>? imageA = a.image?.encode() as List<Object?>?;
+  final List<Object?>? imageB = b.image?.encode() as List<Object?>?;
+  return !listEquals(imageA, imageB);
 }
