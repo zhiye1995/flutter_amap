@@ -18,6 +18,13 @@ import AMapNaviKit
 #error("Neither MAMapKit nor AMapNaviKit is available. Please add AMapNavi (recommended) or AMap3DMap to your Pod dependencies.")
 #endif
 
+/// MAAnnotation 的 title/subtitle 从 Objective-C 桥接后可能是 `String?` 或 `String??`，
+/// 直接 `?? ""` 后仍可能得到 `String?`，对 `isEmpty` 会触发编译错误；用 NSString 统一判断是否有展示文案。
+fileprivate func amapAnnotationLineHasText(_ line: Any?) -> Bool {
+  let ns = line as? NSString
+  return (ns?.length ?? 0) > 0
+}
+
 class AMapViewDelegate: NSObject, MAMapViewDelegate {
   let registrar: FlutterPluginRegistrar
   let mapView: MAMapView
@@ -40,9 +47,8 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         annotationView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: annotation.id)
       }
       annotationView.isDraggable = true
-      let t = _annotation.title ?? ""
-      let s = _annotation.subtitle ?? ""
-      annotationView.canShowCallout = !t.isEmpty || !s.isEmpty
+      annotationView.canShowCallout =
+        amapAnnotationLineHasText(_annotation.title) || amapAnnotationLineHasText(_annotation.subtitle)
       return annotationView
     }
     return nil
@@ -155,9 +161,7 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   func mapView(_ mapView: MAMapView!, didAnnotationViewTapped view: MAAnnotationView!) {
     controller.onMarkerClick(view.annotation.hash)
     let ann = view.annotation!
-    let t = ann.title ?? ""
-    let s = ann.subtitle ?? ""
-    if !t.isEmpty || !s.isEmpty {
+    if amapAnnotationLineHasText(ann.title) || amapAnnotationLineHasText(ann.subtitle) {
       mapView.selectAnnotation(ann, animated: true)
     }
   }
