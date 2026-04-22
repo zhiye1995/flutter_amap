@@ -52,7 +52,7 @@ class _MarkerAnimationPageState extends State<MarkerAnimationPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    _markerReady ? '选择一种动画（Web 不支持）' : '地图加载中…',
+                    _markerReady ? '选择一种动画' : '地图加载中…',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
