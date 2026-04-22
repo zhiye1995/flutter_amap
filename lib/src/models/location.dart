@@ -181,6 +181,21 @@ class UserLocationStyle {
 
 /// 与高德 Android [MyLocationStyle]、插件 iOS `UserLocationType.userTrackingMode` 映射对照，便于 UI 区分双端差异。
 extension UserLocationTypePlatform on UserLocationType {
+  /// Android 插件是否映射到 [MyLocationStyle]（当前枚举值均在高德 Android SDK 中有对应常量）。
+  bool get hasAndroidMyLocationStyleMapping {
+    return switch (this) {
+      UserLocationType.locationTypeShow ||
+      UserLocationType.locationTypeLocate ||
+      UserLocationType.locationTypeFollow ||
+      UserLocationType.locationTypeMapRotate ||
+      UserLocationType.locationTypeLocationRotate ||
+      UserLocationType.locationTypeLocationRotateNoCenter ||
+      UserLocationType.locationTypeFollowNoCenter ||
+      UserLocationType.locationTypeMapRotateNoCenter =>
+        true,
+    };
+  }
+
   /// iOS 原生层是否写入对应 `MAUserTrackingMode`（`false` 时 iOS 不切换追踪模式，与 Android 可能不一致）。
   bool get hasIosNativeTrackingMapping {
     return switch (this) {

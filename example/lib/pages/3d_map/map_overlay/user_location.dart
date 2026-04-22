@@ -25,10 +25,14 @@ class _UserLocationPageState extends State<UserLocationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isAndroidHost = defaultTargetPlatform == TargetPlatform.android;
+    final isIosHost = defaultTargetPlatform == TargetPlatform.iOS;
     final platformHint = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS => '当前设备：iOS。Chip 第二行「iOS」列为插件映射结果。',
-      TargetPlatform.android => '当前设备：Android。以下为高德 MyLocationStyle 全量类型。',
-      _ => '当前设备：${defaultTargetPlatform.name}。',
+      TargetPlatform.iOS =>
+        '当前设备：iOS。请在下方「iOS」一行选择；「Android」行仅作对照，不可点选。',
+      TargetPlatform.android =>
+        '当前设备：Android。请在下方「Android」一行选择；「iOS」行仅展示可映射子集，不可点选。',
+      _ => '当前设备：${defaultTargetPlatform.name}。两行均为对照，不可点选。',
     };
 
     return ScaffoldMessenger(
@@ -91,7 +95,9 @@ class _UserLocationPageState extends State<UserLocationPage> {
               ),
             ),
             Material(
-              elevation: 8,
+              color: Theme.of(context).colorScheme.surface,
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
               child: SafeArea(
                 top: false,
                 child: Padding(
@@ -99,69 +105,35 @@ class _UserLocationPageState extends State<UserLocationPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         platformHint,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '点选切换模式；第二行：Android / iOS 能力摘要（与枚举扩展一致）。',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
+                      const SizedBox(height: 10),
+                      if (isAndroidHost)
+                      _buildModeStrip(
+                        context,
+                        title: 'Android（高德 MyLocationStyle）',
+                        types: UserLocationType.values
+                            .where((t) => t.hasAndroidMyLocationStyleMapping)
+                            .toList(),
+                        interactive: isAndroidHost,
                       ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: UserLocationType.values
-                              .map(
-                                (t) => Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: ChoiceChip(
-                                    selected: _mode == t,
-                                    onSelected: (selected) {
-                                      if (!selected) return;
-                                      setState(() => _mode = t);
-                                    },
-                                    tooltip: t.platformAvailabilityLabel,
-                                    label: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 132,
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _modeTitle(t),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'Android：${_androidLine(t)}\n'
-                                            'iOS：${_iosLine(t)}',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
+                      const SizedBox(height: 12),
+                      if (isIosHost)
+                      _buildModeStrip(
+                        context,
+                        title: 'iOS（MAUserTrackingMode 可映射）',
+                        types: UserLocationType.values
+                            .where((t) => t.hasIosNativeTrackingMapping)
+                            .toList(),
+                        interactive: isIosHost,
                       ),
                     ],
                   ),
@@ -171,6 +143,47 @@ class _UserLocationPageState extends State<UserLocationPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildModeStrip(
+    BuildContext context, {
+    required String title,
+    required List<UserLocationType> types,
+    required bool interactive,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 6),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: types
+                .map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(_modeTitle(t)),
+                      tooltip: t.platformAvailabilityLabel,
+                      selected: _mode == t,
+                      onSelected: interactive
+                          ? (selected) {
+                              if (!selected) return;
+                              setState(() => _mode = t);
+                            }
+                          : null,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -193,16 +206,5 @@ class _UserLocationPageState extends State<UserLocationPage> {
       case UserLocationType.locationTypeMapRotateNoCenter:
         return '图转不居中';
     }
-  }
-
-  static String _androidLine(UserLocationType t) {
-    return t.isAndroidDocumentationOnly ? '文档含 Only' : '全量支持';
-  }
-
-  static String _iosLine(UserLocationType t) {
-    if (t.hasIosNativeTrackingMapping) {
-      return t.isAndroidDocumentationOnly ? '有映射·近似' : '有追踪映射';
-    }
-    return '不切换追踪';
   }
 }
