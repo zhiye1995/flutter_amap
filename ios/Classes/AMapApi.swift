@@ -287,11 +287,13 @@ class _AMapApi: NSObject {
 
       switch kind {
       case 0:
+        // 与 Android `ScaleAnimation` + `repeatCount(3)` + `REVERSE` 对齐：总时长 `(3+1)*durationMs`，2 次完整呼吸。
+        let pulseTotal = 4 * dur
         UIView.animateKeyframes(
-          withDuration: dur, delay: 0,
+          withDuration: pulseTotal, delay: 0,
           options: [.calculationModeCubic],
           animations: {
-            let n = 3
+            let n = 2
             for i in 0..<n {
               let seg = 1.0 / Double(n)
               UIView.addKeyframe(withRelativeStartTime: Double(i) * seg, relativeDuration: seg * 0.5) {
@@ -308,19 +310,22 @@ class _AMapApi: NSObject {
 
       case 1:
         // 整周旋转：affine 的 2π 与恒等等价，必须用 layer 的 rotation 动画才能看见效果。
+        // 负角与 Android `RotateAnimation(0,360)` 在屏幕上的转向一致（正 `+2π` 与高德 Android 相反）。
         let rot = CABasicAnimation(keyPath: "transform.rotation.z")
         rot.fromValue = 0
-        rot.toValue = Double.pi * 2
+        rot.toValue = -Double.pi * 2
         rot.duration = dur
         rot.isRemovedOnCompletion = true
         view.layer.add(rot, forKey: "flutter_amap_marker_rotate")
 
       case 2:
+        // 与 Android `AlphaAnimation` + `durationMs/2` + `repeatCount(5)` + `REVERSE` 对齐：总时长 `6*(durationMs/2)=3*durationMs`，3 次完整脉冲。
+        let fadeTotal = 3 * dur
         UIView.animateKeyframes(
-          withDuration: dur, delay: 0,
+          withDuration: fadeTotal, delay: 0,
           options: [.calculationModeLinear],
           animations: {
-            let n = 5
+            let n = 3
             for i in 0..<n {
               let seg = 1.0 / Double(n)
               UIView.addKeyframe(withRelativeStartTime: Double(i) * seg, relativeDuration: seg * 0.5) {

@@ -313,6 +313,9 @@ class AMapController {
   }
 
   /// 播放点标记动画（Android：高德 SDK Marker 动画；iOS：标注视图 UIView 动画）。
+  ///
+  /// [durationMs] 为 Android 侧单次 `Animation.setDuration` 的基准；呼吸/透明度在 Android 上会因 `repeatCount`
+  /// 变长，iOS 已按相同总墙钟时间对齐。
   Future<void> animateMarker(
     String markerId, {
     required MarkerAnimationKind kind,

@@ -1,7 +1,7 @@
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
-/// 点标记动画：调用 [AMapController.animateMarker]，与 Android 高德 Animation / iOS annotation 视图动画对齐。
+/// 点标记动画：调用 [AMapController.animateMarker]（默认 `durationMs` 800，与 Android 基准一致；iOS 呼吸/透明度总时长已对齐）。
 class MarkerAnimationPage extends StatefulWidget {
   const MarkerAnimationPage({super.key});
 
