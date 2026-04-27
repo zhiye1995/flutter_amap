@@ -26,6 +26,9 @@ class AMapNaviApi: NSObject {
     /// 当前导航类型
     private var currentNaviType: AMapNaviType = .driver
     
+    /// 智能巡航是否开启（用于 stopNavigation / 互斥）
+    private var isCruiseModeActive: Bool = false
+    
     private weak var registrar: FlutterPluginRegistrar?
     
     // MARK: - Setup
@@ -60,6 +63,10 @@ class AMapNaviApi: NSObject {
             startNavigation(call: call, result: result)
         case "stopNavigation":
             stopNavigation(result: result)
+        case "startCruiseMode":
+            startCruiseMode(call: call, result: result)
+        case "stopCruiseMode":
+            stopCruiseMode(result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -399,6 +406,71 @@ class AMapNaviApi: NSObject {
         }
     }
     
+    // MARK: - 智能巡航
+    
+    private func startCruiseMode(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        let modeCode = arguments["mode"] as? Int ?? 3
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                result(FlutterError(code: "INTERNAL_ERROR", message: "内部错误", details: nil))
+                return
+            }
+            
+            if self.compositeManager != nil {
+                result(FlutterError(
+                    code: "CRUISE_CONFLICT",
+                    message: "驾车导航组件已展示，无法同时开启巡航；请先结束导航",
+                    details: nil
+                ))
+                return
+            }
+            
+            self.updatePrivacy()
+            
+            let driveManager = AMapNaviDriveManager.sharedInstance()
+            driveManager.delegate = self.naviDelegate
+            driveManager.allowsBackgroundLocationUpdates = true
+            driveManager.pausesLocationUpdatesAutomatically = false
+            
+            let detected: AMapNaviDetectedMode
+            switch modeCode {
+            case 1:
+                detected = .camera
+            case 2:
+                detected = .specialRoad
+            case 3:
+                fallthrough
+            default:
+                detected = .cameraAndSpecialRoad
+            }
+            
+            driveManager.detectedMode = detected
+            self.isCruiseModeActive = true
+            
+            print("[AMapNaviApi] startCruiseMode modeCode=\(modeCode) detectedMode=\(detected.rawValue)")
+            result(nil)
+        }
+    }
+    
+    private func stopCruiseMode(result: @escaping FlutterResult) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                result(nil)
+                return
+            }
+            let driveManager = AMapNaviDriveManager.sharedInstance()
+            driveManager.detectedMode = .none
+            self.isCruiseModeActive = false
+            print("[AMapNaviApi] stopCruiseMode")
+            result(nil)
+        }
+    }
+    
     private func handleWalkRideNaviDismiss() {
         // 发送退出事件
         naviDelegate?.sendEvent([
@@ -421,6 +493,11 @@ class AMapNaviApi: NSObject {
             guard let self = self else {
                 result(nil)
                 return
+            }
+            
+            if self.isCruiseModeActive {
+                AMapNaviDriveManager.sharedInstance().detectedMode = .none
+                self.isCruiseModeActive = false
             }
             
             // 根据当前导航类型清理对应的资源

@@ -13,6 +13,8 @@ part of '../flutter_amap.dart';
 /// - Android 端建议在宿主 `AndroidManifest.xml` 的 `<application>` 内配置 `com.amap.api.v2.apikey`（内置导航/路线规划页常依赖该 meta-data）。
 /// - iOS 端需要在 `Info.plist` 中配置 `NSLocationWhenInUseUsageDescription` 定位权限描述。
 /// - 建议在 `startNavigation` 前就订阅事件流（例如 `onNaviInitFailure` / `onNaviExit`），并在页面 `dispose` 时取消订阅、必要时调用 `stopNavigation`。
+/// - **智能巡航**（`startCruiseMode`）与正式导航 **互斥**：使用前需停止另一种模式。巡航依赖联网，且官方建议在真实驾车场景验证效果。
+/// - 调用 `stopNavigation()` 时原生可能销毁 `AMapNavi`：若正在巡航，请先 `stopCruiseMode()`（插件已在原生侧尽量先停巡航再销毁，仍建议业务侧保持顺序）。
 ///
 /// 使用示例:
 /// ```dart
@@ -54,10 +56,28 @@ class AMapNavi {
     _isNavigating.value = value;
   }
 
+  static final ValueNotifier<bool> _isCruising = ValueNotifier<bool>(false);
+
+  /// 当前是否在智能巡航模式
+  static bool get isCruising => _isCruising.value;
+
+  /// 监听是否在巡航（便于 UI）
+  static ValueListenable<bool> get isCruisingListenable => _isCruising;
+
+  static void _setIsCruising(bool value) {
+    if (_isCruising.value == value) return;
+    _isCruising.value = value;
+  }
+
   /// 启动导航
   ///
   /// [config] 导航配置，包括起终点、导航类型等
   static Future<void> startNavigation({required NaviConfig config}) async {
+    if (isCruising) {
+      throw StateError(
+        '无法在智能巡航进行中启动导航：请先调用 stopCruiseMode()',
+      );
+    }
     await AMapFlutterPlatformInterface.instance.startNavigation(config);
     // 启动方法调用成功后即认为进入导航态；若后续失败，会在事件回调里回落为 false
     _setIsNavigating(true);
@@ -67,6 +87,27 @@ class AMapNavi {
   static Future<void> stopNavigation() async {
     await AMapFlutterPlatformInterface.instance.stopNavigation();
     _setIsNavigating(false);
+  }
+
+  /// 开启智能巡航（无起终点、不算路）。
+  ///
+  /// 与 [startNavigation] 互斥；需联网；详见类注释。
+  static Future<void> startCruiseMode({
+    required CruiseBroadcastMode mode,
+  }) async {
+    if (isNavigating) {
+      throw StateError(
+        '无法在导航进行中开启巡航：请先调用 stopNavigation()',
+      );
+    }
+    await AMapFlutterPlatformInterface.instance.startCruiseMode(mode);
+    _setIsCruising(true);
+  }
+
+  /// 停止智能巡航
+  static Future<void> stopCruiseMode() async {
+    await AMapFlutterPlatformInterface.instance.stopCruiseMode();
+    _setIsCruising(false);
   }
 
   /// 导航初始化成功事件流
@@ -136,4 +177,16 @@ class AMapNavi {
   /// 退出导航页面事件流
   static Stream<NaviExitEvent> get onNaviExit =>
       AMapFlutterPlatformInterface.instance.onNaviExit;
+
+  /// 巡航道路设施 / 电子眼等信息
+  static Stream<CruiseTrafficFacilitiesEvent> get onCruiseTrafficFacilities =>
+      AMapFlutterPlatformInterface.instance.onCruiseTrafficFacilities;
+
+  /// 巡航统计（连续距离、连续时间等）
+  static Stream<CruiseStatisticsEvent> get onCruiseStatistics =>
+      AMapFlutterPlatformInterface.instance.onCruiseStatistics;
+
+  /// 巡航拥堵信息（主要为 Android）
+  static Stream<CruiseCongestionEvent> get onCruiseCongestion =>
+      AMapFlutterPlatformInterface.instance.onCruiseCongestion;
 }

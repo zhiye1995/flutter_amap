@@ -210,6 +210,85 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             "ringType": ringType.rawValue
         ])
     }
+    
+    /// 智能巡航统计（连续行驶距离、连续启用时间等）
+    func driveManager(_ driveManager: AMapNaviDriveManager, update cruiseInfo: AMapNaviCruiseInfo?) {
+        var payload: [String: Any?] = [
+            "type": "cruiseStatistics",
+            "cumulativeDistanceMeters": nil as Int?,
+            "cumulativeTimeSeconds": nil as Int?,
+            "extra": [:] as [String: Any]
+        ]
+        guard let info = cruiseInfo else {
+            sendEvent(payload)
+            return
+        }
+        let obj = info as NSObject
+        var extra: [String: Any] = ["sdkString": "\(info)"]
+        let distKeys = ["cruiseDistance", "totalDistance", "distance", "continuedDistance"]
+        let timeKeys = ["cruiseTime", "totalTime", "time", "continuedTime"]
+        for k in distKeys {
+            if obj.responds(to: NSSelectorFromString(k)), let v = obj.value(forKey: k) as? NSNumber {
+                payload["cumulativeDistanceMeters"] = v.intValue
+                break
+            }
+        }
+        for k in timeKeys {
+            if obj.responds(to: NSSelectorFromString(k)), let v = obj.value(forKey: k) as? NSNumber {
+                payload["cumulativeTimeSeconds"] = v.intValue
+                break
+            }
+        }
+        payload["extra"] = extra
+        sendEvent(payload)
+    }
+    
+    /// 智能巡航道路交通设施 / 电子眼（iOS 聚合回调）
+    func driveManager(_ driveManager: AMapNaviDriveManager, updateTrafficFacilities trafficFacilities: [AMapNaviTrafficFacilityInfo]?) {
+        let list = (trafficFacilities ?? []).map { serializeCruiseTrafficFacility($0) }
+        sendEvent([
+            "type": "cruiseTrafficFacilities",
+            "facilities": list
+        ])
+    }
+    
+    private func serializeCruiseTrafficFacility(_ info: AMapNaviTrafficFacilityInfo) -> [String: Any?] {
+        var m: [String: Any?] = [
+            "source": "unified",
+            "raw": ["sdkString": "\(info)"]
+        ]
+        let obj = info as NSObject
+        if obj.responds(to: NSSelectorFromString("type")), let v = obj.value(forKey: "type") {
+            if let n = v as? NSNumber {
+                m["type"] = n.intValue
+            } else if let e = v as? NSObject, e.responds(to: NSSelectorFromString("rawValue")), let rv = e.value(forKey: "rawValue") as? NSNumber {
+                m["type"] = rv.intValue
+            }
+        }
+        let coordKeys = ["coordinate", "coord", "position"]
+        for k in coordKeys where obj.responds(to: NSSelectorFromString(k)) {
+            if let p = obj.value(forKey: k) as? AMapNaviPoint {
+                m["latitude"] = Double(p.latitude)
+                m["longitude"] = Double(p.longitude)
+                break
+            }
+        }
+        let distKeys = ["distance", "remainDistance", "segmentRemainDistance"]
+        for k in distKeys where obj.responds(to: NSSelectorFromString(k)) {
+            if let v = obj.value(forKey: k) as? NSNumber {
+                m["remainDistanceMeters"] = v.intValue
+                break
+            }
+        }
+        let spdKeys = ["limitSpeed", "speedLimit"]
+        for k in spdKeys where obj.responds(to: NSSelectorFromString(k)) {
+            if let v = obj.value(forKey: k) as? NSNumber {
+                m["speedLimitKmh"] = v.intValue
+                break
+            }
+        }
+        return m
+    }
 }
 
 // MARK: - AMapNaviDriveDataRepresentable

@@ -685,3 +685,136 @@ class NaviLocation {
     );
   }
 }
+
+// ==================== 智能巡航（无路线巡航） ====================
+
+/// 巡航播报类型，与高德 Android `startAimlessMode(int)` / iOS `AMapNaviDetectedMode` 对齐。
+enum CruiseBroadcastMode {
+  /// 仅电子眼（Android: 1）
+  elecCameraOnly(1),
+
+  /// 仅特殊路段（Android: 2）
+  specialRoadOnly(2),
+
+  /// 电子眼 + 特殊路段（Android: 3）
+  both(3);
+
+  const CruiseBroadcastMode(this.code);
+
+  /// 传给原生的模式码（1/2/3）
+  final int code;
+}
+
+/// 巡航设施数据来源（用于对齐 Android 双回调与 iOS 聚合回调）
+enum CruiseTrafficFacilitySource {
+  /// Android `onUpdateTrafficFacility`
+  specialRoad,
+
+  /// Android `onUpdateAimlessModeElecCameraInfo`
+  elecCamera,
+
+  /// iOS `updateTrafficFacilities:`（未区分设施/电子眼）
+  unified,
+}
+
+/// 巡航道路上的设施或电子眼条目
+class CruiseTrafficFacilityItem {
+  CruiseTrafficFacilityItem({
+    required this.source,
+    this.type,
+    this.latitude,
+    this.longitude,
+    this.remainDistanceMeters,
+    this.speedLimitKmh,
+    this.raw,
+  });
+
+  final CruiseTrafficFacilitySource source;
+
+  /// 设施类型（含义以高德 SDK 为准）
+  final int? type;
+
+  final double? latitude;
+  final double? longitude;
+
+  /// 距设施剩余距离（米）
+  final int? remainDistanceMeters;
+
+  /// 限速（km/h）
+  final int? speedLimitKmh;
+
+  /// 原生侧附加字段
+  final Map<String, dynamic>? raw;
+
+  static CruiseTrafficFacilitySource _decodeSource(Object? v) {
+    final s = v?.toString() ?? '';
+    switch (s) {
+      case 'specialRoad':
+        return CruiseTrafficFacilitySource.specialRoad;
+      case 'elecCamera':
+        return CruiseTrafficFacilitySource.elecCamera;
+      case 'unified':
+      default:
+        return CruiseTrafficFacilitySource.unified;
+    }
+  }
+
+  static CruiseTrafficFacilityItem decodeFromMap(Map<String, dynamic> map) {
+    int? asInt(dynamic x) => (x as num?)?.toInt();
+    double? asDouble(dynamic x) => (x as num?)?.toDouble();
+    final rawMap = map['raw'];
+    return CruiseTrafficFacilityItem(
+      source: _decodeSource(map['source']),
+      type: asInt(map['type']),
+      latitude: asDouble(map['latitude']),
+      longitude: asDouble(map['longitude']),
+      remainDistanceMeters: asInt(map['remainDistanceMeters']),
+      speedLimitKmh: asInt(map['speedLimitKmh']),
+      raw: rawMap is Map ? Map<String, dynamic>.from(rawMap) : null,
+    );
+  }
+}
+
+/// 巡航统计（连续行驶距离、连续启用时间等；双端字段不完全一致时放入 [extra]）
+class CruiseStatisticsInfo {
+  CruiseStatisticsInfo({
+    this.cumulativeDistanceMeters,
+    this.cumulativeTimeSeconds,
+    this.extra,
+  });
+
+  /// 连续行驶/轨迹距离（米）
+  final int? cumulativeDistanceMeters;
+
+  /// 连续运行时间（秒）
+  final int? cumulativeTimeSeconds;
+
+  final Map<String, dynamic>? extra;
+
+  static CruiseStatisticsInfo decodeFromMap(Map<String, dynamic> map) {
+    int? asInt(dynamic x) => (x as num?)?.toInt();
+    final Object? ex = map['extra'];
+    return CruiseStatisticsInfo(
+      cumulativeDistanceMeters: asInt(map['cumulativeDistanceMeters']),
+      cumulativeTimeSeconds: asInt(map['cumulativeTimeSeconds']),
+      extra: ex is Map ? Map<String, dynamic>.from(ex) : null,
+    );
+  }
+}
+
+/// 巡航拥堵信息（当前仅 Android 巡航回调提供；结构随 SDK，见 [raw]）
+class CruiseCongestionInfo {
+  CruiseCongestionInfo({this.raw});
+
+  final Map<String, dynamic>? raw;
+
+  static CruiseCongestionInfo decodeFromMap(Map<String, dynamic> map) {
+    final Object? r = map['raw'] ?? map;
+    if (r is Map) {
+      return CruiseCongestionInfo(
+        raw: Map<String, dynamic>.from(r),
+      );
+    }
+    return CruiseCongestionInfo(raw: {});
+  }
+}

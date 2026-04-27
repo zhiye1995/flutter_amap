@@ -688,6 +688,37 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
           NaviExitEvent(data['exitCode'] as int? ?? 0),
         );
         break;
+
+      case 'cruiseTrafficFacilities':
+        final rawList = data['facilities'] as List?;
+        final items = <CruiseTrafficFacilityItem>[];
+        if (rawList != null) {
+          for (final e in rawList) {
+            if (e is Map) {
+              items.add(
+                CruiseTrafficFacilityItem.decodeFromMap(
+                  Map<String, dynamic>.from(e),
+                ),
+              );
+            }
+          }
+        }
+        naviEventStreamController.add(CruiseTrafficFacilitiesEvent(items));
+        break;
+
+      case 'cruiseStatistics':
+        naviEventStreamController.add(
+          CruiseStatisticsEvent(
+            CruiseStatisticsInfo.decodeFromMap(data),
+          ),
+        );
+        break;
+
+      case 'cruiseCongestion':
+        naviEventStreamController.add(
+          CruiseCongestionEvent(CruiseCongestionInfo.decodeFromMap(data)),
+        );
+        break;
     }
   }
 
@@ -724,6 +755,20 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     _naviEventSubscription?.cancel();
     _naviEventSubscription = null;
     _naviEventChannelInitialized = false;
+  }
+
+  @override
+  Future<void> startCruiseMode(CruiseBroadcastMode mode) async {
+    _initNaviEventChannel();
+    await _naviChannel.invokeMethod(
+      'startCruiseMode',
+      <String, dynamic>{'mode': mode.code},
+    );
+  }
+
+  @override
+  Future<void> stopCruiseMode() async {
+    await _naviChannel.invokeMethod('stopCruiseMode');
   }
 
   // ==================== 搜索相关方法实现 ====================

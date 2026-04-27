@@ -382,6 +382,18 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   Stream<NaviExitEvent> get onNaviExit =>
       naviEventStream.whereType<NaviExitEvent>();
 
+  /// 巡航道路设施 / 电子眼更新事件流
+  Stream<CruiseTrafficFacilitiesEvent> get onCruiseTrafficFacilities =>
+      naviEventStream.whereType<CruiseTrafficFacilitiesEvent>();
+
+  /// 巡航统计更新事件流
+  Stream<CruiseStatisticsEvent> get onCruiseStatistics =>
+      naviEventStream.whereType<CruiseStatisticsEvent>();
+
+  /// 巡航拥堵信息事件流（主要为 Android）
+  Stream<CruiseCongestionEvent> get onCruiseCongestion =>
+      naviEventStream.whereType<CruiseCongestionEvent>();
+
   /// 启动导航
   Future<void> startNavigation(NaviConfig config) {
     throw UnimplementedError('startNavigation() has not been implemented.');
@@ -390,6 +402,16 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   /// 停止导航
   Future<void> stopNavigation() {
     throw UnimplementedError('stopNavigation() has not been implemented.');
+  }
+
+  /// 开启智能巡航（无起终点；与正式导航互斥）
+  Future<void> startCruiseMode(CruiseBroadcastMode mode) {
+    throw UnimplementedError('startCruiseMode() has not been implemented.');
+  }
+
+  /// 停止智能巡航
+  Future<void> stopCruiseMode() {
+    throw UnimplementedError('stopCruiseMode() has not been implemented.');
   }
 
   // ==================== 搜索相关接口 ====================

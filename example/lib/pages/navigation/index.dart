@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'cruise_map_page.dart';
 import 'navigation.dart';
 import 'place_picker.dart';
 
@@ -36,49 +37,71 @@ class _CategoryData {
 }
 
 // ──────────────────────────────────────────────────────────
-//  菜单数据源
+//  菜单数据源（对齐导航 SDK 8.0.0 文档目录；综合能力见「组件直接导航」）
 // ──────────────────────────────────────────────────────────
 
 final List<_CategoryData> _menuData = [
-  _CategoryData('导航组件', [
-    _ItemData('使用导航组件',
+  _CategoryData('导航组件(新)', [
+    _ItemData('起终点算路'),
+    _ItemData('无起点算路'),
+    _ItemData('途经点算路'),
+    _ItemData('组件直接导航',
         pageBuilder: () => const NavigationPage(),
         isCompleted: true,
         mobileOnly: true),
-  ]),
-  _CategoryData('出行路线规划', [
-    _ItemData('驾车路线规划'),
-    _ItemData('货车路线规划'),
-    _ItemData('步行路线规划'),
-    _ItemData('骑行路线规划'),
-  ]),
-  _CategoryData('在地图上导航', [
-    _ItemData('实时导航'),
-    _ItemData('模拟导航'),
-    _ItemData('智能巡航'),
-    _ItemData('传入外部GPS数据'),
-    _ItemData('导航UI定制化'),
-  ]),
-  _CategoryData('HUD导航模式', [
-    _ItemData('HUD导航'),
-  ]),
-  _CategoryData('获取导航数据', [
-    _ItemData('导航数据'),
-  ]),
-  _CategoryData('语音播报', [
-    _ItemData('语音合成'),
-  ]),
-  _CategoryData('位置选择', [
-    _ItemData('选取地点 (POI)',
+    _ItemData('自定义 Activity 的导航组件（Android 原生容器）'),
+    _ItemData('选取地点 (POI)（示例）',
         pageBuilder: () => const PlacePickerPage(),
         isCompleted: true,
         mobileOnly: true),
   ]),
-  _CategoryData('线路规划 (旧版)', [
-    _ItemData('驾车路线规划',
-        pageBuilder: () => const NavigationPage(),
+  _CategoryData('路径规划', [
+    _ItemData('驾车路径规划'),
+    _ItemData('步行路径规划'),
+    _ItemData('骑行路径规划'),
+    _ItemData('货车导航路径规划'),
+    _ItemData('独立路径规划'),
+  ]),
+  _CategoryData('多类型导航', [
+    _ItemData('内置语音导航'),
+    _ItemData('实时导航'),
+    _ItemData('模拟导航'),
+    _ItemData('货车导航'),
+    _ItemData('智能巡航',
+        pageBuilder: () => const CruiseMapPage(),
         isCompleted: true,
         mobileOnly: true),
+
+    _ItemData('HUD导航'),
+  ]),
+  _CategoryData('导航UI自定义', [
+    _ItemData('自定义车标'),
+    _ItemData('自定义路线UI'),
+    _ItemData('自定义路线纹理'),
+    _ItemData('自定义路口转向提示'),
+    _ItemData('正北模式'),
+    _ItemData('自定义全览模式'),
+    _ItemData('自定义指南针'),
+    _ItemData('自定义路况按钮'),
+    _ItemData('自定义放大缩小按钮'),
+    _ItemData('自定义路口放大图'),
+    _ItemData('自定义导航光柱(new)'),
+    _ItemData('自定义车道信息'),
+  ]),
+  _CategoryData('导航完全自定义示例', [
+    _ItemData('自车改变位置和绘制路线示例'),
+    _ItemData('路名、剩余距离、转向图标示例'),
+    _ItemData('绘制导航路况条示例'),
+    _ItemData('自定义车道信息示例'),
+    _ItemData('路口放大图示例'),
+    _ItemData('摄像头违章提醒示例'),
+    _ItemData('各组件整合导航示例'),
+  ]),
+  _CategoryData('导航扩展', [
+    _ItemData('传入GPS数据导航'),
+    _ItemData('展示导航路径详情'),
+    _ItemData('主辅路切换'),
+    _ItemData('科大讯飞语音集成'),
   ]),
 ];
 

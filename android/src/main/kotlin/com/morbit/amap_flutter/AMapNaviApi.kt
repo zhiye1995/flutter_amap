@@ -32,8 +32,12 @@ class AMapNaviApi {
         private var methodChannel: MethodChannel? = null
         private var eventChannel: EventChannel? = null
         private var naviListener: AMapNaviListenerImpl? = null
+        private var aimlessListener: AimlessModeListenerImpl? = null
         private var aMapNavi: AMapNavi? = null
         private var activityRef: Activity? = null
+
+        /** 当前是否处于智能巡航（用于 stopNavigation 前先 stopAimlessMode） */
+        private var cruiseActive: Boolean = false
 
         fun setup(binding: FlutterPluginBinding, activity: Activity?) {
             activityRef = activity
@@ -51,11 +55,13 @@ class AMapNaviApi {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     Log.i(TAG, "EventChannel onListen")
                     naviListener?.eventSink = events
+                    aimlessListener?.eventSink = events
                 }
 
                 override fun onCancel(arguments: Any?) {
                     Log.i(TAG, "EventChannel onCancel")
                     naviListener?.eventSink = null
+                    aimlessListener?.eventSink = null
                 }
             })
         }
@@ -65,12 +71,14 @@ class AMapNaviApi {
         }
 
         fun dispose() {
+            stopCruiseModeInternal()
             stopNavigation()
             methodChannel?.setMethodCallHandler(null)
             methodChannel = null
             eventChannel?.setStreamHandler(null)
             eventChannel = null
             naviListener = null
+            aimlessListener = null
             activityRef = null
         }
 
@@ -89,6 +97,26 @@ class AMapNaviApi {
                 "stopNavigation" -> {
                     stopNavigation()
                     result.success(null)
+                }
+
+                "startCruiseMode" -> {
+                    try {
+                        startCruiseMode(context, call)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "startCruiseMode error", e)
+                        result.error("CRUISE_ERROR", e.message, null)
+                    }
+                }
+
+                "stopCruiseMode" -> {
+                    try {
+                        stopCruiseModeInternal()
+                        result.success(null)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "stopCruiseMode error", e)
+                        result.error("CRUISE_ERROR", e.message, null)
+                    }
                 }
 
                 else -> result.notImplemented()
@@ -209,6 +237,7 @@ class AMapNaviApi {
 
         private fun stopNavigation() {
             try {
+                stopCruiseModeInternal()
                 naviListener?.let { aMapNavi?.removeAMapNaviListener(it) }
                 AmapNaviPage.getInstance().exitRouteActivity()
                 AMapNavi.destroy()
@@ -216,6 +245,42 @@ class AMapNaviApi {
             } catch (e: Exception) {
                 Log.e(TAG, "stopNavigation error", e)
             }
+        }
+
+        private fun startCruiseMode(context: Context, call: MethodCall) {
+            val mode = call.argument<Int>("mode") ?: 3
+            NaviSetting.updatePrivacyShow(context, true, true)
+            NaviSetting.updatePrivacyAgree(context, true)
+
+            stopCruiseModeInternal()
+
+            aimlessListener = AimlessModeListenerImpl().also { l ->
+                l.eventSink = naviListener?.eventSink
+            }
+
+            val ctx = activityRef ?: context
+            aMapNavi = AMapNavi.getInstance(ctx)
+            aimlessListener?.let { listener ->
+                aMapNavi?.addAimlessModeListener(listener)
+                aMapNavi?.startAimlessMode(mode)
+                cruiseActive = true
+                Log.i(TAG, "startCruiseMode: mode=$mode")
+            }
+        }
+
+        private fun stopCruiseModeInternal() {
+            if (!cruiseActive && aimlessListener == null) return
+            try {
+                aimlessListener?.let { listener ->
+                    aMapNavi?.removeAimlessModeListener(listener)
+                    aMapNavi?.stopAimlessMode()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "stopCruiseModeInternal error", e)
+            }
+            aimlessListener = null
+            cruiseActive = false
+            Log.i(TAG, "stopCruiseModeInternal: done")
         }
     }
 
