@@ -333,22 +333,21 @@ class NaviExitEvent extends NaviEvent<int> {
 
 /// 巡航道路设施 / 电子眼更新（列表内每条含 [CruiseTrafficFacilityItem.source]）
 class CruiseTrafficFacilitiesEvent extends NaviEvent<List<CruiseTrafficFacilityItem>> {
-  CruiseTrafficFacilitiesEvent(List<CruiseTrafficFacilityItem> facilities)
-      : super(facilities);
+  CruiseTrafficFacilitiesEvent(super.facilities);
 
   List<CruiseTrafficFacilityItem> get facilities => value;
 }
 
 /// 巡航统计更新（连续距离、连续时间等）
 class CruiseStatisticsEvent extends NaviEvent<CruiseStatisticsInfo> {
-  CruiseStatisticsEvent(CruiseStatisticsInfo statistics) : super(statistics);
+  CruiseStatisticsEvent(super.statistics);
 
   CruiseStatisticsInfo get statistics => value;
 }
 
 /// 巡航拥堵信息更新（主要为 Android）
 class CruiseCongestionEvent extends NaviEvent<CruiseCongestionInfo> {
-  CruiseCongestionEvent(CruiseCongestionInfo congestion) : super(congestion);
+  CruiseCongestionEvent(super.congestion);
 
   CruiseCongestionInfo get congestion => value;
 }
