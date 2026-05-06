@@ -14,11 +14,19 @@ class CruiseMapPage extends StatefulWidget {
   State<CruiseMapPage> createState() => _CruiseMapPageState();
 }
 
+typedef _CruiseStatsSnapshot = ({int? distanceMeters, int? timeSeconds});
+
 class _CruiseMapPageState extends State<CruiseMapPage> {
   static const int _maxLogLines = 200;
 
   AMapController? _controller;
   Location? _lastLocation;
+
+  /// 巡航统计：仅驱动统计条局部重绘，不打日志。
+  final ValueNotifier<_CruiseStatsSnapshot> _cruiseStats =
+      ValueNotifier<_CruiseStatsSnapshot>(
+    (distanceMeters: null, timeSeconds: null),
+  );
 
   final List<String> _cruiseLogLines = [];
 
@@ -38,9 +46,10 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     _subStatistics = AMapNavi.onCruiseStatistics.listen(
       (CruiseStatisticsEvent e) {
         final CruiseStatisticsInfo s = e.statistics;
-        _appendCruiseLog(
-          'cruiseStatistics: 累计距离=${s.cumulativeDistanceMeters ?? '-'} m, '
-          '累计时间=${s.cumulativeTimeSeconds ?? '-'} s, extra=${s.extra}',
+        if (!mounted) return;
+        _cruiseStats.value = (
+          distanceMeters: s.cumulativeDistanceMeters,
+          timeSeconds: s.cumulativeTimeSeconds,
         );
       },
     );
@@ -67,6 +76,19 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
         _cruiseLogLines.removeLast();
       }
     });
+  }
+
+  String _formatCruiseDurationSeconds(int? seconds) {
+    if (seconds == null) return '—';
+    final Duration d = Duration(seconds: seconds);
+    final int h = d.inHours;
+    final int m = d.inMinutes.remainder(60);
+    final int s = d.inSeconds.remainder(60);
+    if (h > 0) {
+      return '$h时${m.toString().padLeft(2, '0')}分${s.toString().padLeft(2, '0')}秒';
+    }
+    if (m > 0) return '$m分${s.toString().padLeft(2, '0')}秒';
+    return '$s秒';
   }
 
   String _summarizeFacilities(List<CruiseTrafficFacilityItem> items) {
@@ -98,11 +120,13 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     if (AMapNavi.isCruising) {
       unawaited(AMapNavi.stopCruiseMode());
     }
+    _cruiseStats.dispose();
     _controller?.destroy();
     super.dispose();
   }
 
   Future<void> _startCruise() async {
+
     try {
       await AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both);
       _appendCruiseLog('已调用 startCruiseMode(mode=CruiseBroadcastMode.both)');
@@ -137,6 +161,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
       await AMapNavi.stopCruiseMode();
       _appendCruiseLog('已调用 stopCruiseMode()');
       if (!mounted) return;
+      _cruiseStats.value =
+          (distanceMeters: null, timeSeconds: null);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('已关闭智能巡航'),
@@ -206,6 +232,49 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    ValueListenableBuilder<_CruiseStatsSnapshot>(
+                      valueListenable: _cruiseStats,
+                      builder: (context, stats, _) {
+                        return Material(
+                          elevation: 2,
+                          borderRadius: BorderRadius.circular(8),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surface
+                              .withValues(alpha: 0.94),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '连续距离：'
+                                    '${stats.distanceMeters ?? '—'} m',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    '连续时间：'
+                                    '${_formatCruiseDurationSeconds(stats.timeSeconds)}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
                     Material(
                       elevation: 2,
                       borderRadius: BorderRadius.circular(8),
@@ -247,8 +316,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
                             child: _cruiseLogLines.isEmpty
                                 ? Center(
                                     child: Text(
-                                      '开启巡航后，设施 / 统计 / 拥堵 / 播报文案\n'
-                                      '将通过插件事件在此显示（驾车场景更易触发）。',
+                                      '开启巡航后，连续距离与时间显示在上方；\n'
+                                      '设施 / 拥堵 / 播报文案在下方（驾车场景更易触发）。',
                                       textAlign: TextAlign.center,
                                       style:
                                           Theme.of(context).textTheme.bodySmall,
