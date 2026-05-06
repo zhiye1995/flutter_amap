@@ -10,6 +10,7 @@ import com.amap.api.navi.AmapNaviType
 import com.amap.api.navi.AmapPageType
 import com.amap.api.navi.INaviInfoCallback
 import com.amap.api.navi.NaviSetting
+import com.amap.api.navi.enums.AimLessMode
 import com.amap.api.navi.model.AMapCarInfo
 import com.amap.api.navi.model.AMapNaviLocation
 import com.amap.api.maps.model.LatLng
@@ -35,6 +36,8 @@ class AMapNaviApi {
         private var aimlessListener: AimlessModeListenerImpl? = null
         private var aMapNavi: AMapNavi? = null
         private var activityRef: Activity? = null
+        private var naviListenerAttached: Boolean = false
+        private var aimlessListenerAttached: Boolean = false
 
         /** 当前是否处于智能巡航（用于 stopNavigation 前先 stopAimlessMode） */
         private var cruiseActive: Boolean = false
@@ -80,6 +83,8 @@ class AMapNaviApi {
             naviListener = null
             aimlessListener = null
             activityRef = null
+            naviListenerAttached = false
+            aimlessListenerAttached = false
         }
 
         private fun handleMethodCall(context: Context, call: MethodCall, result: MethodChannel.Result) {
@@ -147,6 +152,7 @@ class AMapNaviApi {
 
             // 初始化 AMapNavi
             aMapNavi = AMapNavi.getInstance(context)
+            aMapNavi?.setUseInnerVoice(true)
 
             // 设置车辆信息
             val carInfo = AMapCarInfo()
@@ -168,7 +174,7 @@ class AMapNaviApi {
             aMapNavi?.setCarInfo(carInfo)
 
             // 添加导航监听器
-            naviListener?.let { aMapNavi?.addAMapNaviListener(it) }
+            attachNaviListener()
 
             // 构建起点
             val start: Poi? = if (startLat != null && startLng != null) {
@@ -223,7 +229,7 @@ class AMapNaviApi {
                 end,
                 naviType,
                 pageType
-            )
+            ).setUseInnerVoice(true)
 
             // 启动导航页面
             val launchContext: Context = activityRef ?: context
@@ -238,17 +244,22 @@ class AMapNaviApi {
         private fun stopNavigation() {
             try {
                 stopCruiseModeInternal()
-                naviListener?.let { aMapNavi?.removeAMapNaviListener(it) }
+                detachNaviListener()
                 AmapNaviPage.getInstance().exitRouteActivity()
                 AMapNavi.destroy()
                 aMapNavi = null
+                aimlessListenerAttached = false
             } catch (e: Exception) {
                 Log.e(TAG, "stopNavigation error", e)
             }
         }
 
         private fun startCruiseMode(context: Context, call: MethodCall) {
-            val mode = call.argument<Int>("mode") ?: 3
+            val mode = when (call.argument<Int>("mode") ?: AimLessMode.CAMERA_AND_SPECIALROAD_DETECTED) {
+                AimLessMode.CAMERA_DETECTED -> AimLessMode.CAMERA_DETECTED
+                AimLessMode.SPECIALROAD_DETECTED -> AimLessMode.SPECIALROAD_DETECTED
+                else -> AimLessMode.CAMERA_AND_SPECIALROAD_DETECTED
+            }
             NaviSetting.updatePrivacyShow(context, true, true)
             NaviSetting.updatePrivacyAgree(context, true)
 
@@ -260,8 +271,13 @@ class AMapNaviApi {
 
             val ctx = activityRef ?: context
             aMapNavi = AMapNavi.getInstance(ctx)
+            aMapNavi?.setUseInnerVoice(true)
+            attachNaviListener()
             aimlessListener?.let { listener ->
-                aMapNavi?.addAimlessModeListener(listener)
+                if (!aimlessListenerAttached) {
+                    aMapNavi?.addAimlessModeListener(listener)
+                    aimlessListenerAttached = true
+                }
                 aMapNavi?.startAimlessMode(mode)
                 cruiseActive = true
                 Log.i(TAG, "startCruiseMode: mode=$mode")
@@ -271,16 +287,43 @@ class AMapNaviApi {
         private fun stopCruiseModeInternal() {
             if (!cruiseActive && aimlessListener == null) return
             try {
-                aimlessListener?.let { listener ->
-                    aMapNavi?.removeAimlessModeListener(listener)
+                if (cruiseActive) {
                     aMapNavi?.stopAimlessMode()
                 }
+                aimlessListener?.let { listener ->
+                    if (aimlessListenerAttached) {
+                        aMapNavi?.removeAimlessModeListener(listener)
+                    }
+                }
+                detachNaviListener()
             } catch (e: Exception) {
                 Log.e(TAG, "stopCruiseModeInternal error", e)
             }
             aimlessListener = null
             cruiseActive = false
+            aimlessListenerAttached = false
             Log.i(TAG, "stopCruiseModeInternal: done")
+        }
+
+        private fun attachNaviListener() {
+            if (naviListenerAttached) return
+            naviListener?.let { listener ->
+                aMapNavi?.addAMapNaviListener(listener)
+                naviListenerAttached = true
+            }
+        }
+
+        private fun detachNaviListener() {
+            if (!naviListenerAttached) return
+            try {
+                naviListener?.let { listener ->
+                    aMapNavi?.removeAMapNaviListener(listener)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "detachNaviListener error", e)
+            } finally {
+                naviListenerAttached = false
+            }
         }
     }
 
@@ -294,6 +337,14 @@ class AMapNaviApi {
 
         override fun onGetNavigationText(text: String?) {
             Log.d(TAG, "INaviInfoCallback: onGetNavigationText: $text")
+            text?.let {
+                naviListener?.eventSink?.success(
+                    mapOf(
+                        "type" to "navigationText",
+                        "text" to it
+                    )
+                )
+            }
         }
 
         override fun onLocationChange(location: AMapNaviLocation?) {

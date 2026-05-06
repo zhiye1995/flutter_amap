@@ -355,13 +355,7 @@ class AMapNaviListenerImpl : AMapNaviListener {
     override fun onGetNavigationText(type: Int, text: String?) {
         Log.i(TAG, "onGetNavigationText: type=$type, text=$text")
         text?.let {
-            sendEvent(
-                mapOf(
-                    "type" to "navigationText",
-                    "textType" to type,
-                    "text" to it
-                )
-            )
+            sendNavigationTextEvent(it, type)
         }
     }
 
@@ -372,7 +366,10 @@ class AMapNaviListenerImpl : AMapNaviListener {
      */
     @Deprecated("使用带 type 参数的方法")
     override fun onGetNavigationText(text: String?) {
-        // 已弃用，不做处理
+        Log.i(TAG, "onGetNavigationText(deprecated): text=$text")
+        text?.let {
+            sendNavigationTextEvent(it, null)
+        }
     }
 
     /**
@@ -1132,6 +1129,14 @@ class AMapNaviListenerImpl : AMapNaviListener {
         return data.mapValues { (_, v) -> toFlutterEncodable(v) }
     }
 
+    private fun sendNavigationTextEvent(text: String, textType: Int?) {
+        val payload = mutableMapOf<String, Any?>(
+            "type" to "navigationText",
+            "text" to text
+        )
+        textType?.let { payload["textType"] = it }
+        sendEvent(payload)
+    }
 
     /**
      * 发送事件到 Flutter 层
