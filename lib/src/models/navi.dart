@@ -740,7 +740,7 @@ class CruiseTrafficFacilityItem {
   /// 距设施剩余距离（米）
   final int? remainDistanceMeters;
 
-  /// 限速（km/h）
+  /// 限速（km/h）；原生 SDK 返回 0 时表示本条设施未提供有效限速。
   final int? speedLimitKmh;
 
   /// 原生侧附加字段

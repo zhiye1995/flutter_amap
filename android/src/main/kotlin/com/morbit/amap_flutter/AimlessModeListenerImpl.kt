@@ -52,13 +52,43 @@ class AimlessModeListenerImpl : AimlessModeListener {
         send(congestionToFlutterMap(info))
     }
 
-    private fun invokeGetter(target: Any, vararg methodNames: String): Any? {
+    private fun readMember(target: Any, vararg names: String): Any? {
         val clazz = target.javaClass
-        for (name in methodNames) {
+        for (name in names) {
+            val methodNames = mutableListOf(name)
+            if (!name.startsWith("get") && !name.startsWith("is")) {
+                val cap = if (name.isNotEmpty()) {
+                    Character.toUpperCase(name[0]) + name.substring(1)
+                } else {
+                    name
+                }
+                methodNames.add("get$cap")
+                methodNames.add("is$cap")
+            }
+
+            for (methodName in methodNames) {
+                try {
+                    val m = clazz.methods.firstOrNull { it.name == methodName && it.parameterCount == 0 }
+                    if (m != null) {
+                        return m.invoke(target)
+                    }
+                } catch (_: Throwable) {
+                    // try next
+                }
+            }
+
             try {
-                val m = clazz.methods.firstOrNull { it.name == name && it.parameterCount == 0 }
-                if (m != null) {
-                    return m.invoke(target)
+                val f = clazz.fields.firstOrNull { it.name == name }
+                if (f != null) return f.get(target)
+            } catch (_: Throwable) {
+                // try declared field
+            }
+
+            try {
+                val f = clazz.declaredFields.firstOrNull { it.name == name }
+                if (f != null) {
+                    f.isAccessible = true
+                    return f.get(target)
                 }
             } catch (_: Throwable) {
                 // try next
@@ -67,39 +97,50 @@ class AimlessModeListenerImpl : AimlessModeListener {
         return null
     }
 
-    private fun trafficFacilityToMap(info: AMapNaviTrafficFacilityInfo?, source: String): Map<String, Any?> {
-        if (info == null) return emptyMap()
-        val typeVal = invokeGetter(
-            info,
-            "getType",
-            "getFacilityType",
-            "getSubType"
-        )
-        val coord = invokeGetter(
-            info,
-            "getCoordinate",
-            "getCoord",
-            "getLatLng",
-            "getPoint"
-        )
-        var lat: Double? = null
-        var lng: Double? = null
-        when (coord) {
-            is LatLng -> {
-                lat = coord.latitude
-                lng = coord.longitude
-            }
-            else -> {
-                val la = invokeGetter(info, "getLatitude", "getLat")
-                val lo = invokeGetter(info, "getLongitude", "getLng")
-                if (la is Number) lat = la.toDouble()
-                if (lo is Number) lng = lo.toDouble()
+    private fun readNumber(target: Any, vararg names: String): Number? {
+        for (name in names) {
+            val v = readMember(target, name) ?: continue
+            when (v) {
+                is Number -> return v
+                is String -> v.toDoubleOrNull()?.let { return it }
             }
         }
-        val dist = invokeGetter(info, "getDistance", "getDist", "getRemainDistance")
-        val limit = invokeGetter(info, "getLimitSpeed", "getSpeedLimit")
+        return null
+    }
+
+    private fun trafficFacilityToMap(info: AMapNaviTrafficFacilityInfo?, source: String): Map<String, Any?> {
+        if (info == null) return emptyMap()
+        val typeVal = readNumber(
+            info,
+            "broadcastType",
+            "type",
+            "facilityType",
+            "subType"
+        )
+        val coord = readMember(info, "coordinate", "coord", "latLng", "point")
+        val coordLat = when (coord) {
+            is LatLng -> coord.latitude
+            null -> null
+            else -> readNumber(coord, "latitude", "lat")?.toDouble()
+        }
+        val coordLng = when (coord) {
+            is LatLng -> coord.longitude
+            null -> null
+            else -> readNumber(coord, "longitude", "lng", "lon")?.toDouble()
+        }
+        val lat = coordLat ?: readNumber(info, "coorY", "latitude", "lat")?.toDouble()
+        val lng = coordLng ?: readNumber(info, "coorX", "longitude", "lng", "lon")?.toDouble()
+        val dist = readNumber(info, "distance", "dist", "remainDistance")
+        val limit = readNumber(info, "limitSpeed", "speedLimit")
         val extra = mutableMapOf<String, Any?>()
         extra["sdkString"] = info.toString()
+        extra["sdkClass"] = info.javaClass.name
+        extra["sourceCallback"] = source
+        extra["type"] = typeVal
+        extra["latitude"] = lat
+        extra["longitude"] = lng
+        extra["distance"] = dist
+        extra["limitSpeed"] = limit
         return mapOf(
             "source" to source,
             "type" to (typeVal as? Number)?.toInt(),
@@ -120,19 +161,19 @@ class AimlessModeListenerImpl : AimlessModeListener {
                 "extra" to emptyMap<String, Any?>()
             )
         }
-        val dist = invokeGetter(
+        val dist = readNumber(
             stat,
-            "getAimlessModeDistance",
-            "getTotalAimlessModeDistance",
-            "getTotalDistance",
-            "getDistance"
+            "aimlessModeDistance",
+            "totalAimlessModeDistance",
+            "totalDistance",
+            "distance"
         )
-        val timeSec = invokeGetter(
+        val timeSec = readNumber(
             stat,
-            "getAimlessModeTime",
-            "getTotalAimlessModeTime",
-            "getTotalTime",
-            "getTime"
+            "aimlessModeTime",
+            "totalAimlessModeTime",
+            "totalTime",
+            "time"
         )
         val extra = mutableMapOf<String, Any?>()
         extra["sdkString"] = stat.toString()
@@ -153,7 +194,7 @@ class AimlessModeListenerImpl : AimlessModeListener {
         }
         val raw = mutableMapOf<String, Any?>()
         raw["sdkString"] = info.toString()
-        val desc = invokeGetter(info, "getDescription", "getRoadName")
+        val desc = readMember(info, "description", "roadName")
         if (desc != null) raw["description"] = desc.toString()
         return mapOf(
             "type" to "cruiseCongestion",

@@ -143,20 +143,24 @@ class AMapNavi {
       AMapFlutterPlatformInterface.instance.onNaviStart;
 
   /// 路线计算成功事件流
-  static Stream<NaviRouteCalculateSuccessEvent> get onNaviRouteCalculateSuccess =>
-      AMapFlutterPlatformInterface.instance.onNaviRouteCalculateSuccess;
+  static Stream<NaviRouteCalculateSuccessEvent>
+      get onNaviRouteCalculateSuccess =>
+          AMapFlutterPlatformInterface.instance.onNaviRouteCalculateSuccess;
 
   /// 路线计算失败事件流
-  static Stream<NaviRouteCalculateFailureEvent> get onNaviRouteCalculateFailure =>
-      AMapFlutterPlatformInterface.instance.onNaviRouteCalculateFailure;
+  static Stream<NaviRouteCalculateFailureEvent>
+      get onNaviRouteCalculateFailure =>
+          AMapFlutterPlatformInterface.instance.onNaviRouteCalculateFailure;
 
   /// 偏航重新计算路线事件流
-  static Stream<NaviReCalculateRouteForYawEvent> get onNaviReCalculateRouteForYaw =>
-      AMapFlutterPlatformInterface.instance.onNaviReCalculateRouteForYaw;
+  static Stream<NaviReCalculateRouteForYawEvent>
+      get onNaviReCalculateRouteForYaw =>
+          AMapFlutterPlatformInterface.instance.onNaviReCalculateRouteForYaw;
 
   /// 拥堵重新计算路线事件流
-  static Stream<NaviReCalculateRouteForTrafficJamEvent> get onNaviReCalculateRouteForTrafficJam =>
-      AMapFlutterPlatformInterface.instance.onNaviReCalculateRouteForTrafficJam;
+  static Stream<NaviReCalculateRouteForTrafficJamEvent>
+      get onNaviReCalculateRouteForTrafficJam => AMapFlutterPlatformInterface
+          .instance.onNaviReCalculateRouteForTrafficJam;
 
   /// 到达途经点事件流
   static Stream<NaviArrivedWayPointEvent> get onNaviArrivedWayPoint =>
@@ -178,6 +182,7 @@ class AMapNavi {
   static Stream<NaviExitEvent> get onNaviExit =>
       AMapFlutterPlatformInterface.instance.onNaviExit;
 
+  // ====================================== 智能巡航相关事件流 ======================================
   /// 巡航道路设施 / 电子眼等信息
   static Stream<CruiseTrafficFacilitiesEvent> get onCruiseTrafficFacilities =>
       AMapFlutterPlatformInterface.instance.onCruiseTrafficFacilities;

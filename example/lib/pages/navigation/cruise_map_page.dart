@@ -17,7 +17,7 @@ class CruiseMapPage extends StatefulWidget {
 typedef _CruiseStatsSnapshot = ({int? distanceMeters, int? timeSeconds});
 
 class _CruiseMapPageState extends State<CruiseMapPage> {
-  static const int _maxLogLines = 200;
+  static const int _maxLogLines = 5000;
 
   AMapController? _controller;
   Location? _lastLocation;
@@ -40,7 +40,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     super.initState();
     _subFacilities = AMapNavi.onCruiseTrafficFacilities.listen(
       (CruiseTrafficFacilitiesEvent e) => _appendCruiseLog(
-        'cruiseTrafficFacilities: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
+        '巡航道路设施 / 电子眼等信息: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
       ),
     );
     _subStatistics = AMapNavi.onCruiseStatistics.listen(
@@ -55,7 +55,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     );
     _subCongestion = AMapNavi.onCruiseCongestion.listen(
       (CruiseCongestionEvent e) => _appendCruiseLog(
-        'cruiseCongestion: raw=${e.congestion.raw}',
+        '巡航拥堵信息（主要为 Android）: raw=${e.congestion.raw}',
       ),
     );
     _subNaviText = AMapNavi.onNaviText.listen(
@@ -99,11 +99,16 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
       final CruiseTrafficFacilityItem f = items[i];
       b.write(
         '[${f.source.name} type=${f.type} dist=${f.remainDistanceMeters} '
-        'limit=${f.speedLimitKmh}] ',
+        'limit=${_formatSpeedLimit(f.speedLimitKmh)}] ',
       );
     }
     if (items.length > 3) b.write('…');
     return b.toString().trimRight();
+  }
+
+  String _formatSpeedLimit(int? kmh) {
+    if (kmh == null || kmh <= 0) return '—';
+    return '$kmh';
   }
 
   void _clearCruiseLog() {
