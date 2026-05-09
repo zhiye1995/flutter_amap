@@ -22,12 +22,22 @@ class AMapFlutter(
   val controller: AMapController
   val markers = mutableMapOf<String, Marker>()
   val aMapMarkerIdToDartMarkerId = mutableMapOf<String, String>()
+  private var destroyed = false
 
   override fun getView(): TextureMapView {
     return mapView
   }
 
-  override fun dispose() {}
+  override fun dispose() {
+    destroyView()
+  }
+
+  fun destroyView() {
+    if (destroyed) return
+    destroyed = true
+    locationSource.destroy()
+    mapView.onDestroy()
+  }
 
   init {
     val mapOptions = AMapOptions()
@@ -77,6 +87,6 @@ class AMapFlutter(
   }
 
   override fun onDestroy(owner: LifecycleOwner) {
-    mapView.onDestroy()
+    destroyView()
   }
 }

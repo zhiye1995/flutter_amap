@@ -81,13 +81,21 @@ class AMapLocationSource(context: Context) : LocationSource, AMapLocationListene
   }
 
   override fun deactivate() {
-    //当不需要展示定位点时，需要停止定位并释放相关资源
+    // 地图暂时不需要定位点时只停止定位，保留 client。
+    // 高德定位 SDK 内部会注册 GNSS 状态监听；频繁 onDestroy 后系统仍可能向已退出的
+    // HandlerThread 投递 GNSS 回调，导致 "sending message to a Handler on a dead thread" 刷屏。
     locationChangedListener = null
     isActive = false
     locationClient?.stopLocation()
-    // 释放资源：地图内部可能在 onPause 等时机调用 deactivate()
+  }
+
+  fun destroy() {
+    locationChangedListener = null
+    isActive = false
+    locationClient?.stopLocation()
     locationClient?.onDestroy()
     locationClient = null
+    locationOption = null
   }
 
   /**

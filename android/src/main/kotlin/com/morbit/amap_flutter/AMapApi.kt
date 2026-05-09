@@ -312,6 +312,6 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   }
 
   fun destroy() {
-    mapView.onDestroy()
+    amap.destroyView()
   }
 }
