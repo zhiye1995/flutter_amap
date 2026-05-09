@@ -109,8 +109,6 @@ final List<_CategoryData> _menuData = [
       isCompleted: true,
     ),
   ]),
-
-
   _CategoryData('地图上绘制', [
     _ItemData('Markers功能',
         pageBuilder: () => const AddRemoveMarkerPage(), isCompleted: true),
@@ -212,11 +210,18 @@ final List<_CategoryData> _menuData = [
 ];
 
 // ──────────────────────────────────────────────────────────
-//  主页面 — 使用 StatelessWidget，不在这层管理状态
+//  主页面 — 统一管理当前展开的分类，保证同一时间只展开一个
 // ──────────────────────────────────────────────────────────
 
-class Map3dIndexPage extends StatelessWidget {
+class Map3dIndexPage extends StatefulWidget {
   const Map3dIndexPage({super.key});
+
+  @override
+  State<Map3dIndexPage> createState() => _Map3dIndexPageState();
+}
+
+class _Map3dIndexPageState extends State<Map3dIndexPage> {
+  int? _expandedCategoryIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -229,12 +234,16 @@ class Map3dIndexPage extends StatelessWidget {
       // ListView.builder 按需构建，仅渲染可见区域
       body: ListView.builder(
         itemCount: _menuData.length,
-        // 每个分类作为一个独立的 StatefulWidget，
-        // 折叠 / 展开只重建自身，不会触发整个列表重建
         itemBuilder: (context, index) {
           return _CategoryTile(
             key: ValueKey(index),
             category: _menuData[index],
+            isExpanded: _expandedCategoryIndex == index,
+            onExpansionChanged: (expanded) {
+              setState(() {
+                _expandedCategoryIndex = expanded ? index : null;
+              });
+            },
           );
         },
       ),
@@ -243,28 +252,23 @@ class Map3dIndexPage extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────
-//  单个分类折叠块 — 独立的 StatefulWidget
-//  核心优化：setState 的作用域被限制在这一个分类内部，
-//  展开 / 折叠不会导致其它分类重建。
+//  单个分类折叠块
 // ──────────────────────────────────────────────────────────
 
-class _CategoryTile extends StatefulWidget {
+class _CategoryTile extends StatelessWidget {
   final _CategoryData category;
+  final bool isExpanded;
+  final ValueChanged<bool> onExpansionChanged;
 
-  const _CategoryTile({super.key, required this.category});
-
-  @override
-  State<_CategoryTile> createState() => _CategoryTileState();
-}
-
-class _CategoryTileState extends State<_CategoryTile> {
-  bool _isExpanded = false;
-
-  // 预构建子项列表，避免每次 build 都重新 .map().toList()
-  late final List<Widget> _children = _buildChildren();
+  const _CategoryTile({
+    super.key,
+    required this.category,
+    required this.isExpanded,
+    required this.onExpansionChanged,
+  });
 
   List<Widget> _buildChildren() {
-    return widget.category.items.map((item) {
+    return category.items.map((item) {
       return _FeatureItemTile(item: item);
     }).toList(growable: false);
   }
@@ -278,23 +282,20 @@ class _CategoryTileState extends State<_CategoryTile> {
         // 只创建一次，隐藏 ExpansionTile 自带的分割线
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          initiallyExpanded: _isExpanded,
-          onExpansionChanged: (expanded) {
-            setState(() {
-              _isExpanded = expanded;
-            });
-          },
+          key: ValueKey(isExpanded),
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: onExpansionChanged,
           backgroundColor: Colors.white,
           collapsedBackgroundColor: const Color(0xFFF5F5F5),
           title: Text(
-            widget.category.title,
+            category.title,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          children: _children,
+          children: _buildChildren(),
         ),
       ),
     );

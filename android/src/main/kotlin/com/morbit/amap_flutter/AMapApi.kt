@@ -69,7 +69,10 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     config.userLocationConfig?.let {
       it.userLocationButton?.let { showButton -> mapView.map.uiSettings.isMyLocationButtonEnabled = showButton }
       // 必须先设置定位样式，再启用定位，否则 LOCATION_TYPE_LOCATE 等类型的"移动到中心点"动作会丢失
-      it.userLocationStyle?.toLocationStyle(amap.binding)?.let { style -> mapView.map.myLocationStyle = style }
+      it.userLocationStyle?.let { styleConfig ->
+        amap.locationSource.setLocationType(styleConfig.userLocationType)
+        mapView.map.myLocationStyle = styleConfig.toLocationStyle(amap.binding)
+      }
       it.showUserLocation?.let { showLocation -> mapView.map.isMyLocationEnabled = showLocation }
     }
     config.customStyleOptions?.let { applyCustomStyle(it) }

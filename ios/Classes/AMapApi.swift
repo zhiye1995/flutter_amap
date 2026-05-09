@@ -15,6 +15,7 @@ class _AMapApi: NSObject {
   let registrar: FlutterPluginRegistrar
   let mapView: MAMapView
   let mapInitConfig: MapInitConfig?
+  weak var mapViewDelegate: AMapViewDelegate?
   var markers = [String: Annotation]()
   var markerIds = [Int: String]()
 
@@ -153,14 +154,15 @@ class _AMapApi: NSObject {
       mapView.isShowsIndoorMap = showIndoorMap
     }
     if let userLocationConfig = config.userLocationConfig {
+      if let userLocationStyle = userLocationConfig.userLocationStyle {
+        mapViewDelegate?.applyUserLocationType(userLocationStyle.userLocationType, animated: false)
+        mapView.update(userLocationStyle.toUserLocationRepresentation(registrar: registrar))
+      }
       if let showLocation = userLocationConfig.showUserLocation {
         mapView.showsUserLocation = showLocation
-      }
-      if let userLocationStyle = userLocationConfig.userLocationStyle {
-        if let userTrackingMode = userLocationStyle.userLocationType?.userTrackingMode {
-          mapView.setUserTrackingMode(userTrackingMode, animated: false)
+        if !showLocation {
+          mapView.setUserTrackingMode(.none, animated: false)
         }
-        mapView.update(userLocationStyle.toUserLocationRepresentation(registrar: registrar))
       }
     }
     if let custom = config.customStyleOptions {

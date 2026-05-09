@@ -24,7 +24,9 @@ class AMapFlutter: NSObject, FlutterPlatformView {
     mapView = MAMapView(frame: frame)
     let api = _AMapApi(registrar: registrar, mapView: mapView, mapInitConfig: mapInitConfig)
     let controller = AMapController(viewId: viewId, registrar: registrar, api: api)
-    mapViewDelegate = AMapViewDelegate(registrar, mapView: mapView, controller: controller)
+    let delegate = AMapViewDelegate(registrar, mapView: mapView, controller: controller)
+    mapViewDelegate = delegate
+    api.mapViewDelegate = delegate
     super.init()
     mapView.delegate = mapViewDelegate
     mapView.showsUserLocation = false

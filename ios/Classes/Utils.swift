@@ -266,6 +266,9 @@ extension UIControlPosition {
 extension UserLocationStyle {
   func toUserLocationRepresentation(registrar: FlutterPluginRegistrar) -> MAUserLocationRepresentation {
     let userLocationRepresentation = MAUserLocationRepresentation()
+    if let userLocationType = userLocationType {
+      userLocationRepresentation.showsHeadingIndicator = userLocationType == .locationTypeMapRotate
+    }
     if let fillColor = fillColor {
       userLocationRepresentation.fillColor = fillColor
     }
@@ -283,24 +286,26 @@ extension UserLocationStyle {
 }
 
 extension UserLocationType {
-  var userTrackingMode: MAUserTrackingMode? {
+  var userTrackingMode: MAUserTrackingMode {
     return switch(self) {
       case .locationTypeShow:
-        // 只显示定位，不追踪（Android Only 行为，iOS 映射为 none）
         MAUserTrackingMode.none
       case .locationTypeLocate:
-        // 定位一次，且将视角移动到地图中心点
-        // 使用 follow 模式让地图自动移动到用户位置
         MAUserTrackingMode.follow
       case .locationTypeFollow:
-        // 连续定位、且将视角移动到地图中心点
         MAUserTrackingMode.follow
       case .locationTypeMapRotate:
-        // 连续定位、地图依照设备方向旋转
         MAUserTrackingMode.followWithHeading
+      case .locationTypeLocationRotate:
+        // iOS 无“定位点随设备方向旋转、地图不旋转”的独立模式，回退为居中跟随。
+        MAUserTrackingMode.follow
       default:
-        // 其他 Android Only 的类型，iOS 暂不支持
-        nil
+        // iOS 无 Android 的 no-center 系列，回退为不追踪，避免沿用上一次 follow/heading 状态。
+        MAUserTrackingMode.none
     }
+  }
+
+  var resetsTrackingAfterFirstLocation: Bool {
+    return self == .locationTypeLocate
   }
 }

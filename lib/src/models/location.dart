@@ -99,8 +99,9 @@ class UserLocationConfig {
     return UserLocationConfig(
       userLocationButton: result[0] as bool?,
       showUserLocation: result[1] as bool?,
-      userLocationStyle:
-          result[2] != null ? UserLocationStyle.decode(result[2]! as List<Object?>) : null,
+      userLocationStyle: result[2] != null
+          ? UserLocationStyle.decode(result[2]! as List<Object?>)
+          : null,
     );
   }
 
@@ -158,7 +159,8 @@ class UserLocationStyle {
       fillColor: result[1] != null ? Color(result[1] as int) : null,
       strokeColor: result[2] != null ? Color(result[2] as int) : null,
       lineWidth: result[3] as double?,
-      image: result[4] != null ? Bitmap.decode(result[4]! as List<Object?>) : null,
+      image:
+          result[4] != null ? Bitmap.decode(result[4]! as List<Object?>) : null,
     );
   }
 
@@ -196,7 +198,7 @@ extension UserLocationTypePlatform on UserLocationType {
     };
   }
 
-  /// iOS 原生层是否写入对应 `MAUserTrackingMode`（`false` 时 iOS 不切换追踪模式，与 Android 可能不一致）。
+  /// iOS 是否有较接近的 `MAUserTrackingMode` 原生语义（`false` 时原生层会回退到可表达的最近模式）。
   bool get hasIosNativeTrackingMapping {
     return switch (this) {
       UserLocationType.locationTypeShow ||
@@ -229,7 +231,6 @@ extension UserLocationTypePlatform on UserLocationType {
       }
       return 'Android / iOS：双端可用';
     }
-    return 'Android：完整；iOS：不切换 MAUserTrackingMode（与 Android 可能不同）';
+    return 'Android：完整；iOS：回退到最接近的 MAUserTrackingMode（不完全等价）';
   }
 }
-

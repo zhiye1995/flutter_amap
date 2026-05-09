@@ -70,7 +70,7 @@
         -->
         <meta-data
                 android:name="com.amap.api.v2.apikey"
-                android:value="fddb0c469571c9686915aade4e2a7a18"/>
+                android:value="25304ab4b426667f31055e3e5e4808a8"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

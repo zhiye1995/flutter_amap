@@ -18,7 +18,7 @@ class AMapFlutter(
   args: HashMap<*, *>
 ) : PlatformView, DefaultLifecycleObserver {
   private val mapView: TextureMapView
-  private val locationSource = AMapLocationSource(context)
+  val locationSource = AMapLocationSource(context)
   val controller: AMapController
   val markers = mutableMapOf<String, Marker>()
   val aMapMarkerIdToDartMarkerId = mutableMapOf<String, String>()

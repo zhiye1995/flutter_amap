@@ -117,6 +117,7 @@ fun Region.toLatLngBounds(): LatLngBounds {
 fun UserLocationStyle.toLocationStyle(binding: FlutterPluginBinding): MyLocationStyle {
     val myLocationStyle = MyLocationStyle()
     userLocationType?.toMyLocationType()?.let { myLocationStyle.myLocationType(it) }
+    myLocationStyle.interval(if (userLocationType?.isOnceLocationMode() == true) 999L else 1000L)
     fillColor?.toArgb()?.let { myLocationStyle.radiusFillColor(it) }
     strokeColor?.toArgb()?.let { myLocationStyle.strokeColor(it) }
     lineWidth?.toFloat()?.let { myLocationStyle.strokeWidth(it) }
@@ -135,4 +136,9 @@ fun UserLocationType.toMyLocationType(): Int {
         UserLocationType.LOCATION_TYPE_FOLLOW_NO_CENTER -> MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER
         UserLocationType.LOCATION_TYPE_MAP_ROTATE_NO_CENTER -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER
     }
+}
+
+fun UserLocationType.isOnceLocationMode(): Boolean {
+    return this == UserLocationType.LOCATION_TYPE_SHOW ||
+        this == UserLocationType.LOCATION_TYPE_LOCATE
 }

@@ -29,11 +29,18 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   let registrar: FlutterPluginRegistrar
   let mapView: MAMapView
   let controller: AMapController
+  private var resetsTrackingAfterFirstLocation = false
 
   init(_ registrar: FlutterPluginRegistrar, mapView: MAMapView, controller: AMapController) {
     self.registrar = registrar
     self.mapView = mapView
     self.controller = controller
+  }
+
+  func applyUserLocationType(_ type: UserLocationType?, animated: Bool) {
+    let effectiveType = type ?? .locationTypeLocationRotate
+    resetsTrackingAfterFirstLocation = effectiveType.resetsTrackingAfterFirstLocation
+    mapView.setUserTrackingMode(effectiveType.userTrackingMode, animated: animated)
   }
 
   func mapView(_ mapView: MAMapView!, viewFor _annotation: MAAnnotation!) -> MAAnnotationView! {
@@ -185,6 +192,10 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   /// 位置或者设备方向更新后，会调用此函数
   func mapView(_ mapView: MAMapView!, didUpdate userLocation: MAUserLocation!, updatingLocation: Bool) {
     controller.onUserLocationChange(location: userLocation.toLocation)
+    if updatingLocation && resetsTrackingAfterFirstLocation {
+      resetsTrackingAfterFirstLocation = false
+      mapView.setUserTrackingMode(.none, animated: false)
+    }
   }
 
   /// 在地图View将要启动定位时，会调用此函数
