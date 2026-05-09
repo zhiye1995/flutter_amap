@@ -38,9 +38,9 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   }
 
   func applyUserLocationType(_ type: UserLocationType?, animated: Bool) {
-    let effectiveType = type ?? .locationTypeLocationRotate
-    resetsTrackingAfterFirstLocation = effectiveType.resetsTrackingAfterFirstLocation
-    mapView.setUserTrackingMode(effectiveType.userTrackingMode, animated: animated)
+    guard let type = type else { return }
+    resetsTrackingAfterFirstLocation = type.resetsTrackingAfterFirstLocation
+    mapView.setUserTrackingMode(type.userTrackingMode, animated: animated)
   }
 
   func mapView(_ mapView: MAMapView!, viewFor _annotation: MAAnnotation!) -> MAAnnotationView! {

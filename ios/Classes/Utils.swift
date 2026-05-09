@@ -266,9 +266,6 @@ extension UIControlPosition {
 extension UserLocationStyle {
   func toUserLocationRepresentation(registrar: FlutterPluginRegistrar) -> MAUserLocationRepresentation {
     let userLocationRepresentation = MAUserLocationRepresentation()
-    if let userLocationType = userLocationType {
-      userLocationRepresentation.showsHeadingIndicator = userLocationType == .locationTypeMapRotate
-    }
     if let fillColor = fillColor {
       userLocationRepresentation.fillColor = fillColor
     }
@@ -277,6 +274,21 @@ extension UserLocationStyle {
     }
     if let lineWidth = lineWidth {
       userLocationRepresentation.lineWidth = lineWidth
+    }
+    if let showsAccuracyRing = showsAccuracyRing {
+      userLocationRepresentation.showsAccuracyRing = showsAccuracyRing
+    }
+    if let showsHeadingIndicator = showsHeadingIndicator {
+      userLocationRepresentation.showsHeadingIndicator = showsHeadingIndicator
+    }
+    if let locationDotBgColor = locationDotBgColor {
+      userLocationRepresentation.locationDotBgColor = locationDotBgColor
+    }
+    if let locationDotFillColor = locationDotFillColor {
+      userLocationRepresentation.locationDotFillColor = locationDotFillColor
+    }
+    if let enablePulseAnimation = enablePulseAnimation {
+      userLocationRepresentation.enablePulseAnnimation = enablePulseAnimation
     }
     if let image = image {
       userLocationRepresentation.image = image.toUIImage(registrar: registrar)

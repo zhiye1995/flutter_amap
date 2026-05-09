@@ -20,6 +20,7 @@ import 'map_overlay/info_window_page.dart';
 import 'map_overlay/marker_animation_page.dart';
 import 'map_overlay/marker_click_callback_page.dart';
 import 'map_overlay/user_location.dart';
+import 'map_overlay/user_location_custom_page.dart';
 import 'map_query/weather.dart';
 import 'route_planning/map_view.dart';
 import '../navigation/navigation.dart';
@@ -137,8 +138,16 @@ final List<_CategoryData> _menuData = [
       pageBuilder: () => const UserLocationPage(),
       isCompleted: true,
     ),
-    _ItemData('Location小蓝点自定义功能'),
-    _ItemData('Location小蓝点自定义模式'),
+    _ItemData(
+      'Location小蓝点自定义功能',
+      pageBuilder: () => const UserLocationCustomPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      'Location小蓝点自定义模式',
+      pageBuilder: () => const UserLocationCustomPage(),
+      isCompleted: true,
+    ),
     _ItemData('Polylines功能'),
     _ItemData('绘制多彩线'),
     _ItemData('绘制大地曲线'),

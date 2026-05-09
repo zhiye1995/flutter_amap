@@ -371,7 +371,7 @@ class AMapWidget extends StatefulWidget {
       await AMapFlutterPlatformInterface.instance.agreePrivacy(agreePrivacy);
     }
     // 预加载导航图标资源
-     NaviInfo.preloadAssetIcons();
+    NaviInfo.preloadAssetIcons();
   }
 }
 
@@ -488,16 +488,20 @@ class AMapWidgetState extends State<AMapWidget> {
     if (!setEquals(widget.mapFeatures, oldWidget.mapFeatures)) {
       config.mapFeatures = widget.mapFeatures.toList();
     }
-    if (widget.dragEnable != null && widget.dragEnable != oldWidget.dragEnable) {
+    if (widget.dragEnable != null &&
+        widget.dragEnable != oldWidget.dragEnable) {
       config.dragEnable = widget.dragEnable;
     }
-    if (widget.zoomEnable != null && widget.zoomEnable != oldWidget.zoomEnable) {
+    if (widget.zoomEnable != null &&
+        widget.zoomEnable != oldWidget.zoomEnable) {
       config.zoomEnable = widget.zoomEnable;
     }
-    if (widget.tiltEnable != null && widget.tiltEnable != oldWidget.tiltEnable) {
+    if (widget.tiltEnable != null &&
+        widget.tiltEnable != oldWidget.tiltEnable) {
       config.tiltEnable = widget.tiltEnable;
     }
-    if (widget.rotateEnable != null && widget.rotateEnable != oldWidget.rotateEnable) {
+    if (widget.rotateEnable != null &&
+        widget.rotateEnable != oldWidget.rotateEnable) {
       config.rotateEnable = widget.rotateEnable;
     }
     if (widget.compassControlEnabled != null &&
@@ -520,7 +524,8 @@ class AMapWidgetState extends State<AMapWidget> {
         widget.mapTypeControlEnabled != oldWidget.mapTypeControlEnabled) {
       config.mapTypeControlEnabled = widget.mapTypeControlEnabled;
     }
-    if (widget.logoPosition != null && widget.logoPosition != oldWidget.logoPosition) {
+    if (widget.logoPosition != null &&
+        widget.logoPosition != oldWidget.logoPosition) {
       config.logoPosition = widget.logoPosition;
     }
     if (widget.compassControlPosition != null &&
@@ -535,10 +540,12 @@ class AMapWidgetState extends State<AMapWidget> {
         widget.zoomControlPosition != oldWidget.zoomControlPosition) {
       config.zoomControlPosition = widget.zoomControlPosition;
     }
-    if (widget.showTraffic != null && widget.showTraffic != oldWidget.showTraffic) {
+    if (widget.showTraffic != null &&
+        widget.showTraffic != oldWidget.showTraffic) {
       config.showTraffic = widget.showTraffic;
     }
-    if (widget.showBuildings != null && widget.showBuildings != oldWidget.showBuildings) {
+    if (widget.showBuildings != null &&
+        widget.showBuildings != oldWidget.showBuildings) {
       config.showBuildings = widget.showBuildings;
     }
     if (widget.showIndoorMap != oldWidget.showIndoorMap) {
@@ -551,7 +558,8 @@ class AMapWidgetState extends State<AMapWidget> {
       config.showRoadNetLayer = widget.showRoadNetLayer;
     }
     if (widget.geolocationControlEnabled != null &&
-        widget.geolocationControlEnabled != oldWidget.geolocationControlEnabled) {
+        widget.geolocationControlEnabled !=
+            oldWidget.geolocationControlEnabled) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
             userLocationButton: widget.geolocationControlEnabled,
           ) ??
@@ -559,7 +567,8 @@ class AMapWidgetState extends State<AMapWidget> {
             userLocationButton: widget.geolocationControlEnabled,
           );
     }
-    if (widget.showUserLocation != null && widget.showUserLocation != oldWidget.showUserLocation) {
+    if (widget.showUserLocation != null &&
+        widget.showUserLocation != oldWidget.showUserLocation) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
             showUserLocation: widget.showUserLocation,
           ) ??
@@ -568,9 +577,9 @@ class AMapWidgetState extends State<AMapWidget> {
           );
     }
     if (_userLocationStyleFieldsDiffer(
-          widget.userLocationStyle,
-          oldWidget.userLocationStyle,
-        )) {
+      widget.userLocationStyle,
+      oldWidget.userLocationStyle,
+    )) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
             userLocationButton: widget.geolocationControlEnabled,
             showUserLocation: widget.showUserLocation,
@@ -600,7 +609,7 @@ class AMapWidgetState extends State<AMapWidget> {
     mapId = id;
     await AMapFlutterPlatformInterface.instance.init(id, widget);
     _controller = AMapController(widget, mapId: id);
-    
+
     if (!mounted) {
       _controller?.destroy();
       return;
@@ -683,7 +692,30 @@ bool _userLocationStyleFieldsDiffer(
   if (a.lineWidth != b.lineWidth) {
     return true;
   }
+  if (a.showLocationDot != b.showLocationDot) {
+    return true;
+  }
+  if (a.showsAccuracyRing != b.showsAccuracyRing) {
+    return true;
+  }
+  if (a.showsHeadingIndicator != b.showsHeadingIndicator) {
+    return true;
+  }
+  if (a.locationDotBgColor != b.locationDotBgColor) {
+    return true;
+  }
+  if (a.locationDotFillColor != b.locationDotFillColor) {
+    return true;
+  }
+  if (a.enablePulseAnimation != b.enablePulseAnimation) {
+    return true;
+  }
+  if (a.intervalMs != b.intervalMs) {
+    return true;
+  }
   final List<Object?>? imageA = a.image?.encode() as List<Object?>?;
   final List<Object?>? imageB = b.image?.encode() as List<Object?>?;
-  return !listEquals(imageA, imageB);
+  final List<Object?>? anchorA = a.anchor?.encode() as List<Object?>?;
+  final List<Object?>? anchorB = b.anchor?.encode() as List<Object?>?;
+  return !listEquals(imageA, imageB) || !listEquals(anchorA, anchorB);
 }

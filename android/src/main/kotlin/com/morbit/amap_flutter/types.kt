@@ -348,9 +348,9 @@ data class MapInitConfig(
       val defaultCursor = list[25] as String?
       val viewMode = list[26] as String?
       val terrain = list[27] as Boolean?
-      val wallColor = (list[28] as Int?)?.let { Color.valueOf(it) }
-      val roofColor = (list[29] as Int?)?.let { Color.valueOf(it) }
-      val skyColor = (list[30] as Int?)?.let { Color.valueOf(it) }
+      val wallColor = colorFromValue(list[28])
+      val roofColor = colorFromValue(list[29])
+      val skyColor = colorFromValue(list[30])
       val customStyleOptions =
         if (list.size > 31) {
           (list[31] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
@@ -773,21 +773,45 @@ data class UserLocationStyle(
   val fillColor: Color?,
   val strokeColor: Color?,
   val lineWidth: Double?,
-  val image: Bitmap?
+  val image: Bitmap?,
+  val showLocationDot: Boolean?,
+  val anchor: Anchor?,
+  val showsAccuracyRing: Boolean?,
+  val showsHeadingIndicator: Boolean?,
+  val locationDotBgColor: Color?,
+  val locationDotFillColor: Color?,
+  val enablePulseAnimation: Boolean?,
+  val intervalMs: Long?
 ) {
   companion object {
     fun fromList(list: List<Any?>): UserLocationStyle {
       val userLocationType = (list[0] as Int?)?.let { UserLocationType.ofRaw(it) }
-      val fillColor = (list[1] as Int?)?.let { Color.valueOf(it) }
-      val strokeColor = (list[2] as Int?)?.let { Color.valueOf(it) }
+      val fillColor = colorFromValue(list[1])
+      val strokeColor = colorFromValue(list[2])
       val lineWidth = list[3] as Double?
       val image = (list[4] as List<Any?>?)?.let { Bitmap.fromList(it) }
+      val showLocationDot = if (list.size > 5) list[5] as Boolean? else null
+      val anchor = if (list.size > 6) (list[6] as List<Any?>?)?.let { Anchor.fromList(it) } else null
+      val showsAccuracyRing = if (list.size > 7) list[7] as Boolean? else null
+      val showsHeadingIndicator = if (list.size > 8) list[8] as Boolean? else null
+      val locationDotBgColor = if (list.size > 9) colorFromValue(list[9]) else null
+      val locationDotFillColor = if (list.size > 10) colorFromValue(list[10]) else null
+      val enablePulseAnimation = if (list.size > 11) list[11] as Boolean? else null
+      val intervalMs = if (list.size > 12) (list[12] as Number?)?.toLong() else null
       return UserLocationStyle(
         userLocationType,
         fillColor,
         strokeColor,
         lineWidth,
         image,
+        showLocationDot,
+        anchor,
+        showsAccuracyRing,
+        showsHeadingIndicator,
+        locationDotBgColor,
+        locationDotFillColor,
+        enablePulseAnimation,
+        intervalMs,
       )
     }
   }
@@ -799,6 +823,18 @@ data class UserLocationStyle(
       strokeColor?.toArgb(),
       lineWidth,
       image?.toList(),
+      showLocationDot,
+      anchor?.toList(),
+      showsAccuracyRing,
+      showsHeadingIndicator,
+      locationDotBgColor?.toArgb(),
+      locationDotFillColor?.toArgb(),
+      enablePulseAnimation,
+      intervalMs,
     )
   }
+}
+
+private fun colorFromValue(value: Any?): Color? {
+  return (value as? Number)?.toInt()?.let { Color.valueOf(it) }
 }

@@ -765,6 +765,14 @@ struct UserLocationStyle {
   var strokeColor: UIColor?
   var lineWidth: Double?
   var image: Bitmap?
+  var showLocationDot: Bool?
+  var anchor: Anchor?
+  var showsAccuracyRing: Bool?
+  var showsHeadingIndicator: Bool?
+  var locationDotBgColor: UIColor?
+  var locationDotFillColor: UIColor?
+  var enablePulseAnimation: Bool?
+  var intervalMs: Int?
 
   static func fromList(_ list: [Any?]) -> UserLocationStyle? {
     var userLocationType: UserLocationType? = nil
@@ -784,12 +792,37 @@ struct UserLocationStyle {
     if let imageList: [Any?] = nilOrValue(list[4]) {
       image = Bitmap.fromList(imageList)
     }
+    let showLocationDot: Bool? = list.count > 5 ? nilOrValue(list[5]) : nil
+    var anchor: Anchor? = nil
+    if list.count > 6, let anchorList: [Any?] = nilOrValue(list[6]) {
+      anchor = Anchor.fromList(anchorList)
+    }
+    let showsAccuracyRing: Bool? = list.count > 7 ? nilOrValue(list[7]) : nil
+    let showsHeadingIndicator: Bool? = list.count > 8 ? nilOrValue(list[8]) : nil
+    var locationDotBgColor: UIColor? = nil
+    if list.count > 9, let color: UInt = nilOrValue(list[9]) {
+      locationDotBgColor = UIColor(hex: color)
+    }
+    var locationDotFillColor: UIColor? = nil
+    if list.count > 10, let color: UInt = nilOrValue(list[10]) {
+      locationDotFillColor = UIColor(hex: color)
+    }
+    let enablePulseAnimation: Bool? = list.count > 11 ? nilOrValue(list[11]) : nil
+    let intervalMs: Int? = list.count > 12 ? nilOrValue(list[12]) : nil
     return UserLocationStyle(
       userLocationType: userLocationType,
       fillColor: fillColor,
       strokeColor: strokeColor,
       lineWidth: lineWidth,
-      image: image
+      image: image,
+      showLocationDot: showLocationDot,
+      anchor: anchor,
+      showsAccuracyRing: showsAccuracyRing,
+      showsHeadingIndicator: showsHeadingIndicator,
+      locationDotBgColor: locationDotBgColor,
+      locationDotFillColor: locationDotFillColor,
+      enablePulseAnimation: enablePulseAnimation,
+      intervalMs: intervalMs
     )
   }
 
@@ -800,6 +833,14 @@ struct UserLocationStyle {
       strokeColor?.hex,
       lineWidth,
       image?.toList(),
+      showLocationDot,
+      anchor?.toList(),
+      showsAccuracyRing,
+      showsHeadingIndicator,
+      locationDotBgColor?.hex,
+      locationDotFillColor?.hex,
+      enablePulseAnimation,
+      intervalMs,
     ]
   }
 }

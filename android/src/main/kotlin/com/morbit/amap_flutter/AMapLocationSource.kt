@@ -20,6 +20,7 @@ class AMapLocationSource(context: Context) : LocationSource, AMapLocationListene
   private var locationOption: AMapLocationClientOption?
   private var locationChangedListener: LocationSource.OnLocationChangedListener? = null
   private var locationType: UserLocationType = UserLocationType.LOCATION_TYPE_LOCATION_ROTATE
+  private var locationIntervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
   private var isActive = false
 
   /**
@@ -34,12 +35,14 @@ class AMapLocationSource(context: Context) : LocationSource, AMapLocationListene
     locationClient?.setLocationOption(locationOption)
   }
 
-  fun setLocationType(type: UserLocationType?) {
-    val nextType = type ?: UserLocationType.LOCATION_TYPE_LOCATION_ROTATE
-    if (locationType == nextType && locationOption != null) {
+  fun setLocationStyle(style: UserLocationStyle?) {
+    val nextType = style?.userLocationType ?: UserLocationType.LOCATION_TYPE_LOCATION_ROTATE
+    val nextIntervalMs = style?.normalizedIntervalMs() ?: DEFAULT_LOCATION_INTERVAL_MS
+    if (locationType == nextType && locationIntervalMs == nextIntervalMs && locationOption != null) {
       return
     }
     locationType = nextType
+    locationIntervalMs = nextIntervalMs
     locationOption = buildLocationOption()
     locationClient?.setLocationOption(locationOption)
     if (isActive) {
@@ -53,7 +56,7 @@ class AMapLocationSource(context: Context) : LocationSource, AMapLocationListene
       // 对齐官方 MyLocationStyle：默认高精度、连续定位间隔 1000ms；
       // SHOW / LOCATE 在插件公开语义中为单次模式。
       locationMode = AMapLocationClientOption.AMapLocationMode.Hight_Accuracy
-      interval = DEFAULT_LOCATION_INTERVAL_MS
+      interval = locationIntervalMs
       isOnceLocation = locationType.isOnceLocationMode()
     }
   }

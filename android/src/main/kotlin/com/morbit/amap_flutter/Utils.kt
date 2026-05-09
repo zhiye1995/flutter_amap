@@ -117,12 +117,23 @@ fun Region.toLatLngBounds(): LatLngBounds {
 fun UserLocationStyle.toLocationStyle(binding: FlutterPluginBinding): MyLocationStyle {
     val myLocationStyle = MyLocationStyle()
     userLocationType?.toMyLocationType()?.let { myLocationStyle.myLocationType(it) }
-    myLocationStyle.interval(if (userLocationType?.isOnceLocationMode() == true) 999L else 1000L)
+    myLocationStyle.interval(normalizedIntervalMs())
+    showLocationDot?.let { myLocationStyle.showMyLocation(it) }
+    anchor?.let { myLocationStyle.anchor(it.x.toFloat(), it.y.toFloat()) }
     fillColor?.toArgb()?.let { myLocationStyle.radiusFillColor(it) }
     strokeColor?.toArgb()?.let { myLocationStyle.strokeColor(it) }
     lineWidth?.toFloat()?.let { myLocationStyle.strokeWidth(it) }
+    if (showsAccuracyRing == false) {
+        myLocationStyle.radiusFillColor(android.graphics.Color.TRANSPARENT)
+        myLocationStyle.strokeColor(android.graphics.Color.TRANSPARENT)
+        myLocationStyle.strokeWidth(0f)
+    }
     image?.let { myLocationStyle.myLocationIcon(it.toBitmapDescriptor(binding)) }
     return myLocationStyle
+}
+
+fun UserLocationStyle.normalizedIntervalMs(): Long {
+    return (intervalMs ?: 1000L).coerceAtLeast(1000L)
 }
 
 fun UserLocationType.toMyLocationType(): Int {
