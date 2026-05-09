@@ -111,10 +111,16 @@ class NaviConfig {
       motorcycleCC: result[1] as int?,
       naviType: NaviType.values[result[2] as int],
       pageType: NaviPageType.values[result[3] as int],
-      start: result[4] != null ? NaviPoint.decode(result[4]! as List<Object?>) : null,
-      end: result[5] != null ? NaviPoint.decode(result[5]! as List<Object?>) : null,
+      start: result[4] != null
+          ? NaviPoint.decode(result[4]! as List<Object?>)
+          : null,
+      end: result[5] != null
+          ? NaviPoint.decode(result[5]! as List<Object?>)
+          : null,
       wayPoints: result[6] != null
-          ? (result[6] as List).map((e) => NaviPoint.decode(e as List<Object?>)).toList()
+          ? (result[6] as List)
+              .map((e) => NaviPoint.decode(e as List<Object?>))
+              .toList()
           : null,
     );
   }
@@ -356,7 +362,8 @@ class NaviInfo {
   }) {
     return NaviInfo(
       iconType: iconType ?? this.iconType,
-      curStepRetainDistance: curStepRetainDistance ?? this.curStepRetainDistance,
+      curStepRetainDistance:
+          curStepRetainDistance ?? this.curStepRetainDistance,
       curStepRetainTime: curStepRetainTime ?? this.curStepRetainTime,
       nextRoadName: nextRoadName ?? this.nextRoadName,
       currentRoadName: currentRoadName ?? this.currentRoadName,
@@ -369,7 +376,8 @@ class NaviInfo {
       curStep: curStep ?? this.curStep,
       curLink: curLink ?? this.curLink,
       curPoint: curPoint ?? this.curPoint,
-      routeRemainLightCount: routeRemainLightCount ?? this.routeRemainLightCount,
+      routeRemainLightCount:
+          routeRemainLightCount ?? this.routeRemainLightCount,
       currentSpeed: currentSpeed ?? this.currentSpeed,
       exitDirectionInfo: exitDirectionInfo ?? this.exitDirectionInfo,
       notAvoidInfo: notAvoidInfo ?? this.notAvoidInfo,
@@ -802,19 +810,99 @@ class CruiseStatisticsInfo {
   }
 }
 
-/// 巡航拥堵信息（当前仅 Android 巡航回调提供；结构随 SDK，见 [raw]）
-class CruiseCongestionInfo {
-  CruiseCongestionInfo({this.raw});
+/// 巡航拥堵路段 link（当前仅 Android 巡航回调提供）
+class CruiseCongestionLink {
+  CruiseCongestionLink({
+    this.status,
+    this.coords = const <Position>[],
+    this.raw,
+  });
+
+  /// 拥堵状态，取值含义与高德 `AMapTrafficStatus.getStatus()` 一致。
+  final int? status;
+
+  /// 拥堵 link 的形状点集合。
+  final List<Position> coords;
 
   final Map<String, dynamic>? raw;
 
-  static CruiseCongestionInfo decodeFromMap(Map<String, dynamic> map) {
-    final Object? r = map['raw'] ?? map;
-    if (r is Map) {
-      return CruiseCongestionInfo(
-        raw: Map<String, dynamic>.from(r),
-      );
+  static CruiseCongestionLink decodeFromMap(Map<String, dynamic> map) {
+    int? asInt(dynamic x) => (x as num?)?.toInt();
+    double? asDouble(dynamic x) => (x as num?)?.toDouble();
+    final rawCoords = map['coords'] as List?;
+    final coords = <Position>[];
+    if (rawCoords != null) {
+      for (final e in rawCoords) {
+        if (e is Map) {
+          final lat = asDouble(e['latitude']);
+          final lng = asDouble(e['longitude']);
+          if (lat != null && lng != null) {
+            coords.add(Position(latitude: lat, longitude: lng));
+          }
+        }
+      }
     }
-    return CruiseCongestionInfo(raw: {});
+    final rawMap = map['raw'];
+    return CruiseCongestionLink(
+      status: asInt(map['status']),
+      coords: coords,
+      raw: rawMap is Map ? Map<String, dynamic>.from(rawMap) : null,
+    );
+  }
+}
+
+/// 巡航拥堵信息（当前仅 Android 巡航回调提供；iOS 官方巡航页未给出对等回调）
+class CruiseCongestionInfo {
+  CruiseCongestionInfo({
+    this.roadName,
+    this.lengthMeters,
+    this.status,
+    this.estimatedTimeSeconds,
+    this.links = const <CruiseCongestionLink>[],
+    this.raw,
+  });
+
+  /// 拥堵区域道路名称。
+  final String? roadName;
+
+  /// 拥堵区域路径长度（米）。
+  final int? lengthMeters;
+
+  /// 拥堵区域整体状态，取值含义与高德 `AMapTrafficStatus.getStatus()` 一致。
+  final int? status;
+
+  /// 预计通过拥堵区域时间（秒）。
+  final int? estimatedTimeSeconds;
+
+  /// 拥堵路段 link 详情。
+  final List<CruiseCongestionLink> links;
+
+  /// 原生侧附加字段，保留用于诊断和兼容旧调用。
+  final Map<String, dynamic>? raw;
+
+  static CruiseCongestionInfo decodeFromMap(Map<String, dynamic> map) {
+    int? asInt(dynamic x) => (x as num?)?.toInt();
+    final rawLinks = map['links'] as List?;
+    final links = <CruiseCongestionLink>[];
+    if (rawLinks != null) {
+      for (final e in rawLinks) {
+        if (e is Map) {
+          links.add(
+              CruiseCongestionLink.decodeFromMap(Map<String, dynamic>.from(e)));
+        }
+      }
+    }
+    final Object? r = map['raw'] ?? map;
+    final raw = r is Map ? Map<String, dynamic>.from(r) : <String, dynamic>{};
+    return CruiseCongestionInfo(
+      roadName: map['roadName'] as String? ??
+          raw['roadName'] as String? ??
+          raw['description'] as String?,
+      lengthMeters: asInt(map['lengthMeters'] ?? raw['length']),
+      status: asInt(map['status'] ?? raw['congestionStatus']),
+      estimatedTimeSeconds: asInt(map['estimatedTimeSeconds'] ?? raw['time']),
+      links: links,
+      raw: raw,
+    );
   }
 }

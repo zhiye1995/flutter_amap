@@ -225,8 +225,8 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         }
         let obj = info as NSObject
         var extra: [String: Any] = ["sdkString": "\(info)"]
-        let distKeys = ["cruiseDistance", "totalDistance", "distance", "continuedDistance"]
-        let timeKeys = ["cruiseTime", "totalTime", "time", "continuedTime"]
+        let distKeys = ["cruisingDriveDistance", "cruiseDistance", "totalDistance", "distance", "continuedDistance"]
+        let timeKeys = ["cruisingDriveTime", "cruiseTime", "totalTime", "time", "continuedTime"]
         for k in distKeys {
             if obj.responds(to: NSSelectorFromString(k)), let v = obj.value(forKey: k) as? NSNumber {
                 payload["cumulativeDistanceMeters"] = v.intValue
@@ -258,11 +258,17 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             "raw": ["sdkString": "\(info)"]
         ]
         let obj = info as NSObject
-        if obj.responds(to: NSSelectorFromString("type")), let v = obj.value(forKey: "type") {
+        var raw = m["raw"] as? [String: Any] ?? [:]
+        if obj.responds(to: NSSelectorFromString("type")),
+           let v = obj.value(forKey: "type") {
             if let n = v as? NSNumber {
                 m["type"] = n.intValue
-            } else if let e = v as? NSObject, e.responds(to: NSSelectorFromString("rawValue")), let rv = e.value(forKey: "rawValue") as? NSNumber {
+                raw["type"] = n.intValue
+            } else if let e = v as? NSObject,
+                      e.responds(to: NSSelectorFromString("rawValue")),
+                      let rv = e.value(forKey: "rawValue") as? NSNumber {
                 m["type"] = rv.intValue
+                raw["type"] = rv.intValue
             }
         }
         let coordKeys = ["coordinate", "coord", "position"]
@@ -270,6 +276,8 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             if let p = obj.value(forKey: k) as? AMapNaviPoint {
                 m["latitude"] = Double(p.latitude)
                 m["longitude"] = Double(p.longitude)
+                raw["latitude"] = Double(p.latitude)
+                raw["longitude"] = Double(p.longitude)
                 break
             }
         }
@@ -277,6 +285,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         for k in distKeys where obj.responds(to: NSSelectorFromString(k)) {
             if let v = obj.value(forKey: k) as? NSNumber {
                 m["remainDistanceMeters"] = v.intValue
+                raw["distance"] = v.intValue
                 break
             }
         }
@@ -284,9 +293,11 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         for k in spdKeys where obj.responds(to: NSSelectorFromString(k)) {
             if let v = obj.value(forKey: k) as? NSNumber {
                 m["speedLimitKmh"] = v.intValue
+                raw["limitSpeed"] = v.intValue
                 break
             }
         }
+        m["raw"] = raw
         return m
     }
 }

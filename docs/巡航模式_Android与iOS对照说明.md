@@ -113,9 +113,13 @@
 
 ## 7. 与本仓库 `amap_flutter` 插件的关系
 
-当前仓库 Android 侧 [AMapNaviListenerImpl.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AMapNaviListenerImpl.kt) 实现的是 `AMapNaviListener`。其中与巡航统计/拥堵相关的 `updateAimlessModeStatistics`、`updateAimlessModeCongestionInfo` 等属于接口上的**已弃用（`@Deprecated`）**方法，实现内为**空处理**，**并未**按官方指南注册 `AimlessModeListener`，也**未**向 Flutter 转发巡航专用事件。iOS 工程内亦未检索到 cruise / `detectedMode` 等巡航封装。
+当前仓库已封装智能巡航能力：
 
-因此：**本插件文档不表示已开箱支持「智能巡航」**；若要在 Flutter 中使用巡航，需在 Android/iOS 原生侧按官方文档接入后，再通过 MethodChannel / EventChannel 等方式自行桥接。
+- Dart：通过 [AMapNavi.startCruiseMode](../lib/src/amap_navi.dart) / `stopCruiseMode` 启停，并通过 `onCruiseTrafficFacilities`、`onCruiseStatistics`、`onCruiseCongestion` 订阅巡航事件。
+- Android：通过 [AMapNaviApi.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AMapNaviApi.kt) 注册 [AimlessModeListenerImpl.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AimlessModeListenerImpl.kt)，调用 `startAimlessMode` / `stopAimlessMode`，并转发设施、电子眼、统计和拥堵事件。
+- iOS：通过 [AMapNaviApi.swift](../ios/Classes/AMapNaviApi.swift) 设置 `AMapNaviDriveManager.detectedMode`，并在 [AMapNaviDelegate.swift](../ios/Classes/AMapNaviDelegate.swift) 转发巡航统计和设施事件。
+
+注意：[AMapNaviListenerImpl.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AMapNaviListenerImpl.kt) 中同名巡航方法属于 `AMapNaviListener` 的已弃用回调，仍为空处理；巡航业务数据以独立的 `AimlessModeListenerImpl` 为准。iOS 官方智能巡航页未给出与 Android `updateAimlessModeCongestionInfo` 对等的拥堵回调，因此 `onCruiseCongestion` 主要为 Android 事件。
 
 ---
 

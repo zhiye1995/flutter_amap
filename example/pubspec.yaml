@@ -38,6 +38,8 @@ dependencies:
   saver_gallery: ^3.0.6
   crypto: ^3.0.3
   go_router: ^17.1.0
+  share_plus: ^12.0.2
+  path_provider: ^2.1.5
 
 dev_dependencies:
   integration_test:

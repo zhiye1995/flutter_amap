@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// 智能巡航示例：地图展示自车位置，右上角开启/关闭巡航（依赖插件 [AMapNavi.startCruiseMode]）。
 ///
@@ -16,6 +20,16 @@ class CruiseMapPage extends StatefulWidget {
 
 typedef _CruiseStatsSnapshot = ({int? distanceMeters, int? timeSeconds});
 
+class _CruiseLogEntry {
+  const _CruiseLogEntry({
+    required this.summary,
+    required this.detail,
+  });
+
+  final String summary;
+  final String detail;
+}
+
 class _CruiseMapPageState extends State<CruiseMapPage> {
   static const int _maxLogLines = 5000;
 
@@ -28,7 +42,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     (distanceMeters: null, timeSeconds: null),
   );
 
-  final List<String> _cruiseLogLines = [];
+  final List<_CruiseLogEntry> _cruiseLogLines = [];
 
   StreamSubscription<CruiseTrafficFacilitiesEvent>? _subFacilities;
   StreamSubscription<CruiseStatisticsEvent>? _subStatistics;
@@ -39,9 +53,12 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   void initState() {
     super.initState();
     _subFacilities = AMapNavi.onCruiseTrafficFacilities.listen(
-      (CruiseTrafficFacilitiesEvent e) => _appendCruiseLog(
-        '巡航道路设施 / 电子眼等信息: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
-      ),
+      (CruiseTrafficFacilitiesEvent e) {
+        _appendCruiseLog(
+          '巡航道路设施 / 电子眼等信息: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
+          detail: _stringify(_facilitiesToDetail(e.facilities)),
+        );
+      },
     );
     _subStatistics = AMapNavi.onCruiseStatistics.listen(
       (CruiseStatisticsEvent e) {
@@ -54,16 +71,22 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
       },
     );
     _subCongestion = AMapNavi.onCruiseCongestion.listen(
-      (CruiseCongestionEvent e) => _appendCruiseLog(
-        '巡航拥堵信息（主要为 Android）: raw=${e.congestion.raw}',
-      ),
+      (CruiseCongestionEvent e) {
+        _appendCruiseLog(
+          '巡航拥堵信息（主要为 Android）: ${_summarizeCongestion(e.congestion)}',
+          detail: _stringify(_congestionToDetail(e.congestion)),
+        );
+      },
     );
     _subNaviText = AMapNavi.onNaviText.listen(
-      (NaviTextEvent e) => _appendCruiseLog('naviText: ${e.text}'),
+      (NaviTextEvent e) => _appendCruiseLog(
+        'naviText: ${e.text}',
+        detail: _stringify(<String, Object?>{'text': e.text}),
+      ),
     );
   }
 
-  void _appendCruiseLog(String message) {
+  void _appendCruiseLog(String message, {String? detail}) {
     final DateTime n = DateTime.now();
     final String ts =
         '${n.hour.toString().padLeft(2, '0')}:${n.minute.toString().padLeft(2, '0')}:${n.second.toString().padLeft(2, '0')}';
@@ -71,7 +94,10 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     debugPrint('[CruiseMapPage] $line');
     if (!mounted) return;
     setState(() {
-      _cruiseLogLines.insert(0, line);
+      _cruiseLogLines.insert(
+        0,
+        _CruiseLogEntry(summary: line, detail: detail ?? line),
+      );
       while (_cruiseLogLines.length > _maxLogLines) {
         _cruiseLogLines.removeLast();
       }
@@ -106,6 +132,99 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     return b.toString().trimRight();
   }
 
+  List<Map<String, Object?>> _facilitiesToDetail(
+    List<CruiseTrafficFacilityItem> items,
+  ) {
+    return items
+        .map(
+          (f) => <String, Object?>{
+            'source': f.source.name,
+            'type': f.type,
+            'latitude': f.latitude,
+            'longitude': f.longitude,
+            'remainDistanceMeters': f.remainDistanceMeters,
+            'speedLimitKmh': f.speedLimitKmh,
+            'raw': f.raw,
+          },
+        )
+        .toList();
+  }
+
+  String _summarizeCongestion(CruiseCongestionInfo info) {
+    final String name =
+        info.roadName?.isNotEmpty == true ? info.roadName! : '未知道路';
+    final String length =
+        info.lengthMeters == null ? '—' : '${info.lengthMeters}m';
+    final String time = info.estimatedTimeSeconds == null
+        ? '—'
+        : _formatCruiseDurationSeconds(info.estimatedTimeSeconds);
+    return 'road=$name length=$length status=${info.status ?? '—'} '
+        'time=$time links=${info.links.length} raw=${info.raw}';
+  }
+
+  Map<String, Object?> _congestionToDetail(CruiseCongestionInfo info) {
+    return <String, Object?>{
+      'roadName': info.roadName,
+      'lengthMeters': info.lengthMeters,
+      'status': info.status,
+      'estimatedTimeSeconds': info.estimatedTimeSeconds,
+      'links': info.links
+          .map(
+            (link) => <String, Object?>{
+              'status': link.status,
+              'coords': link.coords
+                  .map(
+                    (p) => <String, double>{
+                      'latitude': p.latitude,
+                      'longitude': p.longitude,
+                    },
+                  )
+                  .toList(),
+              'raw': link.raw,
+            },
+          )
+          .toList(),
+      'raw': info.raw,
+    };
+  }
+
+  String _stringify(Object? value) {
+    try {
+      return const JsonEncoder.withIndent('  ').convert(value);
+    } catch (_) {
+      return value.toString();
+    }
+  }
+
+  Future<void> _showCruiseLogDetail(_CruiseLogEntry entry) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('巡航回调原数据'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: SelectableText(
+                entry.detail,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                      height: 1.25,
+                    ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String _formatSpeedLimit(int? kmh) {
     if (kmh == null || kmh <= 0) return '—';
     return '$kmh';
@@ -114,6 +233,63 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   void _clearCruiseLog() {
     if (_cruiseLogLines.isEmpty) return;
     setState(_cruiseLogLines.clear);
+  }
+
+  String _formatFileTimestamp(DateTime n) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${n.year}${two(n.month)}${two(n.day)}_'
+        '${two(n.hour)}${two(n.minute)}${two(n.second)}';
+  }
+
+  String _buildExportText() {
+    final DateTime now = DateTime.now();
+    final StringBuffer buffer = StringBuffer()
+      ..writeln('AMap 智能巡航日志')
+      ..writeln('导出时间: $now')
+      ..writeln('日志条数: ${_cruiseLogLines.length}')
+      ..writeln('============================================================');
+    for (final entry in _cruiseLogLines.reversed) {
+      buffer
+        ..writeln()
+        ..writeln(entry.summary)
+        ..writeln('--- detail ---')
+        ..writeln(entry.detail);
+    }
+    return buffer.toString();
+  }
+
+  Future<void> _shareCruiseLogs() async {
+    if (_cruiseLogLines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('暂无可导出的巡航日志'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    try {
+      final Directory dir = await getTemporaryDirectory();
+      final String fileName =
+          'amap_cruise_log_${_formatFileTimestamp(DateTime.now())}.txt';
+      final File file = File('${dir.path}${Platform.pathSeparator}$fileName');
+      await file.writeAsString(_buildExportText(), encoding: utf8);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/plain', name: fileName)],
+          subject: 'AMap 智能巡航日志',
+          text: 'AMap 智能巡航日志，共 ${_cruiseLogLines.length} 条。',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('导出失败：$e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -131,7 +307,6 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   }
 
   Future<void> _startCruise() async {
-
     try {
       await AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both);
       _appendCruiseLog('已调用 startCruiseMode(mode=CruiseBroadcastMode.both)');
@@ -166,8 +341,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
       await AMapNavi.stopCruiseMode();
       _appendCruiseLog('已调用 stopCruiseMode()');
       if (!mounted) return;
-      _cruiseStats.value =
-          (distanceMeters: null, timeSeconds: null);
+      _cruiseStats.value = (distanceMeters: null, timeSeconds: null);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('已关闭智能巡航'),
@@ -183,6 +357,214 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
         ),
       );
     }
+  }
+
+  Future<void> _moveToCurrentLocation() async {
+    if (_controller == null) return;
+    try {
+      final Location loc = _lastLocation ??
+          await _controller!.waitForUserLocation(
+            timeout: const Duration(seconds: 10),
+          );
+      await _controller!.moveCamera(
+        CameraPosition(position: loc.position, zoom: 16),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('定位失败：$e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showCruiseHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('智能巡航说明'),
+          content: const Text(
+            '地图展示定位；巡航播报与设施数据由高德导航 SDK 通过事件下发（需在户外驾车场景验证）。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('知道了'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMap(BuildContext context) {
+    return Stack(
+      children: [
+        AMapWidget(
+          initCameraPosition: CameraPosition(zoom: 16),
+          showUserLocation: true,
+          geolocationControlEnabled: true,
+          userLocationStyle: UserLocationStyle(
+            userLocationType: Platform.isAndroid
+                ? UserLocationType.locationTypeLocationRotate
+                : UserLocationType.locationTypeMapRotate,
+          ),
+          onUserLocationChange: (location) => _lastLocation = location,
+          onMapCreated: (c) => setState(() => _controller = c),
+        ),
+        Positioned(
+          right: 12,
+          bottom: 12,
+          child: Material(
+            elevation: 2,
+            shape: const CircleBorder(),
+            color: Theme.of(context).colorScheme.surface,
+            child: IconButton(
+              tooltip: '移动到当前位置',
+              visualDensity: VisualDensity.compact,
+              onPressed: _controller == null ? null : _moveToCurrentLocation,
+              icon: const Icon(Icons.my_location),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomPanel(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+          child: Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(8),
+            color: Theme.of(context).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 6, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildStatsRow(context),
+                  const Divider(height: 10),
+                  _buildLogHeader(context),
+                  const SizedBox(height: 4),
+                  SizedBox(height: 150, child: _buildLogList(context)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(BuildContext context) {
+    return ValueListenableBuilder<_CruiseStatsSnapshot>(
+      valueListenable: _cruiseStats,
+      builder: (context, stats, _) {
+        final textStyle = Theme.of(context).textTheme.bodySmall;
+        return Row(
+          children: [
+            Expanded(
+              child: Text(
+                '距离：${stats.distanceMeters ?? '—'} m',
+                style: textStyle,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                '时间：${_formatCruiseDurationSeconds(stats.timeSeconds)}',
+                style: textStyle,
+                textAlign: TextAlign.end,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLogHeader(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '巡航回调',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const Spacer(),
+        IconButton(
+          tooltip: '分享日志',
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+          padding: EdgeInsets.zero,
+          onPressed: _cruiseLogLines.isEmpty ? null : _shareCruiseLogs,
+          icon: const Icon(Icons.ios_share, size: 20),
+        ),
+        IconButton(
+          tooltip: '说明',
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+          padding: EdgeInsets.zero,
+          onPressed: _showCruiseHelp,
+          icon: const Icon(Icons.help_outline, size: 20),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: const ui.Size(42, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: _cruiseLogLines.isEmpty ? null : _clearCruiseLog,
+          child: const Text('清空'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogList(BuildContext context) {
+    if (_cruiseLogLines.isEmpty) {
+      return Center(
+        child: Text(
+          '开启巡航后显示设施 / 拥堵 / 播报文案，点击日志可看原数据。',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      );
+    }
+    return Scrollbar(
+      thumbVisibility: true,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(right: 6, bottom: 4),
+        itemCount: _cruiseLogLines.length,
+        itemBuilder: (context, index) {
+          final _CruiseLogEntry entry = _cruiseLogLines[index];
+          return InkWell(
+            onTap: () => _showCruiseLogDetail(entry),
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text(
+                entry.summary,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                      height: 1.2,
+                    ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -213,217 +595,10 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
           const SizedBox(width: 4),
         ],
       ),
-      body: Stack(
-        fit: StackFit.expand,
+      body: Column(
         children: [
-          AMapWidget(
-            initCameraPosition: CameraPosition(zoom: 16),
-            showUserLocation: true,
-            geolocationControlEnabled: true,
-            userLocationStyle: UserLocationStyle(
-              userLocationType: Platform.isAndroid ? UserLocationType.locationTypeMapRotate : UserLocationType.locationTypeMapRotate,
-            ),
-            onUserLocationChange: (location) {
-              _lastLocation = location;
-            },
-            onMapCreated: (c) => setState(() => _controller = c),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ValueListenableBuilder<_CruiseStatsSnapshot>(
-                      valueListenable: _cruiseStats,
-                      builder: (context, stats, _) {
-                        return Material(
-                          elevation: 2,
-                          borderRadius: BorderRadius.circular(8),
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: 0.94),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '连续距离：'
-                                    '${stats.distanceMeters ?? '—'} m',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    '连续时间：'
-                                    '${_formatCruiseDurationSeconds(stats.timeSeconds)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
-                                    textAlign: TextAlign.end,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Material(
-                      elevation: 2,
-                      borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.surface.withValues(
-                            alpha: 0.94,
-                          ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              10,
-                              6,
-                              4,
-                              0,
-                            ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '巡航回调',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                                const Spacer(),
-                                TextButton(
-                                  onPressed:
-                                      _cruiseLogLines.isEmpty ? null : _clearCruiseLog,
-                                  child: const Text('清空'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            height: 200,
-                            child: _cruiseLogLines.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      '开启巡航后，连续距离与时间显示在上方；\n'
-                                      '设施 / 拥堵 / 播报文案在下方（驾车场景更易触发）。',
-                                      textAlign: TextAlign.center,
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
-                                  )
-                                : Scrollbar(
-                                    thumbVisibility: true,
-                                    child: ListView.builder(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        10,
-                                        0,
-                                        10,
-                                        8,
-                                      ),
-                                      itemCount: _cruiseLogLines.length,
-                                      itemBuilder: (context, index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 6,
-                                          ),
-                                          child: SelectableText(
-                                            _cruiseLogLines[index],
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  fontFamily: 'monospace',
-                                                  height: 1.25,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Material(
-                      elevation: 2,
-                      borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.surface.withValues(
-                            alpha: 0.92,
-                          ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '地图展示定位；巡航播报与设施数据由高德导航 SDK 通过事件下发（需在户外驾车场景验证）。',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: '移动到当前位置',
-                              onPressed: _controller == null
-                                  ? null
-                                  : () async {
-                                      try {
-                                        final Location loc =
-                                            _lastLocation ??
-                                                await _controller!
-                                                    .waitForUserLocation(
-                                                  timeout: const Duration(
-                                                    seconds: 10,
-                                                  ),
-                                                );
-                                        await _controller!.moveCamera(
-                                          CameraPosition(
-                                            position: loc.position,
-                                            zoom: 16,
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text('定位失败：$e'),
-                                            behavior:
-                                                SnackBarBehavior.floating,
-                                          ),
-                                        );
-                                      }
-                                    },
-                              icon: const Icon(Icons.my_location),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          Expanded(child: _buildMap(context)),
+          _buildBottomPanel(context),
         ],
       ),
     );

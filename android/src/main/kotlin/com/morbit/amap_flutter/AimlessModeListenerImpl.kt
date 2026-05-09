@@ -6,6 +6,7 @@ import com.amap.api.navi.model.AMapNaviTrafficFacilityInfo
 import com.amap.api.navi.model.AimLessModeCongestionInfo
 import com.amap.api.navi.model.AimLessModeStat
 import com.amap.api.maps.model.LatLng
+import com.amap.api.navi.model.NaviLatLng
 import io.flutter.plugin.common.EventChannel
 
 /**
@@ -108,30 +109,47 @@ class AimlessModeListenerImpl : AimlessModeListener {
         return null
     }
 
+    private fun numberToInt(v: Number?): Int? = v?.toInt()
+
+    private fun numberToDouble(v: Number?): Double? = v?.toDouble()
+
+    private fun coordToMap(coord: Any?): Map<String, Any?>? {
+        if (coord == null) return null
+        val lat = when (coord) {
+            is LatLng -> coord.latitude
+            is NaviLatLng -> coord.latitude
+            else -> numberToDouble(readNumber(coord, "latitude", "lat"))
+        }
+        val lng = when (coord) {
+            is LatLng -> coord.longitude
+            is NaviLatLng -> coord.longitude
+            else -> numberToDouble(readNumber(coord, "longitude", "lng", "lon"))
+        }
+        if (lat == null || lng == null) return null
+        return mapOf("latitude" to lat, "longitude" to lng)
+    }
+
     private fun trafficFacilityToMap(info: AMapNaviTrafficFacilityInfo?, source: String): Map<String, Any?> {
         if (info == null) return emptyMap()
-        val typeVal = readNumber(
-            info,
-            "broadcastType",
-            "type",
-            "facilityType",
-            "subType"
-        )
+        val typeVal = try {
+            info.broadcastType
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "broadcastType", "type", "facilityType", "subType"))
+        }
         val coord = readMember(info, "coordinate", "coord", "latLng", "point")
-        val coordLat = when (coord) {
-            is LatLng -> coord.latitude
-            null -> null
-            else -> readNumber(coord, "latitude", "lat")?.toDouble()
+        val coordMap = coordToMap(coord)
+        val lat = coordMap?.get("latitude") as? Double ?: numberToDouble(readNumber(info, "coorY", "latitude", "lat"))
+        val lng = coordMap?.get("longitude") as? Double ?: numberToDouble(readNumber(info, "coorX", "longitude", "lng", "lon"))
+        val dist = try {
+            info.distance
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "distance", "dist", "remainDistance"))
         }
-        val coordLng = when (coord) {
-            is LatLng -> coord.longitude
-            null -> null
-            else -> readNumber(coord, "longitude", "lng", "lon")?.toDouble()
+        val limit = try {
+            info.limitSpeed
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "limitSpeed", "speedLimit"))
         }
-        val lat = coordLat ?: readNumber(info, "coorY", "latitude", "lat")?.toDouble()
-        val lng = coordLng ?: readNumber(info, "coorX", "longitude", "lng", "lon")?.toDouble()
-        val dist = readNumber(info, "distance", "dist", "remainDistance")
-        val limit = readNumber(info, "limitSpeed", "speedLimit")
         val extra = mutableMapOf<String, Any?>()
         extra["sdkString"] = info.toString()
         extra["sdkClass"] = info.javaClass.name
@@ -143,11 +161,11 @@ class AimlessModeListenerImpl : AimlessModeListener {
         extra["limitSpeed"] = limit
         return mapOf(
             "source" to source,
-            "type" to (typeVal as? Number)?.toInt(),
+            "type" to typeVal,
             "latitude" to lat,
             "longitude" to lng,
-            "remainDistanceMeters" to (dist as? Number)?.toInt(),
-            "speedLimitKmh" to (limit as? Number)?.toInt(),
+            "remainDistanceMeters" to dist,
+            "speedLimitKmh" to limit,
             "raw" to extra
         )
     }
@@ -161,27 +179,54 @@ class AimlessModeListenerImpl : AimlessModeListener {
                 "extra" to emptyMap<String, Any?>()
             )
         }
-        val dist = readNumber(
-            stat,
-            "aimlessModeDistance",
-            "totalAimlessModeDistance",
-            "totalDistance",
-            "distance"
-        )
-        val timeSec = readNumber(
-            stat,
-            "aimlessModeTime",
-            "totalAimlessModeTime",
-            "totalTime",
-            "time"
-        )
+        val dist = try {
+            stat.aimlessModeDistance
+        } catch (_: Throwable) {
+            numberToInt(
+                readNumber(
+                    stat,
+                    "aimlessModeDistance",
+                    "totalAimlessModeDistance",
+                    "totalDistance",
+                    "distance"
+                )
+            )
+        }
+        val timeSec = try {
+            stat.aimlessModeTime
+        } catch (_: Throwable) {
+            numberToInt(
+                readNumber(
+                    stat,
+                    "aimlessModeTime",
+                    "totalAimlessModeTime",
+                    "totalTime",
+                    "time"
+                )
+            )
+        }
         val extra = mutableMapOf<String, Any?>()
         extra["sdkString"] = stat.toString()
         return mapOf(
             "type" to "cruiseStatistics",
-            "cumulativeDistanceMeters" to (dist as? Number)?.toInt(),
-            "cumulativeTimeSeconds" to (timeSec as? Number)?.toInt(),
+            "cumulativeDistanceMeters" to dist,
+            "cumulativeTimeSeconds" to timeSec,
             "extra" to extra
+        )
+    }
+
+    private fun congestionLinkToMap(link: Any): Map<String, Any?> {
+        val coords = (readMember(link, "coords") as? Iterable<*>)
+            ?.mapNotNull { coordToMap(it) }
+            ?: emptyList()
+        val status = numberToInt(readNumber(link, "status", "congestionStatus"))
+        val raw = mutableMapOf<String, Any?>()
+        raw["sdkString"] = link.toString()
+        raw["sdkClass"] = link.javaClass.name
+        return mapOf(
+            "status" to status,
+            "coords" to coords,
+            "raw" to raw
         )
     }
 
@@ -189,15 +234,56 @@ class AimlessModeListenerImpl : AimlessModeListener {
         if (info == null) {
             return mapOf(
                 "type" to "cruiseCongestion",
+                "roadName" to null,
+                "lengthMeters" to null,
+                "status" to null,
+                "estimatedTimeSeconds" to null,
+                "links" to emptyList<Map<String, Any?>>(),
                 "raw" to emptyMap<String, Any?>()
             )
         }
         val raw = mutableMapOf<String, Any?>()
         raw["sdkString"] = info.toString()
-        val desc = readMember(info, "description", "roadName")
-        if (desc != null) raw["description"] = desc.toString()
+        raw["sdkClass"] = info.javaClass.name
+        val roadName = try {
+            info.roadName
+        } catch (_: Throwable) {
+            readMember(info, "roadName", "description")?.toString()
+        }
+        val length = try {
+            info.length
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "length", "distance"))
+        }
+        val status = try {
+            info.congestionStatus
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "congestionStatus", "status"))
+        }
+        val time = try {
+            info.time
+        } catch (_: Throwable) {
+            numberToInt(readNumber(info, "time", "estimatedTime", "estimatedTimeSeconds"))
+        }
+        val links = (try {
+            info.amapCongestionLinks
+        } catch (_: Throwable) {
+            readMember(info, "amapCongestionLinks", "congestionLinks", "links")
+        } as? Iterable<*>)
+            ?.mapNotNull { it?.let(::congestionLinkToMap) }
+            ?: emptyList()
+        raw["roadName"] = roadName
+        raw["length"] = length
+        raw["congestionStatus"] = status
+        raw["time"] = time
+        raw["linksCount"] = links.size
         return mapOf(
             "type" to "cruiseCongestion",
+            "roadName" to roadName,
+            "lengthMeters" to length,
+            "status" to status,
+            "estimatedTimeSeconds" to time,
+            "links" to links,
             "raw" to raw
         )
     }

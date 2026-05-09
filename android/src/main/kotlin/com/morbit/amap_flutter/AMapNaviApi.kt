@@ -38,6 +38,7 @@ class AMapNaviApi {
         private var activityRef: Activity? = null
         private var naviListenerAttached: Boolean = false
         private var aimlessListenerAttached: Boolean = false
+        private var cruiseAttachedNaviListener: Boolean = false
 
         /** 当前是否处于智能巡航（用于 stopNavigation 前先 stopAimlessMode） */
         private var cruiseActive: Boolean = false
@@ -85,6 +86,7 @@ class AMapNaviApi {
             activityRef = null
             naviListenerAttached = false
             aimlessListenerAttached = false
+            cruiseAttachedNaviListener = false
         }
 
         private fun handleMethodCall(context: Context, call: MethodCall, result: MethodChannel.Result) {
@@ -272,7 +274,12 @@ class AMapNaviApi {
             val ctx = activityRef ?: context
             aMapNavi = AMapNavi.getInstance(ctx)
             aMapNavi?.setUseInnerVoice(true)
-            attachNaviListener()
+            if (!naviListenerAttached) {
+                attachNaviListener()
+                cruiseAttachedNaviListener = true
+            } else {
+                cruiseAttachedNaviListener = false
+            }
             aimlessListener?.let { listener ->
                 if (!aimlessListenerAttached) {
                     aMapNavi?.addAimlessModeListener(listener)
@@ -295,13 +302,16 @@ class AMapNaviApi {
                         aMapNavi?.removeAimlessModeListener(listener)
                     }
                 }
-                detachNaviListener()
+                if (cruiseAttachedNaviListener) {
+                    detachNaviListener()
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "stopCruiseModeInternal error", e)
             }
             aimlessListener = null
             cruiseActive = false
             aimlessListenerAttached = false
+            cruiseAttachedNaviListener = false
             Log.i(TAG, "stopCruiseModeInternal: done")
         }
 
