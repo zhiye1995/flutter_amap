@@ -168,6 +168,15 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     amap.polylines.remove(id)?.remove()
   }
 
+  fun addArc(arc: Arc) {
+    removeArc(arc.id)
+    amap.arcs[arc.id] = mapView.map.addArc(arc.toArcOptions())
+  }
+
+  fun removeArc(id: String) {
+    amap.arcs.remove(id)?.remove()
+  }
+
   fun addPolygon(polygon: Polygon) {
     removePolygon(polygon.id)
     amap.polygons[polygon.id] = mapView.map.addPolygon(polygon.toPolygonOptions())

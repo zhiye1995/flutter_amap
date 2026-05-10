@@ -101,6 +101,18 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "addArc" -> {
+        val arc = call.argument<Arc>("arc")!!
+        api.addArc(arc)
+        result.success(null)
+      }
+
+      "removeArc" -> {
+        val id = call.argument<String>("id")!!
+        api.removeArc(id)
+        result.success(null)
+      }
+
       "addPolygon" -> {
         val polygon = call.argument<Polygon>("polygon")!!
         api.addPolygon(polygon)

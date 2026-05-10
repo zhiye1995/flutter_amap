@@ -194,6 +194,7 @@ class AMapWidget extends StatefulWidget {
     this.customStyleOptions,
     this.markers = const {},
     this.polylines = const {},
+    this.arcs = const {},
     this.polygons = const {},
     this.onMapCreated,
     this.onMapInitComplete,
@@ -406,6 +407,9 @@ class AMapWidget extends StatefulWidget {
 
   /// 声明式折线集合。
   final Set<Polyline> polylines;
+
+  /// 声明式弧线集合。
+  final Set<Arc> arcs;
 
   /// 声明式多边形集合。
   final Set<Polygon> polygons;
@@ -841,6 +845,7 @@ class AMapWidgetState extends State<AMapWidget> {
     _syncMarkers(oldWidget?.markers ?? const <Marker>{}, widget.markers);
     _syncPolylines(
         oldWidget?.polylines ?? const <Polyline>{}, widget.polylines);
+    _syncArcs(oldWidget?.arcs ?? const <Arc>{}, widget.arcs);
     _syncPolygons(oldWidget?.polygons ?? const <Polygon>{}, widget.polygons);
   }
 
@@ -878,6 +883,23 @@ class AMapWidgetState extends State<AMapWidget> {
     }
   }
 
+  void _syncArcs(Set<Arc> oldArcs, Set<Arc> newArcs) {
+    final Map<String, Arc> oldById = _arcsById(oldArcs);
+    final Map<String, Arc> newById = _arcsById(newArcs);
+    for (final id in oldById.keys.where((id) => !newById.containsKey(id))) {
+      _controller!.removeArc(id);
+    }
+    for (final entry in newById.entries) {
+      final Arc? oldArc = oldById[entry.key];
+      if (oldArc == null) {
+        _controller!.addArc(entry.value);
+      } else if (oldArc != entry.value) {
+        _controller!.removeArc(entry.key);
+        _controller!.addArc(entry.value);
+      }
+    }
+  }
+
   void _syncPolygons(Set<Polygon> oldPolygons, Set<Polygon> newPolygons) {
     final Map<String, Polygon> oldById = _polygonsById(oldPolygons);
     final Map<String, Polygon> newById = _polygonsById(newPolygons);
@@ -905,6 +927,12 @@ Map<String, Marker> _markersById(Set<Marker> markers) {
 Map<String, Polyline> _polylinesById(Set<Polyline> polylines) {
   return <String, Polyline>{
     for (final polyline in polylines) polyline.id: polyline,
+  };
+}
+
+Map<String, Arc> _arcsById(Set<Arc> arcs) {
+  return <String, Arc>{
+    for (final arc in arcs) arc.id: arc,
   };
 }
 

@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import androidx.core.graphics.scale
 import com.amap.api.maps.AMap
 import com.amap.api.maps.AMapOptions
+import com.amap.api.maps.model.ArcOptions
 import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
@@ -104,7 +105,22 @@ fun Polyline.toPolylineOptions(): PolylineOptions {
     return PolylineOptions().let { options ->
         options.addAll(points.map { it.toPosition() })
         options.color(color.toArgb())
+        if (colors.isNotEmpty()) {
+            options.colorValues(colors.map { it.toArgb() })
+            options.useGradient(gradient)
+        }
+        options.geodesic(geodesic)
         options.width(width.toFloat())
+        options.visible(visible)
+        options
+    }
+}
+
+fun Arc.toArcOptions(): ArcOptions {
+    return ArcOptions().let { options ->
+        options.point(start.toPosition(), passed.toPosition(), end.toPosition())
+        options.strokeColor(color.toArgb())
+        options.strokeWidth(width.toFloat())
         options.visible(visible)
         options
     }

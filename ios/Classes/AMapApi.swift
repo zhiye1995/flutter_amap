@@ -20,6 +20,8 @@ class _AMapApi: NSObject {
   var markerIds = [Int: String]()
   var polylines = [String: MAPolyline]()
   var polylineStyles = [String: Polyline]()
+  var arcs = [String: MAArc]()
+  var arcStyles = [String: Arc]()
   var polygons = [String: MAPolygon]()
   var polygonStyles = [String: Polygon]()
   private var markerAnimationTokens = [String: Int]()
@@ -272,6 +274,24 @@ class _AMapApi: NSObject {
     }
   }
 
+  func addArc(arc: Arc) {
+    removeArc(id: arc.id)
+    let overlay = arc.overlay
+    arcs[arc.id] = overlay
+    arcStyles[arc.id] = arc
+    if arc.visible {
+      mapView.add(overlay)
+    }
+  }
+
+  func removeArc(id: String) {
+    if let overlay = arcs[id] {
+      mapView.remove(overlay)
+      arcs.removeValue(forKey: id)
+      arcStyles.removeValue(forKey: id)
+    }
+  }
+
   func addPolygon(polygon: Polygon) {
     removePolygon(id: polygon.id)
     guard polygon.points.count >= 3 else { return }
@@ -293,6 +313,10 @@ class _AMapApi: NSObject {
 
   func polylineStyle(for overlay: MAPolyline) -> Polyline? {
     return polylines.first(where: { $0.value === overlay }).flatMap { polylineStyles[$0.key] }
+  }
+
+  func arcStyle(for overlay: MAArc) -> Arc? {
+    return arcs.first(where: { $0.value === overlay }).flatMap { arcStyles[$0.key] }
   }
 
   func polygonStyle(for overlay: MAPolygon) -> Polygon? {

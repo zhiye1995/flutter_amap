@@ -133,6 +133,12 @@ object AMapApiCodec : StandardMessageCodec() {
         }
       }
 
+      149.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Arc.fromList(it)
+        }
+      }
+
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -241,6 +247,11 @@ object AMapApiCodec : StandardMessageCodec() {
 
       is Polygon -> {
         stream.write(148)
+        writeValue(stream, value.toList())
+      }
+
+      is Arc -> {
+        stream.write(149)
         writeValue(stream, value.toList())
       }
 

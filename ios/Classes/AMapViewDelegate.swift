@@ -221,7 +221,21 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
   /// 根据 overlay 生成对应的 Renderer
   func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
     if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
-      let renderer = MAPolylineRenderer(polyline: line)
+      let renderer: MAPolylineRenderer? = {
+        if let multiLine = line as? MAMultiPolyline, !style.colors.isEmpty {
+          let renderer = MAMultiColoredPolylineRenderer(multiPolyline: multiLine)
+          renderer?.strokeColors = style.colors
+          renderer?.gradient = style.gradient
+          return renderer
+        }
+        return MAPolylineRenderer(polyline: line)
+      }()
+      renderer?.strokeColor = style.color
+      renderer?.lineWidth = style.width
+      return renderer
+    }
+    if let arc = overlay as? MAArc, let style = controller.api.arcStyle(for: arc) {
+      let renderer = MAArcRenderer(arc: arc)
       renderer?.strokeColor = style.color
       renderer?.lineWidth = style.width
       return renderer

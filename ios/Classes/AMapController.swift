@@ -93,6 +93,18 @@ class AMapController: NSObject {
       api.removePolyline(id: id)
       result(nil)
     }
+    else if(call.method == "addArc") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let arc = arguments["arc"] as! Arc
+      api.addArc(arc: arc)
+      result(nil)
+    }
+    else if(call.method == "removeArc") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let id = arguments["id"] as! String
+      api.removeArc(id: id)
+      result(nil)
+    }
     else if(call.method == "addPolygon") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let polygon = arguments["polygon"] as! Polygon

@@ -69,6 +69,9 @@ class AMapApiCodec extends StandardMessageCodec {
     } else if (value is Polygon) {
       buffer.putUint8(148);
       writeValue(buffer, value.encode());
+    } else if (value is Arc) {
+      buffer.putUint8(149);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -119,6 +122,8 @@ class AMapApiCodec extends StandardMessageCodec {
         return Polyline.decode(readValue(buffer) as List<Object?>);
       case 148:
         return Polygon.decode(readValue(buffer) as List<Object?>);
+      case 149:
+        return Arc.decode(readValue(buffer) as List<Object?>);
       default:
         return super.readValueOfType(type, buffer);
     }

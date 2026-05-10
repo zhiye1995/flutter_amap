@@ -228,6 +228,24 @@ class AMapController {
     );
   }
 
+  /// 添加弧线
+  Future<void> addArc(Arc arc) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.addArc(
+      arc,
+      mapId: mapId,
+    );
+  }
+
+  /// 移除弧线
+  Future<void> removeArc(String arcId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.removeArc(
+      arcId,
+      mapId: mapId,
+    );
+  }
+
   /// 添加多边形
   Future<void> addPolygon(Polygon polygon) async {
     if (_isDestroyed) return;

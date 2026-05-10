@@ -40,11 +40,31 @@ void main() {
         Position(latitude: 39.91, longitude: 116.31),
       ],
       color: const Color(0xFFFF0000),
+      colors: const <Color>[
+        Color(0xFFFF0000),
+        Color(0xFF00FF00),
+      ],
+      width: 12,
+      visible: false,
+      gradient: true,
+      geodesic: true,
+    );
+
+    expect(Polyline.decode(polyline.encode() as List<Object?>), polyline);
+  });
+
+  test('Arc encodes and decodes all drawing fields', () {
+    final arc = Arc(
+      id: 'arc-1',
+      start: Position(latitude: 39.9, longitude: 116.3),
+      passed: Position(latitude: 39.92, longitude: 116.32),
+      end: Position(latitude: 39.91, longitude: 116.34),
+      color: const Color(0xFFFF0000),
       width: 12,
       visible: false,
     );
 
-    expect(Polyline.decode(polyline.encode() as List<Object?>), polyline);
+    expect(Arc.decode(arc.encode() as List<Object?>), arc);
   });
 
   test('Polygon encodes and decodes all drawing fields', () {

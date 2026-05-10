@@ -19,6 +19,7 @@ import 'map_overlay/custom_marker_page.dart';
 import 'map_overlay/info_window_page.dart';
 import 'map_overlay/marker_animation_page.dart';
 import 'map_overlay/marker_click_callback_page.dart';
+import 'map_overlay/polyline_pages.dart';
 import 'map_overlay/user_location.dart';
 import 'map_overlay/user_location_custom_page.dart';
 import 'map_query/weather.dart';
@@ -148,10 +149,26 @@ final List<_CategoryData> _menuData = [
       pageBuilder: () => const UserLocationCustomPage(),
       isCompleted: true,
     ),
-    _ItemData('Polylines功能'),
-    _ItemData('绘制多彩线'),
-    _ItemData('绘制大地曲线'),
-    _ItemData('绘制弧线'),
+    _ItemData(
+      'Polylines功能',
+      pageBuilder: () => const PolylinesPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '绘制多彩线',
+      pageBuilder: () => const MultiColorPolylinePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '绘制大地曲线',
+      pageBuilder: () => const GeodesicPolylinePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '绘制弧线',
+      pageBuilder: () => const ArcPolylinePage(),
+      isCompleted: true,
+    ),
     _ItemData('NavigateArrowICircles功能'),
     _ItemData('Polygons功能'),
     _ItemData('热力图功能'),

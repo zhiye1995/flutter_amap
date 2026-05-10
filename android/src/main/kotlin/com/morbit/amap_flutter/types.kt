@@ -598,8 +598,11 @@ data class Polyline(
   val id: String,
   val points: List<Position>,
   val color: Color,
+  val colors: List<Color>,
   val width: Double,
   val visible: Boolean,
+  val gradient: Boolean,
+  val geodesic: Boolean,
 ) {
   companion object {
     fun fromList(list: List<Any?>): Polyline {
@@ -608,7 +611,14 @@ data class Polyline(
       val color = colorFromValue(list[2]) ?: Color.valueOf(0xCC00BFFF.toInt())
       val width = (list[3] as Number).toDouble()
       val visible = list[4] as Boolean
-      return Polyline(id, points, color, width, visible)
+      val colors = if (list.size > 5) {
+        (list[5] as? List<Any?>)?.mapNotNull { colorFromValue(it) } ?: emptyList()
+      } else {
+        emptyList()
+      }
+      val gradient = if (list.size > 6) list[6] as Boolean else false
+      val geodesic = if (list.size > 7) list[7] as Boolean else false
+      return Polyline(id, points, color, colors, width, visible, gradient, geodesic)
     }
   }
 
@@ -616,6 +626,45 @@ data class Polyline(
     return listOf(
       id,
       points.map { it.toList() },
+      color.toArgb(),
+      width,
+      visible,
+      colors.map { it.toArgb() },
+      gradient,
+      geodesic,
+    )
+  }
+}
+
+/** 弧线覆盖物配置 */
+data class Arc(
+  val id: String,
+  val start: Position,
+  val passed: Position,
+  val end: Position,
+  val color: Color,
+  val width: Double,
+  val visible: Boolean,
+) {
+  companion object {
+    fun fromList(list: List<Any?>): Arc {
+      val id = list[0] as String
+      val start = Position.fromList(list[1] as List<Any?>)
+      val passed = Position.fromList(list[2] as List<Any?>)
+      val end = Position.fromList(list[3] as List<Any?>)
+      val color = colorFromValue(list[4]) ?: Color.valueOf(0xCC00BFFF.toInt())
+      val width = (list[5] as Number).toDouble()
+      val visible = list[6] as Boolean
+      return Arc(id, start, passed, end, color, width, visible)
+    }
+  }
+
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      start.toList(),
+      passed.toList(),
+      end.toList(),
       color.toArgb(),
       width,
       visible,

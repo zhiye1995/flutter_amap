@@ -580,8 +580,11 @@ struct Polyline {
   var id: String
   var points: [Position]
   var color: UIColor
+  var colors: [UIColor]
   var width: Double
   var visible: Bool
+  var gradient: Bool
+  var geodesic: Bool
 
   static func fromList(_ list: [Any?]) -> Polyline {
     let id = list[0] as! String
@@ -589,12 +592,20 @@ struct Polyline {
     let color = UIColor(amapColorValue: list[2])
     let width = list[3] as! Double
     let visible = list[4] as! Bool
+    let colors = list.count > 5
+      ? ((list[5] as? [Any?]) ?? []).map { UIColor(amapColorValue: $0) }
+      : []
+    let gradient = list.count > 6 ? list[6] as! Bool : false
+    let geodesic = list.count > 7 ? list[7] as! Bool : false
     return Polyline(
       id: id,
       points: points,
       color: color,
+      colors: colors,
       width: width,
-      visible: visible
+      visible: visible,
+      gradient: gradient,
+      geodesic: geodesic
     )
   }
 
@@ -602,6 +613,44 @@ struct Polyline {
     return [
       id,
       points.map { $0.toList() },
+      color.hex,
+      width,
+      visible,
+      colors.map { $0.hex },
+      gradient,
+      geodesic,
+    ]
+  }
+}
+
+/// 弧线覆盖物配置
+struct Arc {
+  var id: String
+  var start: Position
+  var passed: Position
+  var end: Position
+  var color: UIColor
+  var width: Double
+  var visible: Bool
+
+  static func fromList(_ list: [Any?]) -> Arc {
+    return Arc(
+      id: list[0] as! String,
+      start: Position.fromList(list[1] as! [Any?]),
+      passed: Position.fromList(list[2] as! [Any?]),
+      end: Position.fromList(list[3] as! [Any?]),
+      color: UIColor(amapColorValue: list[4]),
+      width: list[5] as! Double,
+      visible: list[6] as! Bool
+    )
+  }
+
+  func toList() -> [Any?] {
+    return [
+      id,
+      start.toList(),
+      passed.toList(),
+      end.toList(),
       color.hex,
       width,
       visible,

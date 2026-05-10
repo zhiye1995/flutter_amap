@@ -491,6 +491,28 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  /// 添加弧线
+  @override
+  Future<void> addArc(Arc arc, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "addArc",
+      <String, dynamic>{
+        "arc": arc,
+      },
+    );
+  }
+
+  /// 移除弧线
+  @override
+  Future<void> removeArc(String id, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "removeArc",
+      <String, dynamic>{
+        "id": id,
+      },
+    );
+  }
+
   /// 添加多边形
   @override
   Future<void> addPolygon(Polygon polygon, {required int mapId}) {

@@ -174,8 +174,11 @@ class Polyline {
     required this.id,
     required this.points,
     this.color = const Color(0xCC00BFFF),
+    this.colors = const <Color>[],
     this.width = 10,
     this.visible = true,
+    this.gradient = false,
+    this.geodesic = false,
   });
 
   /// 折线ID
@@ -187,11 +190,26 @@ class Polyline {
   /// 折线颜色
   Color color;
 
+  /// 分段颜色。为空时使用 [color] 绘制单色线。
+  ///
+  /// Android 使用 `PolylineOptions.colorValues`；iOS 使用
+  /// `MAMultiColoredPolylineRenderer.strokeColors`。
+  List<Color> colors;
+
   /// 折线宽度
   double width;
 
   /// 是否可见
   bool visible;
+
+  /// 多彩线是否使用渐变色。
+  bool gradient;
+
+  /// 是否按大地曲线绘制。
+  ///
+  /// Android 对应 `PolylineOptions.geodesic`；iOS 对应
+  /// `MAGeodesicPolyline`。多彩线与大地曲线同时设置时，iOS 优先按多彩线绘制。
+  bool geodesic;
 
   Object encode() {
     return <Object?>[
@@ -200,6 +218,9 @@ class Polyline {
       color.toARGB32(),
       width,
       visible,
+      colors.map((color) => color.toARGB32()).toList(),
+      gradient,
+      geodesic,
     ];
   }
 
@@ -212,6 +233,13 @@ class Polyline {
       color: Color(result[2]! as int),
       width: result[3]! as double,
       visible: result[4]! as bool,
+      colors: result.length > 5 && result[5] != null
+          ? (result[5]! as List<Object?>)
+              .map((color) => Color(color! as int))
+              .toList()
+          : const <Color>[],
+      gradient: result.length > 6 ? result[6]! as bool : false,
+      geodesic: result.length > 7 ? result[7]! as bool : false,
     );
   }
 
@@ -219,15 +247,21 @@ class Polyline {
     String? id,
     List<Position>? points,
     Color? color,
+    List<Color>? colors,
     double? width,
     bool? visible,
+    bool? gradient,
+    bool? geodesic,
   }) {
     return Polyline(
       id: id ?? this.id,
       points: points ?? this.points,
       color: color ?? this.color,
+      colors: colors ?? this.colors,
       width: width ?? this.width,
       visible: visible ?? this.visible,
+      gradient: gradient ?? this.gradient,
+      geodesic: geodesic ?? this.geodesic,
     );
   }
 
@@ -240,8 +274,11 @@ class Polyline {
         id == other.id &&
         listEquals(points, other.points) &&
         color == other.color &&
+        listEquals(colors, other.colors) &&
         width == other.width &&
-        visible == other.visible;
+        visible == other.visible &&
+        gradient == other.gradient &&
+        geodesic == other.geodesic;
   }
 
   @override
@@ -249,9 +286,109 @@ class Polyline {
         id,
         Object.hashAll(points),
         color,
+        Object.hashAll(colors),
         width,
         visible,
+        gradient,
+        geodesic,
       );
+}
+
+/// 弧线覆盖物配置。
+class Arc {
+  Arc({
+    required this.id,
+    required this.start,
+    required this.passed,
+    required this.end,
+    this.color = const Color(0xCC00BFFF),
+    this.width = 10,
+    this.visible = true,
+  });
+
+  /// 弧线ID
+  String id;
+
+  /// 起点
+  Position start;
+
+  /// 弧线经过点，用于决定弧线弯曲方向和弧度
+  Position passed;
+
+  /// 终点
+  Position end;
+
+  /// 弧线颜色
+  Color color;
+
+  /// 弧线宽度
+  double width;
+
+  /// 是否可见
+  bool visible;
+
+  Object encode() {
+    return <Object?>[
+      id,
+      start.encode(),
+      passed.encode(),
+      end.encode(),
+      color.toARGB32(),
+      width,
+      visible,
+    ];
+  }
+
+  static Arc decode(List<Object?> result) {
+    return Arc(
+      id: result[0]! as String,
+      start: Position.decode(result[1]! as List<Object?>),
+      passed: Position.decode(result[2]! as List<Object?>),
+      end: Position.decode(result[3]! as List<Object?>),
+      color: Color(result[4]! as int),
+      width: result[5]! as double,
+      visible: result[6]! as bool,
+    );
+  }
+
+  Arc copyWith({
+    String? id,
+    Position? start,
+    Position? passed,
+    Position? end,
+    Color? color,
+    double? width,
+    bool? visible,
+  }) {
+    return Arc(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      passed: passed ?? this.passed,
+      end: end ?? this.end,
+      color: color ?? this.color,
+      width: width ?? this.width,
+      visible: visible ?? this.visible,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Arc &&
+        id == other.id &&
+        start == other.start &&
+        passed == other.passed &&
+        end == other.end &&
+        color == other.color &&
+        width == other.width &&
+        visible == other.visible;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, start, passed, end, color, width, visible);
 }
 
 /// 多边形覆盖物配置。

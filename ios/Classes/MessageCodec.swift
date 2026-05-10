@@ -60,6 +60,8 @@ private class AMapCodecReader: FlutterStandardReader {
       return Polyline.fromList(self.readValue() as! [Any?])
     case 148:
       return Polygon.fromList(self.readValue() as! [Any?])
+    case 149:
+      return Arc.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -130,6 +132,9 @@ private class AMapCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? Polygon {
       super.writeByte(148)
+      super.writeValue(value.toList())
+    } else if let value = value as? Arc {
+      super.writeByte(149)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)

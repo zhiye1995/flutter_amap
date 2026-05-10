@@ -162,7 +162,28 @@ extension Marker {
 extension Polyline {
   var overlay: MAPolyline {
     var coordinates = points.map { $0.coordinate }
+    if !colors.isEmpty {
+      let indexes = Array(1..<points.count).map { NSNumber(value: $0) }
+      return MAMultiPolyline(
+        coordinates: &coordinates,
+        count: UInt(points.count),
+        drawStyleIndexes: indexes
+      )
+    }
+    if geodesic {
+      return MAGeodesicPolyline(coordinates: &coordinates, count: UInt(points.count))
+    }
     return MAPolyline(coordinates: &coordinates, count: UInt(points.count))
+  }
+}
+
+extension Arc {
+  var overlay: MAArc {
+    return MAArc(
+      startCoordinate: start.coordinate,
+      passedCoordinate: passed.coordinate,
+      endCoordinate: end.coordinate
+    )
   }
 }
 
