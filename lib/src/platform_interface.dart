@@ -278,6 +278,13 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('animateMarker() has not been implemented.');
   }
 
+  /// 取消点标记动画
+  Future<void> cancelMarkerAnimation(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'cancelMarkerAnimation() has not been implemented.',
+    );
+  }
+
   /// 显示指定点标记的 InfoWindow（Android [Marker.showInfoWindow]；iOS 选中 annotation 以展示 callout）
   Future<void> showInfoWindow(String markerId, {required int mapId}) {
     throw UnimplementedError('showInfoWindow() has not been implemented.');

@@ -13,7 +13,7 @@ import AMapNaviKit
 #error("Neither MAMapKit nor AMapNaviKit is available. Please add AMapNavi (recommended) or AMap3DMap to your Pod dependencies.")
 #endif
 
-class Annotation: MAPointAnnotation {
+class Annotation: MAAnimatedAnnotation {
   let id: String
   let bitmap: Bitmap?
 

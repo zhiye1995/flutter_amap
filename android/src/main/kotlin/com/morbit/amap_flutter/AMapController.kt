@@ -121,6 +121,12 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "cancelMarkerAnimation" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.cancelMarkerAnimation(markerId)
+        result.success(null)
+      }
+
       "showInfoWindow" -> {
         val markerId = call.argument<String>("markerId")!!
         api.showInfoWindow(markerId)

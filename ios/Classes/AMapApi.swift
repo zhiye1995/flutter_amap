@@ -22,6 +22,7 @@ class _AMapApi: NSObject {
   var polylineStyles = [String: Polyline]()
   var polygons = [String: MAPolygon]()
   var polygonStyles = [String: Polygon]()
+  private var markerAnimationTokens = [String: Int]()
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -245,6 +246,7 @@ class _AMapApi: NSObject {
 
   func removeMarker(id: String) {
     if let annotation = markers[id] {
+      cancelMarkerAnimation(markerId: id)
       mapView.removeAnnotation(annotation)
       markers.removeValue(forKey: id)
       markerIds.removeValue(forKey: annotation.hash)
@@ -326,14 +328,20 @@ class _AMapApi: NSObject {
     }
   }
 
-  /// 与 Dart [MarkerAnimationKind] 下标一致；在 annotation 视图上做 UIView 动画（iOS 无与 Android 同名的 Marker Animation API）。
+  /// 与 Dart [MarkerAnimationKind.code] 一致；视觉动画在 annotation 视图上执行，移动动画使用高德 MAAnimatedAnnotation。
   func animateMarker(markerId: String, kind: Int, durationMs: Int) {
     guard let annotation = markers[markerId] else { return }
     let run: () -> Void = { [weak self] in
       guard let self = self else { return }
-      guard let view = self.mapView.view(for: annotation) else { return }
-      view.layer.removeAllAnimations()
+      self.cancelMarkerAnimation(markerId: markerId)
       let dur = Double(min(10_000, max(200, durationMs))) / 1000.0
+      self.markerAnimationTokens[markerId, default: 0] += 1
+      let token = self.markerAnimationTokens[markerId] ?? 0
+      if kind == 4 {
+        self.startMarkerMoveRoundTrip(markerId: markerId, annotation: annotation, duration: dur)
+        return
+      }
+      guard let view = self.mapView.view(for: annotation) else { return }
       let baseTransform = view.transform
       let baseAlpha = view.alpha
 
@@ -356,7 +364,8 @@ class _AMapApi: NSObject {
               }
             }
           },
-          completion: { _ in
+          completion: { [weak self] _ in
+            guard self?.markerAnimationTokens[markerId] == token else { return }
             view.transform = baseTransform
           })
 
@@ -388,7 +397,8 @@ class _AMapApi: NSObject {
               }
             }
           },
-          completion: { _ in
+          completion: { [weak self] _ in
+            guard self?.markerAnimationTokens[markerId] == token else { return }
             view.alpha = baseAlpha
           })
 
@@ -400,36 +410,13 @@ class _AMapApi: NSObject {
           animations: {
             view.transform = baseTransform
           },
-          completion: { _ in
+          completion: { [weak self] _ in
+            guard self?.markerAnimationTokens[markerId] == token else { return }
             view.transform = baseTransform
           })
 
       case 4:
-        // 移动：经纬度线性插值往返（与 Android TranslateAnimation 两段语义对齐，不改 Flutter 侧 Marker 模型）。
-        guard let point = annotation as? MAPointAnnotation else { break }
-        let start = point.coordinate
-        let end = CLLocationCoordinate2D(
-          latitude: start.latitude + 0.00015,
-          longitude: start.longitude + 0.00012)
-        let n = 16
-        for i in 0...n {
-          let delay1 = dur / 2 * Double(i) / Double(n)
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay1) {
-            let t = Double(i) / Double(n)
-            point.coordinate = CLLocationCoordinate2D(
-              latitude: start.latitude + (end.latitude - start.latitude) * t,
-              longitude: start.longitude + (end.longitude - start.longitude) * t)
-          }
-        }
-        for i in 0...n {
-          let delay2 = dur / 2 + dur / 2 * Double(i) / Double(n)
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay2) {
-            let t = Double(i) / Double(n)
-            point.coordinate = CLLocationCoordinate2D(
-              latitude: end.latitude - (end.latitude - start.latitude) * t,
-              longitude: end.longitude - (end.longitude - start.longitude) * t)
-          }
-        }
+        break
 
       default:
         break
@@ -441,6 +428,48 @@ class _AMapApi: NSObject {
     } else {
       DispatchQueue.main.async(execute: run)
     }
+  }
+
+  func cancelMarkerAnimation(markerId: String) {
+    guard let annotation = markers[markerId] else { return }
+    markerAnimationTokens[markerId, default: 0] += 1
+    for item in annotation.allMoveAnimations() {
+      item.cancel()
+    }
+    annotation.coordinate = annotation.coordinate
+    if let view = mapView.view(for: annotation) {
+      view.layer.removeAllAnimations()
+      view.transform = .identity
+      view.alpha = 1
+    }
+  }
+
+  private func startMarkerMoveRoundTrip(markerId: String, annotation: Annotation, duration: Double) {
+    let start = annotation.coordinate
+    var outward = CLLocationCoordinate2D(
+      latitude: start.latitude + 0.00015,
+      longitude: start.longitude + 0.00012)
+    markerAnimationTokens[markerId, default: 0] += 1
+    let token = markerAnimationTokens[markerId] ?? 0
+    let half = max(0.2, duration / 2)
+    annotation.addMoveAnimation(
+      withKeyCoordinates: &outward,
+      count: UInt(1),
+      withDuration: half,
+      withName: "flutter_amap_marker_move_out") { [weak self, weak annotation] isFinished in
+        guard let self = self, let annotation = annotation else { return }
+        guard isFinished, self.markerAnimationTokens[markerId] == token else { return }
+        var inward = start
+        annotation.addMoveAnimation(
+          withKeyCoordinates: &inward,
+          count: UInt(1),
+          withDuration: half,
+          withName: "flutter_amap_marker_move_back") { [weak self, weak annotation] isFinished in
+            guard let self = self, let annotation = annotation else { return }
+            guard isFinished, self.markerAnimationTokens[markerId] == token else { return }
+            annotation.coordinate = start
+          }
+      }
   }
 
   func getMarkerIdByAnnotation(_ annotation: Int) -> String? {

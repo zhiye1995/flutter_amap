@@ -36,7 +36,8 @@ class _MarkerAnimationPageState extends State<MarkerAnimationPage> {
                 c.addMarker(
                   Marker(
                     id: _markerId,
-                    position: Position(latitude: 39.984120, longitude: 116.307484),
+                    position:
+                        Position(latitude: 39.984120, longitude: 116.307484),
                     bitmap: Bitmap(asset: 'assets/map-marker.png'),
                   ),
                 );
@@ -92,6 +93,10 @@ class _MarkerAnimationPageState extends State<MarkerAnimationPage> {
                             : () => _play(MarkerAnimationKind.fadePulse),
                         child: const Text('透明度脉冲'),
                       ),
+                      OutlinedButton(
+                        onPressed: !_markerReady ? null : _cancel,
+                        child: const Text('取消动画'),
+                      ),
                     ],
                   ),
                 ],
@@ -112,5 +117,11 @@ class _MarkerAnimationPageState extends State<MarkerAnimationPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
+  }
+
+  Future<void> _cancel() async {
+    final c = _controller;
+    if (c == null || !_markerReady) return;
+    await c.cancelMarkerAnimation(_markerId);
   }
 }

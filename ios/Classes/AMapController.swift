@@ -113,6 +113,12 @@ class AMapController: NSObject {
       api.animateMarker(markerId: markerId, kind: kind, durationMs: durationMs)
       result(nil)
     }
+    else if(call.method == "cancelMarkerAnimation") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let markerId = arguments["markerId"] as! String
+      api.cancelMarkerAnimation(markerId: markerId)
+      result(nil)
+    }
     else if(call.method == "showInfoWindow") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let markerId = arguments["markerId"] as! String

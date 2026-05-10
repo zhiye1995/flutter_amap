@@ -525,8 +525,19 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
       "animateMarker",
       <String, dynamic>{
         "markerId": markerId,
-        "kind": kind.index,
+        "kind": kind.code,
         "durationMs": durationMs,
+      },
+    );
+  }
+
+  /// 取消点标记动画
+  @override
+  Future<void> cancelMarkerAnimation(String markerId, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "cancelMarkerAnimation",
+      <String, dynamic>{
+        "markerId": markerId,
       },
     );
   }

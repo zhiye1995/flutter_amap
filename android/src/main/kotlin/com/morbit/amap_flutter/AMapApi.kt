@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
   private val mapView = amap.getView()
+  private val markerAnimationTokens = mutableMapOf<String, Int>()
 
   fun initMap() {
     // 处理仅设置 zoom/tilt/bearing 但不传 position 的情况：
@@ -150,9 +151,11 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   fun removeMarker(id: String) {
     val marker = amap.markers[id]
     if (marker != null) {
+      cancelMarkerAnimation(id)
       marker.remove()
       amap.markers.remove(id)
       amap.aMapMarkerIdToDartMarkerId.remove(marker.id)
+      markerAnimationTokens.remove(id)
     }
   }
 
@@ -185,13 +188,13 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     }
   }
 
-  /// 与高德 [Marker.setAnimation] / [Marker.startAnimation] 对齐；[kind] 与 Dart [MarkerAnimationKind.index] 一致。
+  /// 与高德 [Marker.setAnimation] / [Marker.startAnimation] 对齐；[kind] 与 Dart [MarkerAnimationKind.code] 一致。
   fun animateMarker(markerId: String, kind: Int, durationMs: Int) {
     val marker: AMapMarker = amap.markers[markerId] ?: return
-    marker.setAnimation(null)
+    cancelMarkerAnimation(markerId)
     val dur = durationMs.toLong().coerceIn(200L, 10_000L)
     if (kind == 4) {
-      startMarkerMoveRoundTrip(marker, dur)
+      startMarkerMoveRoundTrip(markerId, marker, dur)
       return
     }
     val anim: Animation? =
@@ -225,8 +228,22 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     }
   }
 
+  fun cancelMarkerAnimation(markerId: String) {
+    val marker: AMapMarker = amap.markers[markerId] ?: return
+    markerAnimationTokens[markerId] = (markerAnimationTokens[markerId] ?: 0) + 1
+    // 高德 Marker 没有显式 stopAnimation；用极短透明度动画覆盖正在播放的动画。
+    marker.setAnimation(
+      AlphaAnimation(marker.alpha, marker.alpha).apply {
+        setDuration(1L)
+        setRepeatCount(0)
+      },
+    )
+    marker.startAnimation()
+    marker.alpha = 1f
+  }
+
   /// 官方 Demo「移动」：`TranslateAnimation(LatLng)` 去程 + 返程，结束后 [Marker.setPosition] 回到起点。
-  private fun startMarkerMoveRoundTrip(marker: AMapMarker, durMs: Long) {
+  private fun startMarkerMoveRoundTrip(markerId: String, marker: AMapMarker, durMs: Long) {
     val start = marker.position
     val target =
       LatLng(
@@ -234,6 +251,8 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
         start.longitude + 0.00012,
       )
     val half = durMs.coerceAtLeast(400L) / 2
+    markerAnimationTokens[markerId] = (markerAnimationTokens[markerId] ?: 0) + 1
+    val token = markerAnimationTokens[markerId]
     val outward =
       TranslateAnimation(target).apply {
         setDuration(half)
@@ -242,6 +261,7 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
             override fun onAnimationStart() {}
 
             override fun onAnimationEnd() {
+              if (markerAnimationTokens[markerId] != token) return
               val inward =
                 TranslateAnimation(start).apply {
                   setDuration(half)
@@ -250,6 +270,7 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
                       override fun onAnimationStart() {}
 
                       override fun onAnimationEnd() {
+                        if (markerAnimationTokens[markerId] != token) return
                         marker.position = start
                       }
                     },

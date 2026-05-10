@@ -5,19 +5,24 @@ part of '../../../flutter_amap.dart';
 /// 点标记动画类型（Android 使用高德 [Marker.setAnimation]；iOS 对 [MAAnnotationView] 做 UIView 动画，语义对齐）。
 enum MarkerAnimationKind {
   /// 缩放脉冲（偏官方 Demo「呼吸」：1↔略放大 + REVERSE）。
-  pulseScale,
+  pulseScale(0),
 
   /// 绕锚点旋转一周
-  rotateOnce,
+  rotateOnce(1),
 
   /// 透明度起伏
-  fadePulse,
+  fadePulse(2),
 
   /// 生长：一次性从 0 缩放到正常尺寸（对齐官方常用 `ScaleAnimation(0,1,0,1)`）。
-  growOnce,
+  growOnce(3),
 
   /// 移动：沿经纬度短距离移动再复原（Android [TranslateAnimation]；iOS 对 annotation `coordinate` 插值）。
-  moveRoundTrip,
+  moveRoundTrip(4);
+
+  const MarkerAnimationKind(this.code);
+
+  /// 跨端通道使用的稳定编码，不能依赖 enum.index。
+  final int code;
 }
 
 /// 图片信息

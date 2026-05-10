@@ -264,6 +264,15 @@ class AMapController {
     );
   }
 
+  /// 取消指定点标记当前动画。
+  Future<void> cancelMarkerAnimation(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.cancelMarkerAnimation(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
   /// 显示指定点标记的 InfoWindow / callout（需 [Marker.title] 或 [Marker.snippet] 有内容）。
   Future<void> showInfoWindow(String markerId) async {
     if (_isDestroyed) return;
