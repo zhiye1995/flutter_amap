@@ -81,6 +81,30 @@ class AMapController: NSObject {
       api.removeMarker(id: id)
       result(nil)
     }
+    else if(call.method == "addPolyline") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let polyline = arguments["polyline"] as! Polyline
+      api.addPolyline(polyline: polyline)
+      result(nil)
+    }
+    else if(call.method == "removePolyline") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let id = arguments["id"] as! String
+      api.removePolyline(id: id)
+      result(nil)
+    }
+    else if(call.method == "addPolygon") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let polygon = arguments["polygon"] as! Polygon
+      api.addPolygon(polygon: polygon)
+      result(nil)
+    }
+    else if(call.method == "removePolygon") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let id = arguments["id"] as! String
+      api.removePolygon(id: id)
+      result(nil)
+    }
     else if(call.method == "animateMarker") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let markerId = arguments["markerId"] as! String

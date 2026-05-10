@@ -51,6 +51,17 @@ class UIControlOffset {
       y: y ?? this.y,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is UIControlOffset && x == other.x && y == other.y;
+  }
+
+  @override
+  int get hashCode => Object.hash(x, y);
 }
 
 /// UI控件位置
@@ -89,5 +100,17 @@ class UIControlPosition {
       offset: offset ?? this.offset,
     );
   }
-}
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is UIControlPosition &&
+        anchor == other.anchor &&
+        offset == other.offset;
+  }
+
+  @override
+  int get hashCode => Object.hash(anchor, offset);
+}

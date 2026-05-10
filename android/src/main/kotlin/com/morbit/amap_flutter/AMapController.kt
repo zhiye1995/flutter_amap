@@ -89,6 +89,30 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "addPolyline" -> {
+        val polyline = call.argument<Polyline>("polyline")!!
+        api.addPolyline(polyline)
+        result.success(null)
+      }
+
+      "removePolyline" -> {
+        val id = call.argument<String>("id")!!
+        api.removePolyline(id)
+        result.success(null)
+      }
+
+      "addPolygon" -> {
+        val polygon = call.argument<Polygon>("polygon")!!
+        api.addPolygon(polygon)
+        result.success(null)
+      }
+
+      "removePolygon" -> {
+        val id = call.argument<String>("id")!!
+        api.removePolygon(id)
+        result.success(null)
+      }
+
       "animateMarker" -> {
         val markerId = call.argument<String>("markerId")!!
         val kind = (call.argument<Any>("kind") as Number).toInt()

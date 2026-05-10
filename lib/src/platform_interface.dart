@@ -248,6 +248,26 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
+  /// 添加折线
+  Future<void> addPolyline(Polyline polyline, {required int mapId}) {
+    throw UnimplementedError('addPolyline() has not been implemented.');
+  }
+
+  /// 移除折线
+  Future<void> removePolyline(String id, {required int mapId}) {
+    throw UnimplementedError('removePolyline() has not been implemented.');
+  }
+
+  /// 添加多边形
+  Future<void> addPolygon(Polygon polygon, {required int mapId}) {
+    throw UnimplementedError('addPolygon() has not been implemented.');
+  }
+
+  /// 移除多边形
+  Future<void> removePolygon(String id, {required int mapId}) {
+    throw UnimplementedError('removePolygon() has not been implemented.');
+  }
+
   /// 播放点标记动画（Android：高德 Animation；iOS：annotation 视图动画）
   Future<void> animateMarker(
     String markerId,
@@ -316,7 +336,8 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
       StreamController<NaviEvent<Object?>>.broadcast();
 
   /// 获取导航事件流
-  Stream<NaviEvent<Object?>> get naviEventStream => naviEventStreamController.stream;
+  Stream<NaviEvent<Object?>> get naviEventStream =>
+      naviEventStreamController.stream;
 
   /// 导航初始化成功事件流
   Stream<NaviInitSuccessEvent> get onNaviInitSuccess =>
@@ -359,8 +380,9 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
       naviEventStream.whereType<NaviReCalculateRouteForYawEvent>();
 
   /// 拥堵重新计算路线事件流
-  Stream<NaviReCalculateRouteForTrafficJamEvent> get onNaviReCalculateRouteForTrafficJam =>
-      naviEventStream.whereType<NaviReCalculateRouteForTrafficJamEvent>();
+  Stream<NaviReCalculateRouteForTrafficJamEvent>
+      get onNaviReCalculateRouteForTrafficJam =>
+          naviEventStream.whereType<NaviReCalculateRouteForTrafficJamEvent>();
 
   /// 到达途经点事件流
   Stream<NaviArrivedWayPointEvent> get onNaviArrivedWayPoint =>
@@ -465,20 +487,23 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   Future<LocalWeatherForecast> searchWeatherForecast({
     required String city,
   }) {
-    throw UnimplementedError('searchWeatherForecast() has not been implemented.');
+    throw UnimplementedError(
+        'searchWeatherForecast() has not been implemented.');
   }
 
   /// 根据当前定位查询实时天气
   ///
   /// 内部自动获取定位信息，提取adcode后查询天气
   Future<LocalWeatherLive> searchWeatherLiveByLocation() {
-    throw UnimplementedError('searchWeatherLiveByLocation() has not been implemented.');
+    throw UnimplementedError(
+        'searchWeatherLiveByLocation() has not been implemented.');
   }
 
   /// 根据当前定位查询天气预报
   ///
   /// 内部自动获取定位信息，提取adcode后查询天气预报
   Future<LocalWeatherForecast> searchWeatherForecastByLocation() {
-    throw UnimplementedError('searchWeatherForecastByLocation() has not been implemented.');
+    throw UnimplementedError(
+        'searchWeatherForecastByLocation() has not been implemented.');
   }
 }

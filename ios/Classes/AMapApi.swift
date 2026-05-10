@@ -18,6 +18,10 @@ class _AMapApi: NSObject {
   weak var mapViewDelegate: AMapViewDelegate?
   var markers = [String: Annotation]()
   var markerIds = [Int: String]()
+  var polylines = [String: MAPolyline]()
+  var polylineStyles = [String: Polyline]()
+  var polygons = [String: MAPolygon]()
+  var polygonStyles = [String: Polygon]()
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -245,6 +249,52 @@ class _AMapApi: NSObject {
       markers.removeValue(forKey: id)
       markerIds.removeValue(forKey: annotation.hash)
     }
+  }
+
+  func addPolyline(polyline: Polyline) {
+    removePolyline(id: polyline.id)
+    guard polyline.points.count >= 2 else { return }
+    let overlay = polyline.overlay
+    polylines[polyline.id] = overlay
+    polylineStyles[polyline.id] = polyline
+    if polyline.visible {
+      mapView.add(overlay)
+    }
+  }
+
+  func removePolyline(id: String) {
+    if let overlay = polylines[id] {
+      mapView.remove(overlay)
+      polylines.removeValue(forKey: id)
+      polylineStyles.removeValue(forKey: id)
+    }
+  }
+
+  func addPolygon(polygon: Polygon) {
+    removePolygon(id: polygon.id)
+    guard polygon.points.count >= 3 else { return }
+    let overlay = polygon.overlay
+    polygons[polygon.id] = overlay
+    polygonStyles[polygon.id] = polygon
+    if polygon.visible {
+      mapView.add(overlay)
+    }
+  }
+
+  func removePolygon(id: String) {
+    if let overlay = polygons[id] {
+      mapView.remove(overlay)
+      polygons.removeValue(forKey: id)
+      polygonStyles.removeValue(forKey: id)
+    }
+  }
+
+  func polylineStyle(for overlay: MAPolyline) -> Polyline? {
+    return polylines.first(where: { $0.value === overlay }).flatMap { polylineStyles[$0.key] }
+  }
+
+  func polygonStyle(for overlay: MAPolygon) -> Polygon? {
+    return polygons.first(where: { $0.value === overlay }).flatMap { polygonStyles[$0.key] }
   }
 
   func showInfoWindow(markerId: String) {

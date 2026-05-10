@@ -469,6 +469,50 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  /// 添加折线
+  @override
+  Future<void> addPolyline(Polyline polyline, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "addPolyline",
+      <String, dynamic>{
+        "polyline": polyline,
+      },
+    );
+  }
+
+  /// 移除折线
+  @override
+  Future<void> removePolyline(String id, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "removePolyline",
+      <String, dynamic>{
+        "id": id,
+      },
+    );
+  }
+
+  /// 添加多边形
+  @override
+  Future<void> addPolygon(Polygon polygon, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "addPolygon",
+      <String, dynamic>{
+        "polygon": polygon,
+      },
+    );
+  }
+
+  /// 移除多边形
+  @override
+  Future<void> removePolygon(String id, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "removePolygon",
+      <String, dynamic>{
+        "id": id,
+      },
+    );
+  }
+
   /// 点标记动画
   @override
   Future<void> animateMarker(
@@ -503,7 +547,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   /// 获取当前定位信息
   @override
   Future<Location> getUserLocation({required int mapId}) async {
-    final result = await _channel(mapId).invokeMethod<Location>("getUserLocation");
+    final result =
+        await _channel(mapId).invokeMethod<Location>("getUserLocation");
     if (result == null) {
       throw StateError(
         "Failed to get user location. "
@@ -519,7 +564,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   /// 获取当前比例尺（每像素代表多少米）
   @override
   Future<double> getScalePerPixel({required int mapId}) async {
-    final result = await _channel(mapId).invokeMethod<double>("getScalePerPixel");
+    final result =
+        await _channel(mapId).invokeMethod<double>("getScalePerPixel");
     return result ?? 0.0;
   }
 
@@ -578,9 +624,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     if (_naviEventChannelInitialized) return;
     _naviEventChannelInitialized = true;
 
-    _naviEventSubscription = _naviEventChannel
-        .receiveBroadcastStream()
-        .listen(_handleNaviEvent);
+    _naviEventSubscription =
+        _naviEventChannel.receiveBroadcastStream().listen(_handleNaviEvent);
   }
 
   /// 处理导航事件
@@ -635,9 +680,8 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'calculateRouteSuccess':
-        final routeIds = (data['routeIds'] as List?)
-            ?.map((e) => e as int)
-            .toList() ?? [];
+        final routeIds =
+            (data['routeIds'] as List?)?.map((e) => e as int).toList() ?? [];
         naviEventStreamController.add(
           NaviRouteCalculateSuccessEvent(routeIds),
         );
@@ -739,11 +783,13 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         'endLat': config.end?.position.latitude,
         'endLng': config.end?.position.longitude,
         'endName': config.end?.name,
-        'wayPoints': config.wayPoints?.map((e) => <String, dynamic>{
-          'lat': e.position.latitude,
-          'lng': e.position.longitude,
-          'name': e.name,
-        }).toList(),
+        'wayPoints': config.wayPoints
+            ?.map((e) => <String, dynamic>{
+                  'lat': e.position.latitude,
+                  'lng': e.position.longitude,
+                  'name': e.name,
+                })
+            .toList(),
       },
     );
   }

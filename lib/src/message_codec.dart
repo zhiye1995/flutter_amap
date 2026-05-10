@@ -63,6 +63,12 @@ class AMapApiCodec extends StandardMessageCodec {
     } else if (value is UserLocationStyle) {
       buffer.putUint8(146);
       writeValue(buffer, value.encode());
+    } else if (value is Polyline) {
+      buffer.putUint8(147);
+      writeValue(buffer, value.encode());
+    } else if (value is Polygon) {
+      buffer.putUint8(148);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -109,6 +115,10 @@ class AMapApiCodec extends StandardMessageCodec {
         return UserLocationConfig.decode(readValue(buffer) as List<Object?>);
       case 146:
         return UserLocationStyle.decode(readValue(buffer) as List<Object?>);
+      case 147:
+        return Polyline.decode(readValue(buffer) as List<Object?>);
+      case 148:
+        return Polygon.decode(readValue(buffer) as List<Object?>);
       default:
         return super.readValueOfType(type, buffer);
     }

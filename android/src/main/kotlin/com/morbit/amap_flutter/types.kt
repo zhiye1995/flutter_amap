@@ -593,6 +593,69 @@ data class Marker(
   }
 }
 
+/** 折线覆盖物配置 */
+data class Polyline(
+  val id: String,
+  val points: List<Position>,
+  val color: Color,
+  val width: Double,
+  val visible: Boolean,
+) {
+  companion object {
+    fun fromList(list: List<Any?>): Polyline {
+      val id = list[0] as String
+      val points = (list[1] as List<Any?>).map { Position.fromList(it as List<Any?>) }
+      val color = colorFromValue(list[2]) ?: Color.valueOf(0xCC00BFFF.toInt())
+      val width = (list[3] as Number).toDouble()
+      val visible = list[4] as Boolean
+      return Polyline(id, points, color, width, visible)
+    }
+  }
+
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      points.map { it.toList() },
+      color.toArgb(),
+      width,
+      visible,
+    )
+  }
+}
+
+/** 多边形覆盖物配置 */
+data class Polygon(
+  val id: String,
+  val points: List<Position>,
+  val strokeWidth: Double,
+  val strokeColor: Color,
+  val fillColor: Color,
+  val visible: Boolean,
+) {
+  companion object {
+    fun fromList(list: List<Any?>): Polygon {
+      val id = list[0] as String
+      val points = (list[1] as List<Any?>).map { Position.fromList(it as List<Any?>) }
+      val strokeWidth = (list[2] as Number).toDouble()
+      val strokeColor = colorFromValue(list[3]) ?: Color.valueOf(0xCC00BFFF.toInt())
+      val fillColor = colorFromValue(list[4]) ?: Color.valueOf(0xC487CEFA.toInt())
+      val visible = list[5] as Boolean
+      return Polygon(id, points, strokeWidth, strokeColor, fillColor, visible)
+    }
+  }
+
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      points.map { it.toList() },
+      strokeWidth,
+      strokeColor.toArgb(),
+      fillColor.toArgb(),
+      visible,
+    )
+  }
+}
+
 /** 地图兴趣点 */
 data class Poi(
   /** 兴趣点的名称 */

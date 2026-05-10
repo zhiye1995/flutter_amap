@@ -218,10 +218,23 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
     NSLog("didChange:MAUserTrackingMode")
   }
 
-//  /// 根据overlay生成对应的Renderer
-//  func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
-//    <#code#>
-//  }
+  /// 根据 overlay 生成对应的 Renderer
+  func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
+    if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
+      let renderer = MAPolylineRenderer(polyline: line)
+      renderer?.strokeColor = style.color
+      renderer?.lineWidth = style.width
+      return renderer
+    }
+    if let polygon = overlay as? MAPolygon, let style = controller.api.polygonStyle(for: polygon) {
+      let renderer = MAPolygonRenderer(polygon: polygon)
+      renderer?.strokeColor = style.strokeColor
+      renderer?.fillColor = style.fillColor
+      renderer?.lineWidth = style.strokeWidth
+      return renderer
+    }
+    return nil
+  }
 
   /// 当mapView新添加overlay renderers时，调用此接口
   func mapView(_ mapView: MAMapView!, didAddOverlayRenderers overlayRenderers: [Any]!) {

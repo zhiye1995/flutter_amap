@@ -64,6 +64,24 @@ class Bitmap {
       size: size ?? this.size,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Bitmap &&
+        asset == other.asset &&
+        listEquals(bytes, other.bytes) &&
+        size == other.size;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        asset,
+        bytes == null ? null : Object.hashAll(bytes!),
+        size,
+      );
 }
 
 /// 标记点配置属性
@@ -105,7 +123,8 @@ class Marker {
     return Marker(
       id: result[0]! as String,
       position: Position.decode(result[1]! as List<Object?>),
-      bitmap: result[2] != null ? Bitmap.decode(result[2]! as List<Object?>) : null,
+      bitmap:
+          result[2] != null ? Bitmap.decode(result[2]! as List<Object?>) : null,
       title: result.length > 3 ? result[3] as String? : null,
       snippet: result.length > 4 ? result[4] as String? : null,
     );
@@ -126,6 +145,204 @@ class Marker {
       snippet: snippet ?? this.snippet,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Marker &&
+        id == other.id &&
+        position == other.position &&
+        bitmap == other.bitmap &&
+        title == other.title &&
+        snippet == other.snippet;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, position, bitmap, title, snippet);
+}
+
+/// 折线覆盖物配置。
+class Polyline {
+  Polyline({
+    required this.id,
+    required this.points,
+    this.color = const Color(0xCC00BFFF),
+    this.width = 10,
+    this.visible = true,
+  });
+
+  /// 折线ID
+  String id;
+
+  /// 折线坐标点
+  List<Position> points;
+
+  /// 折线颜色
+  Color color;
+
+  /// 折线宽度
+  double width;
+
+  /// 是否可见
+  bool visible;
+
+  Object encode() {
+    return <Object?>[
+      id,
+      points.map((position) => position.encode()).toList(),
+      color.toARGB32(),
+      width,
+      visible,
+    ];
+  }
+
+  static Polyline decode(List<Object?> result) {
+    return Polyline(
+      id: result[0]! as String,
+      points: (result[1]! as List<Object?>)
+          .map((position) => Position.decode(position! as List<Object?>))
+          .toList(),
+      color: Color(result[2]! as int),
+      width: result[3]! as double,
+      visible: result[4]! as bool,
+    );
+  }
+
+  Polyline copyWith({
+    String? id,
+    List<Position>? points,
+    Color? color,
+    double? width,
+    bool? visible,
+  }) {
+    return Polyline(
+      id: id ?? this.id,
+      points: points ?? this.points,
+      color: color ?? this.color,
+      width: width ?? this.width,
+      visible: visible ?? this.visible,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Polyline &&
+        id == other.id &&
+        listEquals(points, other.points) &&
+        color == other.color &&
+        width == other.width &&
+        visible == other.visible;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        Object.hashAll(points),
+        color,
+        width,
+        visible,
+      );
+}
+
+/// 多边形覆盖物配置。
+class Polygon {
+  Polygon({
+    required this.id,
+    required this.points,
+    this.strokeWidth = 10,
+    this.strokeColor = const Color(0xCC00BFFF),
+    this.fillColor = const Color(0xC487CEFA),
+    this.visible = true,
+  });
+
+  /// 多边形ID
+  String id;
+
+  /// 多边形坐标点
+  List<Position> points;
+
+  /// 边框宽度
+  double strokeWidth;
+
+  /// 边框颜色
+  Color strokeColor;
+
+  /// 填充颜色
+  Color fillColor;
+
+  /// 是否可见
+  bool visible;
+
+  Object encode() {
+    return <Object?>[
+      id,
+      points.map((position) => position.encode()).toList(),
+      strokeWidth,
+      strokeColor.toARGB32(),
+      fillColor.toARGB32(),
+      visible,
+    ];
+  }
+
+  static Polygon decode(List<Object?> result) {
+    return Polygon(
+      id: result[0]! as String,
+      points: (result[1]! as List<Object?>)
+          .map((position) => Position.decode(position! as List<Object?>))
+          .toList(),
+      strokeWidth: result[2]! as double,
+      strokeColor: Color(result[3]! as int),
+      fillColor: Color(result[4]! as int),
+      visible: result[5]! as bool,
+    );
+  }
+
+  Polygon copyWith({
+    String? id,
+    List<Position>? points,
+    double? strokeWidth,
+    Color? strokeColor,
+    Color? fillColor,
+    bool? visible,
+  }) {
+    return Polygon(
+      id: id ?? this.id,
+      points: points ?? this.points,
+      strokeWidth: strokeWidth ?? this.strokeWidth,
+      strokeColor: strokeColor ?? this.strokeColor,
+      fillColor: fillColor ?? this.fillColor,
+      visible: visible ?? this.visible,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Polygon &&
+        id == other.id &&
+        listEquals(points, other.points) &&
+        strokeWidth == other.strokeWidth &&
+        strokeColor == other.strokeColor &&
+        fillColor == other.fillColor &&
+        visible == other.visible;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        Object.hashAll(points),
+        strokeWidth,
+        strokeColor,
+        fillColor,
+        visible,
+      );
 }
 
 /// 地图兴趣点
@@ -165,4 +382,3 @@ class Poi {
     );
   }
 }
-

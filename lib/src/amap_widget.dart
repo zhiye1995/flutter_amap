@@ -1,9 +1,152 @@
 part of '../flutter_amap.dart';
 
+/// 地图基础配置。
+class AMapMapOptions {
+  const AMapMapOptions({
+    this.mapType,
+    this.initCameraPosition,
+    this.initFitPositions,
+    this.minZoom,
+    this.maxZoom,
+    this.showTraffic,
+    this.showBuildings,
+    this.showIndoorMap,
+    this.showSatelliteLayer,
+    this.showRoadNetLayer,
+    this.showBuildingBlock,
+    this.showLabel,
+    this.customStyleOptions,
+  });
+
+  final MapType? mapType;
+  final CameraPosition? initCameraPosition;
+  final List<Position>? initFitPositions;
+  final double? minZoom;
+  final double? maxZoom;
+  final bool? showTraffic;
+  final bool? showBuildings;
+  final bool? showIndoorMap;
+  final bool? showSatelliteLayer;
+  final bool? showRoadNetLayer;
+  final bool? showBuildingBlock;
+  final bool? showLabel;
+  final CustomStyleOptions? customStyleOptions;
+}
+
+/// 地图手势配置。
+class AMapGestureOptions {
+  const AMapGestureOptions({
+    this.dragEnable,
+    this.zoomEnable,
+    this.tiltEnable,
+    this.rotateEnable,
+    this.doubleClickZoom,
+    this.scrollWheel,
+    this.touchZoom,
+    this.touchZoomCenter,
+  });
+
+  final bool? dragEnable;
+  final bool? zoomEnable;
+  final bool? tiltEnable;
+  final bool? rotateEnable;
+  final bool? doubleClickZoom;
+  final bool? scrollWheel;
+  final bool? touchZoom;
+  final bool? touchZoomCenter;
+}
+
+/// 地图控件配置。
+class AMapUiOptions {
+  const AMapUiOptions({
+    this.compassControlEnabled,
+    this.scaleControlEnabled,
+    this.zoomControlEnabled,
+    this.hawkEyeControlEnabled,
+    this.mapTypeControlEnabled,
+    this.logoPosition,
+    this.compassControlPosition,
+    this.scaleControlPosition,
+    this.zoomControlPosition,
+  });
+
+  final bool? compassControlEnabled;
+  final bool? scaleControlEnabled;
+  final bool? zoomControlEnabled;
+  final bool? hawkEyeControlEnabled;
+  final bool? mapTypeControlEnabled;
+  final UIControlPosition? logoPosition;
+  final UIControlPosition? compassControlPosition;
+  final UIControlPosition? scaleControlPosition;
+  final UIControlPosition? zoomControlPosition;
+}
+
+/// 定位显示配置。
+class AMapLocationOptions {
+  const AMapLocationOptions({
+    this.showUserLocation,
+    this.geolocationControlEnabled,
+    this.userLocationStyle,
+  });
+
+  final bool? showUserLocation;
+  final bool? geolocationControlEnabled;
+  final UserLocationStyle? userLocationStyle;
+}
+
+/// Web 专属地图配置。
+class AMapWebOptions {
+  const AMapWebOptions({
+    this.mapStyle,
+    this.mapFeatures,
+    this.jogEnable,
+    this.animateEnable,
+    this.keyboardEnable,
+    this.isHotspot,
+    this.defaultCursor,
+    this.viewMode,
+    this.terrain,
+    this.wallColor,
+    this.roofColor,
+    this.skyColor,
+  });
+
+  final String? mapStyle;
+  final Set<String>? mapFeatures;
+  final bool? jogEnable;
+  final bool? animateEnable;
+  final bool? keyboardEnable;
+  final bool? isHotspot;
+  final String? defaultCursor;
+  final String? viewMode;
+  final bool? terrain;
+  final Color? wallColor;
+  final Color? roofColor;
+  final Color? skyColor;
+}
+
+/// SDK 初始化配置。
+class AMapSdkConfig {
+  const AMapSdkConfig({
+    required this.apiKey,
+    this.agreePrivacy = true,
+    this.preloadNaviIcons = true,
+  });
+
+  final ApiKey apiKey;
+  final bool agreePrivacy;
+  final bool preloadNaviIcons;
+}
+
 /// 高德地图
 class AMapWidget extends StatefulWidget {
   const AMapWidget({
     super.key,
+    this.mapOptions,
+    this.gestureOptions,
+    this.uiOptions,
+    this.locationOptions,
+    this.webOptions,
     this.mapType,
     this.mapStyle,
     this.mapFeatures = const {"bg", "road", "point", "building"},
@@ -49,6 +192,9 @@ class AMapWidget extends StatefulWidget {
     this.geolocationControlEnabled,
     this.userLocationStyle,
     this.customStyleOptions,
+    this.markers = const {},
+    this.polylines = const {},
+    this.polygons = const {},
     this.onMapCreated,
     this.onMapInitComplete,
     this.onMapCompleted,
@@ -88,6 +234,21 @@ class AMapWidget extends StatefulWidget {
     this.onMarkerDragEnd,
     this.onUserLocationChange,
   });
+
+  /// 地图基础配置。新代码优先使用该分组参数；同名旧参数仍保留兼容。
+  final AMapMapOptions? mapOptions;
+
+  /// 地图手势配置。
+  final AMapGestureOptions? gestureOptions;
+
+  /// 地图控件配置。
+  final AMapUiOptions? uiOptions;
+
+  /// 定位显示配置。
+  final AMapLocationOptions? locationOptions;
+
+  /// Web 专属地图配置。
+  final AMapWebOptions? webOptions;
 
   /// 地图类型编号(iOS and Android Only)
   final MapType? mapType;
@@ -240,6 +401,15 @@ class AMapWidget extends StatefulWidget {
   /// 离线自定义地图样式（iOS / Android），Web 端忽略
   final CustomStyleOptions? customStyleOptions;
 
+  /// 声明式点标记集合。
+  final Set<Marker> markers;
+
+  /// 声明式折线集合。
+  final Set<Polyline> polylines;
+
+  /// 声明式多边形集合。
+  final Set<Polygon> polygons;
+
   /// 地图创建完成事件回调函数
   ///
   /// 可以使用参数 [AMapController] 调用地图方法
@@ -363,24 +533,36 @@ class AMapWidget extends StatefulWidget {
   /// 请确保用户设置高德地图SDK API key
   /// 请确保用户同意高德地图SDK隐私协议
   static Future<void> init({
-    required ApiKey apiKey,
+    ApiKey? apiKey,
+    AMapSdkConfig? config,
     bool agreePrivacy = true,
   }) async {
-    await AMapFlutterPlatformInterface.instance.setApiKey(apiKey);
+    final AMapSdkConfig sdkConfig = config ??
+        AMapSdkConfig(
+          apiKey: apiKey ?? (throw ArgumentError.notNull("apiKey")),
+          agreePrivacy: agreePrivacy,
+        );
+    await AMapFlutterPlatformInterface.instance.setApiKey(sdkConfig.apiKey);
     if (!kIsWeb) {
-      await AMapFlutterPlatformInterface.instance.agreePrivacy(agreePrivacy);
+      await AMapFlutterPlatformInterface.instance.agreePrivacy(
+        sdkConfig.agreePrivacy,
+      );
     }
-    // 预加载导航图标资源
-    NaviInfo.preloadAssetIcons();
+    if (sdkConfig.preloadNaviIcons) {
+      // 预加载导航图标资源
+      NaviInfo.preloadAssetIcons();
+    }
   }
 }
 
 class AMapWidgetState extends State<AMapWidget> {
   static final defaultUIControlOffset = UIControlOffset(x: 0, y: 0);
-  late final int mapId;
+  int? mapId;
+  bool _platformViewReady = false;
 
   @override
   Widget build(BuildContext context) {
+    final MapInitConfig initConfig = _buildInitConfig();
     if (kIsWeb) {
       return HtmlElementView(
         viewType: "amap_flutter",
@@ -392,40 +574,7 @@ class AMapWidgetState extends State<AMapWidget> {
         return AndroidView(
           viewType: "amap_flutter",
           creationParams: {
-            "options": MapInitConfig(
-              mapType: widget.mapType,
-              mapStyle: widget.mapStyle,
-              cameraPosition: widget.initCameraPosition,
-              fitPositions: widget.initFitPositions,
-              minZoom: widget.minZoom,
-              maxZoom: widget.maxZoom,
-              dragEnable: widget.dragEnable,
-              zoomEnable: widget.zoomEnable,
-              tiltEnable: widget.tiltEnable,
-              rotateEnable: widget.rotateEnable,
-              jogEnable: widget.jogEnable,
-              animateEnable: widget.animateEnable,
-              keyboardEnable: widget.keyboardEnable,
-              compassControlEnabled: widget.compassControlEnabled,
-              scaleControlEnabled: widget.scaleControlEnabled,
-              zoomControlEnabled: widget.zoomControlEnabled,
-              logoPosition: widget.logoPosition,
-              doubleClickZoom: widget.doubleClickZoom,
-              scrollWheel: widget.scrollWheel,
-              touchZoom: widget.touchZoom,
-              touchZoomCenter: widget.touchZoomCenter,
-              isHotspot: widget.isHotspot,
-              showBuildingBlock: widget.showBuildingBlock,
-              showLabel: widget.showLabel,
-              showIndoorMap: widget.showIndoorMap,
-              defaultCursor: widget.defaultCursor,
-              viewMode: widget.viewMode,
-              terrain: widget.terrain,
-              wallColor: widget.wallColor,
-              roofColor: widget.roofColor,
-              skyColor: widget.skyColor,
-              customStyleOptions: widget.customStyleOptions,
-            ).encode(),
+            "options": initConfig.encode(),
           },
           creationParamsCodec: const AMapApiCodec(),
           onPlatformViewCreated: _onPlatformViewCreated,
@@ -434,38 +583,7 @@ class AMapWidgetState extends State<AMapWidget> {
         return UiKitView(
           viewType: "amap_flutter",
           creationParams: {
-            "options": MapInitConfig(
-              mapType: widget.mapType,
-              mapStyle: widget.mapStyle,
-              cameraPosition: widget.initCameraPosition,
-              fitPositions: widget.initFitPositions,
-              minZoom: widget.minZoom,
-              maxZoom: widget.maxZoom,
-              dragEnable: widget.dragEnable,
-              zoomEnable: widget.zoomEnable,
-              tiltEnable: widget.tiltEnable,
-              rotateEnable: widget.rotateEnable,
-              jogEnable: widget.jogEnable,
-              animateEnable: widget.animateEnable,
-              keyboardEnable: widget.keyboardEnable,
-              compassControlEnabled: widget.compassControlEnabled,
-              scaleControlEnabled: widget.scaleControlEnabled,
-              doubleClickZoom: widget.doubleClickZoom,
-              scrollWheel: widget.scrollWheel,
-              touchZoom: widget.touchZoom,
-              touchZoomCenter: widget.touchZoomCenter,
-              isHotspot: widget.isHotspot,
-              showBuildingBlock: widget.showBuildingBlock,
-              showLabel: widget.showLabel,
-              showIndoorMap: widget.showIndoorMap,
-              defaultCursor: widget.defaultCursor,
-              viewMode: widget.viewMode,
-              terrain: widget.terrain,
-              wallColor: widget.wallColor,
-              roofColor: widget.roofColor,
-              skyColor: widget.skyColor,
-              customStyleOptions: widget.customStyleOptions,
-            ).encode(),
+            "options": initConfig.encode(),
           },
           creationParamsCodec: const AMapApiCodec(),
           onPlatformViewCreated: _onPlatformViewCreated,
@@ -478,129 +596,137 @@ class AMapWidgetState extends State<AMapWidget> {
   @override
   void didUpdateWidget(oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_platformViewReady || mapId == null) {
+      return;
+    }
     MapUpdateConfig config = MapUpdateConfig();
-    if (widget.mapType != null && widget.mapType != oldWidget.mapType) {
-      config.mapType = widget.mapType;
+    if (_mapType(widget) != null && _mapType(widget) != _mapType(oldWidget)) {
+      config.mapType = _mapType(widget);
     }
-    if (widget.mapStyle != null && widget.mapStyle != oldWidget.mapStyle) {
-      config.mapStyle = widget.mapStyle;
+    if (_mapStyle(widget) != null &&
+        _mapStyle(widget) != _mapStyle(oldWidget)) {
+      config.mapStyle = _mapStyle(widget);
     }
-    if (!setEquals(widget.mapFeatures, oldWidget.mapFeatures)) {
-      config.mapFeatures = widget.mapFeatures.toList();
+    if (!setEquals(_mapFeatures(widget), _mapFeatures(oldWidget))) {
+      config.mapFeatures = _mapFeatures(widget).toList();
     }
-    if (widget.dragEnable != null &&
-        widget.dragEnable != oldWidget.dragEnable) {
-      config.dragEnable = widget.dragEnable;
+    if (_dragEnable(widget) != null &&
+        _dragEnable(widget) != _dragEnable(oldWidget)) {
+      config.dragEnable = _dragEnable(widget);
     }
-    if (widget.zoomEnable != null &&
-        widget.zoomEnable != oldWidget.zoomEnable) {
-      config.zoomEnable = widget.zoomEnable;
+    if (_zoomEnable(widget) != null &&
+        _zoomEnable(widget) != _zoomEnable(oldWidget)) {
+      config.zoomEnable = _zoomEnable(widget);
     }
-    if (widget.tiltEnable != null &&
-        widget.tiltEnable != oldWidget.tiltEnable) {
-      config.tiltEnable = widget.tiltEnable;
+    if (_tiltEnable(widget) != null &&
+        _tiltEnable(widget) != _tiltEnable(oldWidget)) {
+      config.tiltEnable = _tiltEnable(widget);
     }
-    if (widget.rotateEnable != null &&
-        widget.rotateEnable != oldWidget.rotateEnable) {
-      config.rotateEnable = widget.rotateEnable;
+    if (_rotateEnable(widget) != null &&
+        _rotateEnable(widget) != _rotateEnable(oldWidget)) {
+      config.rotateEnable = _rotateEnable(widget);
     }
-    if (widget.compassControlEnabled != null &&
-        widget.compassControlEnabled != oldWidget.compassControlEnabled) {
-      config.compassControlEnabled = widget.compassControlEnabled;
+    if (_compassControlEnabled(widget) != null &&
+        _compassControlEnabled(widget) != _compassControlEnabled(oldWidget)) {
+      config.compassControlEnabled = _compassControlEnabled(widget);
     }
-    if (widget.scaleControlEnabled != null &&
-        widget.scaleControlEnabled != oldWidget.scaleControlEnabled) {
-      config.scaleControlEnabled = widget.scaleControlEnabled;
+    if (_scaleControlEnabled(widget) != null &&
+        _scaleControlEnabled(widget) != _scaleControlEnabled(oldWidget)) {
+      config.scaleControlEnabled = _scaleControlEnabled(widget);
     }
-    if (widget.zoomControlEnabled != null &&
-        widget.zoomControlEnabled != oldWidget.zoomControlEnabled) {
-      config.zoomControlEnabled = widget.zoomControlEnabled;
+    if (_zoomControlEnabled(widget) != null &&
+        _zoomControlEnabled(widget) != _zoomControlEnabled(oldWidget)) {
+      config.zoomControlEnabled = _zoomControlEnabled(widget);
     }
-    if (widget.hawkEyeControlEnabled != null &&
-        widget.hawkEyeControlEnabled != oldWidget.hawkEyeControlEnabled) {
-      config.hawkEyeControlEnabled = widget.hawkEyeControlEnabled;
+    if (_hawkEyeControlEnabled(widget) != null &&
+        _hawkEyeControlEnabled(widget) != _hawkEyeControlEnabled(oldWidget)) {
+      config.hawkEyeControlEnabled = _hawkEyeControlEnabled(widget);
     }
-    if (widget.mapTypeControlEnabled != null &&
-        widget.mapTypeControlEnabled != oldWidget.mapTypeControlEnabled) {
-      config.mapTypeControlEnabled = widget.mapTypeControlEnabled;
+    if (_mapTypeControlEnabled(widget) != null &&
+        _mapTypeControlEnabled(widget) != _mapTypeControlEnabled(oldWidget)) {
+      config.mapTypeControlEnabled = _mapTypeControlEnabled(widget);
     }
-    if (widget.logoPosition != null &&
-        widget.logoPosition != oldWidget.logoPosition) {
-      config.logoPosition = widget.logoPosition;
+    if (_logoPosition(widget) != null &&
+        _logoPosition(widget) != _logoPosition(oldWidget)) {
+      config.logoPosition = _logoPosition(widget);
     }
-    if (widget.compassControlPosition != null &&
-        widget.compassControlPosition != oldWidget.compassControlPosition) {
-      config.compassControlPosition = widget.compassControlPosition;
+    if (_compassControlPosition(widget) != null &&
+        _compassControlPosition(widget) != _compassControlPosition(oldWidget)) {
+      config.compassControlPosition = _compassControlPosition(widget);
     }
-    if (widget.scaleControlPosition != null &&
-        widget.scaleControlPosition != oldWidget.scaleControlPosition) {
-      config.scaleControlPosition = widget.scaleControlPosition;
+    if (_scaleControlPosition(widget) != null &&
+        _scaleControlPosition(widget) != _scaleControlPosition(oldWidget)) {
+      config.scaleControlPosition = _scaleControlPosition(widget);
     }
-    if (widget.zoomControlPosition != null &&
-        widget.zoomControlPosition != oldWidget.zoomControlPosition) {
-      config.zoomControlPosition = widget.zoomControlPosition;
+    if (_zoomControlPosition(widget) != null &&
+        _zoomControlPosition(widget) != _zoomControlPosition(oldWidget)) {
+      config.zoomControlPosition = _zoomControlPosition(widget);
     }
-    if (widget.showTraffic != null &&
-        widget.showTraffic != oldWidget.showTraffic) {
-      config.showTraffic = widget.showTraffic;
+    if (_showTraffic(widget) != null &&
+        _showTraffic(widget) != _showTraffic(oldWidget)) {
+      config.showTraffic = _showTraffic(widget);
     }
-    if (widget.showBuildings != null &&
-        widget.showBuildings != oldWidget.showBuildings) {
-      config.showBuildings = widget.showBuildings;
+    if (_showBuildings(widget) != null &&
+        _showBuildings(widget) != _showBuildings(oldWidget)) {
+      config.showBuildings = _showBuildings(widget);
     }
-    if (widget.showIndoorMap != oldWidget.showIndoorMap) {
-      config.showIndoorMap = widget.showIndoorMap;
+    if (_showIndoorMap(widget) != _showIndoorMap(oldWidget)) {
+      config.showIndoorMap = _showIndoorMap(widget);
     }
-    if (widget.showSatelliteLayer != oldWidget.showSatelliteLayer) {
-      config.showSatelliteLayer = widget.showSatelliteLayer;
+    if (_showSatelliteLayer(widget) != _showSatelliteLayer(oldWidget)) {
+      config.showSatelliteLayer = _showSatelliteLayer(widget);
     }
-    if (widget.showRoadNetLayer != oldWidget.showRoadNetLayer) {
-      config.showRoadNetLayer = widget.showRoadNetLayer;
+    if (_showRoadNetLayer(widget) != _showRoadNetLayer(oldWidget)) {
+      config.showRoadNetLayer = _showRoadNetLayer(widget);
     }
-    if (widget.geolocationControlEnabled != null &&
-        widget.geolocationControlEnabled !=
-            oldWidget.geolocationControlEnabled) {
+    if (_geolocationControlEnabled(widget) != null &&
+        _geolocationControlEnabled(widget) !=
+            _geolocationControlEnabled(oldWidget)) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
-            userLocationButton: widget.geolocationControlEnabled,
+            userLocationButton: _geolocationControlEnabled(widget),
           ) ??
           UserLocationConfig(
-            userLocationButton: widget.geolocationControlEnabled,
+            userLocationButton: _geolocationControlEnabled(widget),
           );
     }
-    if (widget.showUserLocation != null &&
-        widget.showUserLocation != oldWidget.showUserLocation) {
+    if (_showUserLocation(widget) != null &&
+        _showUserLocation(widget) != _showUserLocation(oldWidget)) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
-            showUserLocation: widget.showUserLocation,
+            showUserLocation: _showUserLocation(widget),
           ) ??
           UserLocationConfig(
-            showUserLocation: widget.showUserLocation,
+            showUserLocation: _showUserLocation(widget),
           );
     }
     if (_userLocationStyleFieldsDiffer(
-      widget.userLocationStyle,
-      oldWidget.userLocationStyle,
+      _userLocationStyle(widget),
+      _userLocationStyle(oldWidget),
     )) {
       config.userLocationConfig = config.userLocationConfig?.copyWith(
-            userLocationButton: widget.geolocationControlEnabled,
-            showUserLocation: widget.showUserLocation,
-            userLocationStyle: widget.userLocationStyle,
+            userLocationButton: _geolocationControlEnabled(widget),
+            showUserLocation: _showUserLocation(widget),
+            userLocationStyle: _userLocationStyle(widget),
           ) ??
           UserLocationConfig(
-            userLocationButton: widget.geolocationControlEnabled,
-            showUserLocation: widget.showUserLocation,
-            userLocationStyle: widget.userLocationStyle,
+            userLocationButton: _geolocationControlEnabled(widget),
+            showUserLocation: _showUserLocation(widget),
+            userLocationStyle: _userLocationStyle(widget),
           );
     }
-    if (widget.customStyleOptions != oldWidget.customStyleOptions) {
-      config.customStyleOptions = widget.customStyleOptions;
+    if (_customStyleOptions(widget) != _customStyleOptions(oldWidget)) {
+      config.customStyleOptions = _customStyleOptions(widget);
     }
-    if (widget.minZoom != oldWidget.minZoom) {
-      config.minZoom = widget.minZoom;
+    if (_minZoom(widget) != _minZoom(oldWidget)) {
+      config.minZoom = _minZoom(widget);
     }
-    if (widget.maxZoom != oldWidget.maxZoom) {
-      config.maxZoom = widget.maxZoom;
+    if (_maxZoom(widget) != _maxZoom(oldWidget)) {
+      config.maxZoom = _maxZoom(widget);
     }
-    AMapFlutterPlatformInterface.instance.updateMapConfig(config, mapId: mapId);
+    AMapFlutterPlatformInterface.instance.updateMapConfig(
+      config,
+      mapId: mapId!,
+    );
+    _syncOverlays(oldWidget);
   }
 
   AMapController? _controller;
@@ -609,6 +735,7 @@ class AMapWidgetState extends State<AMapWidget> {
     mapId = id;
     await AMapFlutterPlatformInterface.instance.init(id, widget);
     _controller = AMapController(widget, mapId: id);
+    _platformViewReady = true;
 
     if (!mounted) {
       _controller?.destroy();
@@ -616,55 +743,312 @@ class AMapWidgetState extends State<AMapWidget> {
     }
 
     _initMap();
+    _syncOverlays();
     widget.onMapCreated?.call(_controller!);
   }
 
   @override
   void dispose() {
+    _platformViewReady = false;
     _controller?.destroy();
     super.dispose();
   }
 
   _initMap() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_platformViewReady || mapId == null) {
+        return;
+      }
       MapUpdateConfig config = MapUpdateConfig(
-        mapType: widget.mapType,
-        mapStyle: widget.mapStyle,
-        mapFeatures: widget.mapFeatures.toList(),
-        dragEnable: widget.dragEnable,
-        zoomEnable: widget.zoomEnable,
-        tiltEnable: widget.tiltEnable,
-        rotateEnable: widget.rotateEnable,
-        compassControlEnabled: widget.compassControlEnabled,
-        scaleControlEnabled: widget.scaleControlEnabled,
-        zoomControlEnabled: widget.zoomControlEnabled,
-        hawkEyeControlEnabled: widget.hawkEyeControlEnabled,
-        mapTypeControlEnabled: widget.mapTypeControlEnabled,
-        logoPosition: widget.logoPosition,
-        compassControlPosition: widget.compassControlPosition,
-        scaleControlPosition: widget.scaleControlPosition,
-        zoomControlPosition: widget.zoomControlPosition,
-        showTraffic: widget.showTraffic,
-        showBuildings: widget.showBuildings,
-        showIndoorMap: widget.showIndoorMap,
-        showSatelliteLayer: widget.showSatelliteLayer,
-        showRoadNetLayer: widget.showRoadNetLayer,
+        mapType: _mapType(widget),
+        mapStyle: _mapStyle(widget),
+        mapFeatures: _mapFeatures(widget).toList(),
+        dragEnable: _dragEnable(widget),
+        zoomEnable: _zoomEnable(widget),
+        tiltEnable: _tiltEnable(widget),
+        rotateEnable: _rotateEnable(widget),
+        compassControlEnabled: _compassControlEnabled(widget),
+        scaleControlEnabled: _scaleControlEnabled(widget),
+        zoomControlEnabled: _zoomControlEnabled(widget),
+        hawkEyeControlEnabled: _hawkEyeControlEnabled(widget),
+        mapTypeControlEnabled: _mapTypeControlEnabled(widget),
+        logoPosition: _logoPosition(widget),
+        compassControlPosition: _compassControlPosition(widget),
+        scaleControlPosition: _scaleControlPosition(widget),
+        zoomControlPosition: _zoomControlPosition(widget),
+        showTraffic: _showTraffic(widget),
+        showBuildings: _showBuildings(widget),
+        showIndoorMap: _showIndoorMap(widget),
+        showSatelliteLayer: _showSatelliteLayer(widget),
+        showRoadNetLayer: _showRoadNetLayer(widget),
         userLocationConfig: UserLocationConfig(
-          userLocationButton: widget.geolocationControlEnabled,
-          showUserLocation: widget.showUserLocation,
-          userLocationStyle: widget.userLocationStyle,
+          userLocationButton: _geolocationControlEnabled(widget),
+          showUserLocation: _showUserLocation(widget),
+          userLocationStyle: _userLocationStyle(widget),
         ),
-        customStyleOptions: widget.customStyleOptions,
-        minZoom: widget.minZoom,
-        maxZoom: widget.maxZoom,
+        customStyleOptions: _customStyleOptions(widget),
+        minZoom: _minZoom(widget),
+        maxZoom: _maxZoom(widget),
       );
       AMapFlutterPlatformInterface.instance.updateMapConfig(
         config,
-        mapId: mapId,
+        mapId: mapId!,
       );
     });
   }
+
+  MapInitConfig _buildInitConfig() {
+    return MapInitConfig(
+      mapType: _mapType(widget),
+      mapStyle: _mapStyle(widget),
+      cameraPosition: _initCameraPosition(widget),
+      fitPositions: _initFitPositions(widget),
+      minZoom: _minZoom(widget),
+      maxZoom: _maxZoom(widget),
+      dragEnable: _dragEnable(widget),
+      zoomEnable: _zoomEnable(widget),
+      tiltEnable: _tiltEnable(widget),
+      rotateEnable: _rotateEnable(widget),
+      jogEnable: _jogEnable(widget),
+      animateEnable: _animateEnable(widget),
+      keyboardEnable: _keyboardEnable(widget),
+      compassControlEnabled: _compassControlEnabled(widget),
+      scaleControlEnabled: _scaleControlEnabled(widget),
+      zoomControlEnabled: _zoomControlEnabled(widget),
+      logoPosition: _logoPosition(widget),
+      doubleClickZoom: _doubleClickZoom(widget),
+      scrollWheel: _scrollWheel(widget),
+      touchZoom: _touchZoom(widget),
+      touchZoomCenter: _touchZoomCenter(widget),
+      isHotspot: _isHotspot(widget),
+      showBuildingBlock: _showBuildingBlock(widget),
+      showLabel: _showLabel(widget),
+      showIndoorMap: _showIndoorMap(widget),
+      defaultCursor: _defaultCursor(widget),
+      viewMode: _viewMode(widget),
+      terrain: _terrain(widget),
+      wallColor: _wallColor(widget),
+      roofColor: _roofColor(widget),
+      skyColor: _skyColor(widget),
+      customStyleOptions: _customStyleOptions(widget),
+    );
+  }
+
+  void _syncOverlays([AMapWidget? oldWidget]) {
+    if (!_platformViewReady || _controller == null) {
+      return;
+    }
+    _syncMarkers(oldWidget?.markers ?? const <Marker>{}, widget.markers);
+    _syncPolylines(
+        oldWidget?.polylines ?? const <Polyline>{}, widget.polylines);
+    _syncPolygons(oldWidget?.polygons ?? const <Polygon>{}, widget.polygons);
+  }
+
+  void _syncMarkers(Set<Marker> oldMarkers, Set<Marker> newMarkers) {
+    final Map<String, Marker> oldById = _markersById(oldMarkers);
+    final Map<String, Marker> newById = _markersById(newMarkers);
+    for (final id in oldById.keys.where((id) => !newById.containsKey(id))) {
+      _controller!.removeMarker(id);
+    }
+    for (final entry in newById.entries) {
+      final Marker? oldMarker = oldById[entry.key];
+      if (oldMarker == null) {
+        _controller!.addMarker(entry.value);
+      } else if (oldMarker != entry.value) {
+        _controller!.removeMarker(entry.key);
+        _controller!.addMarker(entry.value);
+      }
+    }
+  }
+
+  void _syncPolylines(Set<Polyline> oldLines, Set<Polyline> newLines) {
+    final Map<String, Polyline> oldById = _polylinesById(oldLines);
+    final Map<String, Polyline> newById = _polylinesById(newLines);
+    for (final id in oldById.keys.where((id) => !newById.containsKey(id))) {
+      _controller!.removePolyline(id);
+    }
+    for (final entry in newById.entries) {
+      final Polyline? oldLine = oldById[entry.key];
+      if (oldLine == null) {
+        _controller!.addPolyline(entry.value);
+      } else if (oldLine != entry.value) {
+        _controller!.removePolyline(entry.key);
+        _controller!.addPolyline(entry.value);
+      }
+    }
+  }
+
+  void _syncPolygons(Set<Polygon> oldPolygons, Set<Polygon> newPolygons) {
+    final Map<String, Polygon> oldById = _polygonsById(oldPolygons);
+    final Map<String, Polygon> newById = _polygonsById(newPolygons);
+    for (final id in oldById.keys.where((id) => !newById.containsKey(id))) {
+      _controller!.removePolygon(id);
+    }
+    for (final entry in newById.entries) {
+      final Polygon? oldPolygon = oldById[entry.key];
+      if (oldPolygon == null) {
+        _controller!.addPolygon(entry.value);
+      } else if (oldPolygon != entry.value) {
+        _controller!.removePolygon(entry.key);
+        _controller!.addPolygon(entry.value);
+      }
+    }
+  }
 }
+
+Map<String, Marker> _markersById(Set<Marker> markers) {
+  return <String, Marker>{
+    for (final marker in markers) marker.id: marker,
+  };
+}
+
+Map<String, Polyline> _polylinesById(Set<Polyline> polylines) {
+  return <String, Polyline>{
+    for (final polyline in polylines) polyline.id: polyline,
+  };
+}
+
+Map<String, Polygon> _polygonsById(Set<Polygon> polygons) {
+  return <String, Polygon>{
+    for (final polygon in polygons) polygon.id: polygon,
+  };
+}
+
+MapType? _mapType(AMapWidget widget) =>
+    widget.mapOptions?.mapType ?? widget.mapType;
+
+String? _mapStyle(AMapWidget widget) =>
+    widget.webOptions?.mapStyle ?? widget.mapStyle;
+
+Set<String> _mapFeatures(AMapWidget widget) =>
+    widget.webOptions?.mapFeatures ?? widget.mapFeatures;
+
+CameraPosition? _initCameraPosition(AMapWidget widget) =>
+    widget.mapOptions?.initCameraPosition ?? widget.initCameraPosition;
+
+List<Position>? _initFitPositions(AMapWidget widget) =>
+    widget.mapOptions?.initFitPositions ?? widget.initFitPositions;
+
+double? _minZoom(AMapWidget widget) =>
+    widget.mapOptions?.minZoom ?? widget.minZoom;
+
+double? _maxZoom(AMapWidget widget) =>
+    widget.mapOptions?.maxZoom ?? widget.maxZoom;
+
+bool? _dragEnable(AMapWidget widget) =>
+    widget.gestureOptions?.dragEnable ?? widget.dragEnable;
+
+bool? _zoomEnable(AMapWidget widget) =>
+    widget.gestureOptions?.zoomEnable ?? widget.zoomEnable;
+
+bool? _tiltEnable(AMapWidget widget) =>
+    widget.gestureOptions?.tiltEnable ?? widget.tiltEnable;
+
+bool? _rotateEnable(AMapWidget widget) =>
+    widget.gestureOptions?.rotateEnable ?? widget.rotateEnable;
+
+bool? _jogEnable(AMapWidget widget) =>
+    widget.webOptions?.jogEnable ?? widget.jogEnable;
+
+bool? _animateEnable(AMapWidget widget) =>
+    widget.webOptions?.animateEnable ?? widget.animateEnable;
+
+bool? _keyboardEnable(AMapWidget widget) =>
+    widget.webOptions?.keyboardEnable ?? widget.keyboardEnable;
+
+bool? _compassControlEnabled(AMapWidget widget) =>
+    widget.uiOptions?.compassControlEnabled ?? widget.compassControlEnabled;
+
+bool? _scaleControlEnabled(AMapWidget widget) =>
+    widget.uiOptions?.scaleControlEnabled ?? widget.scaleControlEnabled;
+
+bool? _zoomControlEnabled(AMapWidget widget) =>
+    widget.uiOptions?.zoomControlEnabled ?? widget.zoomControlEnabled;
+
+bool? _hawkEyeControlEnabled(AMapWidget widget) =>
+    widget.uiOptions?.hawkEyeControlEnabled ?? widget.hawkEyeControlEnabled;
+
+bool? _mapTypeControlEnabled(AMapWidget widget) =>
+    widget.uiOptions?.mapTypeControlEnabled ?? widget.mapTypeControlEnabled;
+
+UIControlPosition? _logoPosition(AMapWidget widget) =>
+    widget.uiOptions?.logoPosition ?? widget.logoPosition;
+
+UIControlPosition? _compassControlPosition(AMapWidget widget) =>
+    widget.uiOptions?.compassControlPosition ?? widget.compassControlPosition;
+
+UIControlPosition? _scaleControlPosition(AMapWidget widget) =>
+    widget.uiOptions?.scaleControlPosition ?? widget.scaleControlPosition;
+
+UIControlPosition? _zoomControlPosition(AMapWidget widget) =>
+    widget.uiOptions?.zoomControlPosition ?? widget.zoomControlPosition;
+
+bool? _doubleClickZoom(AMapWidget widget) =>
+    widget.gestureOptions?.doubleClickZoom ?? widget.doubleClickZoom;
+
+bool? _scrollWheel(AMapWidget widget) =>
+    widget.gestureOptions?.scrollWheel ?? widget.scrollWheel;
+
+bool? _touchZoom(AMapWidget widget) =>
+    widget.gestureOptions?.touchZoom ?? widget.touchZoom;
+
+bool? _touchZoomCenter(AMapWidget widget) =>
+    widget.gestureOptions?.touchZoomCenter ?? widget.touchZoomCenter;
+
+bool? _isHotspot(AMapWidget widget) =>
+    widget.webOptions?.isHotspot ?? widget.isHotspot;
+
+bool? _showTraffic(AMapWidget widget) =>
+    widget.mapOptions?.showTraffic ?? widget.showTraffic;
+
+bool? _showBuildings(AMapWidget widget) =>
+    widget.mapOptions?.showBuildings ?? widget.showBuildings;
+
+bool? _showIndoorMap(AMapWidget widget) =>
+    widget.mapOptions?.showIndoorMap ?? widget.showIndoorMap;
+
+bool _showSatelliteLayer(AMapWidget widget) =>
+    widget.mapOptions?.showSatelliteLayer ?? widget.showSatelliteLayer;
+
+bool _showRoadNetLayer(AMapWidget widget) =>
+    widget.mapOptions?.showRoadNetLayer ?? widget.showRoadNetLayer;
+
+bool? _showBuildingBlock(AMapWidget widget) =>
+    widget.mapOptions?.showBuildingBlock ?? widget.showBuildingBlock;
+
+bool? _showLabel(AMapWidget widget) =>
+    widget.mapOptions?.showLabel ?? widget.showLabel;
+
+String? _defaultCursor(AMapWidget widget) =>
+    widget.webOptions?.defaultCursor ?? widget.defaultCursor;
+
+String? _viewMode(AMapWidget widget) =>
+    widget.webOptions?.viewMode ?? widget.viewMode;
+
+bool? _terrain(AMapWidget widget) =>
+    widget.webOptions?.terrain ?? widget.terrain;
+
+Color? _wallColor(AMapWidget widget) =>
+    widget.webOptions?.wallColor ?? widget.wallColor;
+
+Color? _roofColor(AMapWidget widget) =>
+    widget.webOptions?.roofColor ?? widget.roofColor;
+
+Color? _skyColor(AMapWidget widget) =>
+    widget.webOptions?.skyColor ?? widget.skyColor;
+
+bool? _showUserLocation(AMapWidget widget) =>
+    widget.locationOptions?.showUserLocation ?? widget.showUserLocation;
+
+bool? _geolocationControlEnabled(AMapWidget widget) =>
+    widget.locationOptions?.geolocationControlEnabled ??
+    widget.geolocationControlEnabled;
+
+UserLocationStyle? _userLocationStyle(AMapWidget widget) =>
+    widget.locationOptions?.userLocationStyle ?? widget.userLocationStyle;
+
+CustomStyleOptions? _customStyleOptions(AMapWidget widget) =>
+    widget.mapOptions?.customStyleOptions ?? widget.customStyleOptions;
 
 /// [UserLocationStyle] 未实现 `==`，用于 [AMapWidgetState.didUpdateWidget] 判断是否需要下发定位样式。
 bool _userLocationStyleFieldsDiffer(

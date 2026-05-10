@@ -56,6 +56,10 @@ private class AMapCodecReader: FlutterStandardReader {
       return UserLocationConfig.fromList(self.readValue() as! [Any?])
     case 146:
       return UserLocationStyle.fromList(self.readValue() as! [Any?])
+    case 147:
+      return Polyline.fromList(self.readValue() as! [Any?])
+    case 148:
+      return Polygon.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -120,6 +124,12 @@ private class AMapCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? UserLocationStyle {
       super.writeByte(146)
+      super.writeValue(value.toList())
+    } else if let value = value as? Polyline {
+      super.writeByte(147)
+      super.writeValue(value.toList())
+    } else if let value = value as? Polygon {
+      super.writeByte(148)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)

@@ -159,6 +159,20 @@ extension Marker {
   }
 }
 
+extension Polyline {
+  var overlay: MAPolyline {
+    var coordinates = points.map { $0.coordinate }
+    return MAPolyline(coordinates: &coordinates, count: UInt(points.count))
+  }
+}
+
+extension Polygon {
+  var overlay: MAPolygon {
+    var coordinates = points.map { $0.coordinate }
+    return MAPolygon(coordinates: &coordinates, count: UInt(points.count))
+  }
+}
+
 extension Position {
   var coordinate: CLLocationCoordinate2D {
     return CLLocationCoordinate2DMake(latitude, longitude)
@@ -178,6 +192,18 @@ extension Size {
 }
 
 extension UIColor {
+  convenience init(amapColorValue value: Any?) {
+    if let number = value as? NSNumber {
+      self.init(hex: UInt(truncating: number))
+    } else if let value = value as? UInt {
+      self.init(hex: value)
+    } else if let value = value as? Int {
+      self.init(hex: UInt(bitPattern: value))
+    } else {
+      self.init(hex: 0)
+    }
+  }
+
   convenience init(hex: UInt) {
     self.init(
       red: CGFloat((hex & 0x00FF0000) >> 16) / 255,

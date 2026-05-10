@@ -121,6 +121,18 @@ object AMapApiCodec : StandardMessageCodec() {
         }
       }
 
+      147.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Polyline.fromList(it)
+        }
+      }
+
+      148.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Polygon.fromList(it)
+        }
+      }
+
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -219,6 +231,16 @@ object AMapApiCodec : StandardMessageCodec() {
 
       is UserLocationStyle -> {
         stream.write(146)
+        writeValue(stream, value.toList())
+      }
+
+      is Polyline -> {
+        stream.write(147)
+        writeValue(stream, value.toList())
+      }
+
+      is Polygon -> {
+        stream.write(148)
         writeValue(stream, value.toList())
       }
 

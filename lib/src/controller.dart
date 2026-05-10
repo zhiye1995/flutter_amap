@@ -22,6 +22,13 @@ class AMapController {
   /// 当前地图视野（内部追踪，用于 zoomIn/zoomOut 等操作）
   CameraPosition? _currentCamera;
 
+  final List<StreamSubscription<dynamic>> _subscriptions =
+      <StreamSubscription<dynamic>>[];
+
+  void _listen<T extends Object?>(Stream<T> stream, void Function(T) onData) {
+    _subscriptions.add(stream.listen(onData));
+  }
+
   /// 等待地图加载完成（onMapCompleted / onMapLoaded）。
   ///
   /// 说明：
@@ -42,207 +49,98 @@ class AMapController {
   }
 
   void _connectStreams(int mapId) {
-    if (_aMapFlutter.onMapInitComplete != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMapInitComplete(mapId: mapId)
-          .listen(
-            (MapInitCompleteEvent e) => _aMapFlutter.onMapInitComplete!(),
-          );
-    }
-    // 无论业务侧是否传入 onMapCompleted 回调，都需要监听该事件：
-    // moveCamera 等方法会依赖它来确保地图完全加载后再执行。
-    AMapFlutterPlatformInterface.instance.onMapCompleted(mapId: mapId).listen(
-      (MapCompleteEvent e) {
-        if (!_mapCompletedCompleter.isCompleted) {
-          _mapCompletedCompleter.complete();
+    _listen<MapEvent<Object?>>(
+      AMapFlutterPlatformInterface.instance.mapEventStreamController.stream
+          .where((MapEvent<Object?> event) => event.mapId == mapId),
+      (MapEvent<Object?> event) {
+        if (_isDestroyed) {
+          return;
         }
-        _aMapFlutter.onMapCompleted?.call();
+        switch (event) {
+          case MapInitCompleteEvent():
+            _aMapFlutter.onMapInitComplete?.call();
+          case MapCompleteEvent():
+            if (!_mapCompletedCompleter.isCompleted) {
+              _mapCompletedCompleter.complete();
+            }
+            _aMapFlutter.onMapCompleted?.call();
+          case MapPressEvent():
+            _aMapFlutter.onMapPress?.call(event.position);
+          case MapDoublePressEvent():
+            _aMapFlutter.onMapDoublePress?.call(event.position);
+          case MapRightPressEvent():
+            _aMapFlutter.onMapRightPress?.call(event.position);
+          case MapLongPressEvent():
+            _aMapFlutter.onMapLongPress?.call(event.position);
+          case CameraChangeEvent():
+            _currentCamera = event.value;
+            _aMapFlutter.onCameraChange?.call(event.value);
+          case CameraChangeStartEvent():
+            _aMapFlutter.onCameraChangeStart?.call(event.value);
+          case CameraChangeFinishEvent():
+            _currentCamera = event.value;
+            _aMapFlutter.onCameraChangeFinish?.call(event.value);
+          case MapMoveStartEvent():
+            _aMapFlutter.onMapMoveStart?.call(event.position);
+          case MapMoveEvent():
+            _aMapFlutter.onMapMove?.call(event.position);
+          case MapMoveEndEvent():
+            _aMapFlutter.onMapMoveEnd?.call(event.position);
+          case MapResizedEvent():
+            _aMapFlutter.onMapResized?.call(event.value);
+          case ZoomChangeEvent():
+            _aMapFlutter.onZoomChange?.call(event.value);
+          case ZoomChangeStartEvent():
+            _aMapFlutter.onZoomChangeStart?.call(event.value);
+          case ZoomChangeEndEvent():
+            _aMapFlutter.onZoomChangeEnd?.call(event.value);
+          case RotateChangeEvent():
+            _aMapFlutter.onRotateChange?.call(event.value);
+          case RotateChangeStartEvent():
+            _aMapFlutter.onRotateChangeStart?.call(event.value);
+          case RotateChangeEndEvent():
+            _aMapFlutter.onRotateChangeEnd?.call(event.value);
+          case MouseMoveEvent():
+            _aMapFlutter.onMouseMove?.call(event.position);
+          case MouseWheelEvent():
+            _aMapFlutter.onMouseWheel?.call(event.value);
+          case MouseOverEvent():
+            _aMapFlutter.onMouseOver?.call(event.position);
+          case MouseOutEvent():
+            _aMapFlutter.onMouseOut?.call(event.position);
+          case MouseUpEvent():
+            _aMapFlutter.onMouseUp?.call(event.position);
+          case MouseDownEvent():
+            _aMapFlutter.onMouseDown?.call(event.position);
+          case DragStartEvent():
+            _aMapFlutter.onDragStart?.call(event.position);
+          case DraggingEvent():
+            _aMapFlutter.onDragging?.call(event.position);
+          case DragEndEvent():
+            _aMapFlutter.onDragEnd?.call(event.position);
+          case TouchStartEvent():
+            _aMapFlutter.onTouchStart?.call(event.position);
+          case TouchingEvent():
+            _aMapFlutter.onTouching?.call(event.position);
+          case TouchEndEvent():
+            _aMapFlutter.onTouchEnd?.call(event.position);
+          case PoiClickEvent():
+            _aMapFlutter.onPoiClick?.call(event.value);
+          case MarkerClickEvent():
+            _aMapFlutter.onMarkerClick?.call(event.value);
+          case MarkerDragStartEvent():
+            _aMapFlutter.onMarkerDragStart?.call(event.value, event.position);
+          case MarkerDragEvent():
+            _aMapFlutter.onMarkerDrag?.call(event.value, event.position);
+          case MarkerDragEndEvent():
+            _aMapFlutter.onMarkerDragEnd?.call(event.value, event.position);
+          case UserLocationChangeEvent():
+            _aMapFlutter.onUserLocationChange?.call(event.value);
+          default:
+            break;
+        }
       },
     );
-    if (_aMapFlutter.onMapPress != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMapPress(mapId: mapId)
-          .listen((MapPressEvent e) => _aMapFlutter.onMapPress!(e.position));
-    }
-    if (_aMapFlutter.onMapDoublePress != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMapDoublePress(mapId: mapId)
-          .listen((MapDoublePressEvent e) =>
-              _aMapFlutter.onMapDoublePress!(e.position));
-    }
-    if (_aMapFlutter.onMapRightPress != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMapRightPress(mapId: mapId)
-          .listen((MapRightPressEvent e) =>
-              _aMapFlutter.onMapRightPress!(e.position));
-    }
-    if (_aMapFlutter.onMapLongPress != null) {
-      AMapFlutterPlatformInterface.instance.onMapLongPress(mapId: mapId).listen(
-          (MapLongPressEvent e) => _aMapFlutter.onMapLongPress!(e.position));
-    }
-    // 始终监听 onCameraChange 以内部追踪当前视野（用于 zoomIn/zoomOut 等操作）
-    AMapFlutterPlatformInterface.instance.onCameraChange(mapId: mapId).listen(
-      (CameraChangeEvent e) {
-        _currentCamera = e.value;
-        _aMapFlutter.onCameraChange?.call(e.value);
-      },
-    );
-    if (_aMapFlutter.onCameraChangeStart != null) {
-      AMapFlutterPlatformInterface.instance
-          .onCameraChangeStart(mapId: mapId)
-          .listen((CameraChangeStartEvent e) =>
-              _aMapFlutter.onCameraChangeStart!(e.value));
-    }
-    // 始终监听 onCameraChangeFinish 以内部追踪当前视野
-    AMapFlutterPlatformInterface.instance
-        .onCameraChangeFinish(mapId: mapId)
-        .listen((CameraChangeFinishEvent e) {
-      _currentCamera = e.value;
-      _aMapFlutter.onCameraChangeFinish?.call(e.value);
-    });
-    if (_aMapFlutter.onMapMoveStart != null) {
-      AMapFlutterPlatformInterface.instance.onMapMoveStart(mapId: mapId).listen(
-          (MapMoveStartEvent e) => _aMapFlutter.onMapMoveStart!(e.position));
-    }
-    if (_aMapFlutter.onMapMove != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMapMove(mapId: mapId)
-          .listen((MapMoveEvent e) => _aMapFlutter.onMapMove!(e.position));
-    }
-    if (_aMapFlutter.onMapMoveEnd != null) {
-      AMapFlutterPlatformInterface.instance.onMapMoveEnd(mapId: mapId).listen(
-          (MapMoveEndEvent e) => _aMapFlutter.onMapMoveEnd!(e.position));
-    }
-    if (_aMapFlutter.onMapResized != null) {
-      AMapFlutterPlatformInterface.instance.onMapResized(mapId: mapId).listen(
-          (MapResizedEvent event) => _aMapFlutter.onMapResized!(event.value));
-    }
-    if (_aMapFlutter.onZoomChange != null) {
-      AMapFlutterPlatformInterface.instance
-          .onZoomChange(mapId: mapId)
-          .listen((ZoomChangeEvent e) => _aMapFlutter.onZoomChange!(e.value));
-    }
-    if (_aMapFlutter.onZoomChangeStart != null) {
-      AMapFlutterPlatformInterface.instance
-          .onZoomChangeStart(mapId: mapId)
-          .listen((ZoomChangeStartEvent e) =>
-              _aMapFlutter.onZoomChangeStart!(e.value));
-    }
-    if (_aMapFlutter.onZoomChangeEnd != null) {
-      AMapFlutterPlatformInterface.instance
-          .onZoomChangeEnd(mapId: mapId)
-          .listen(
-            (ZoomChangeEndEvent e) => _aMapFlutter.onZoomChangeEnd!(e.value),
-          );
-    }
-    if (_aMapFlutter.onRotateChange != null) {
-      AMapFlutterPlatformInterface.instance.onRotateChange(mapId: mapId).listen(
-          (RotateChangeEvent e) => _aMapFlutter.onRotateChange!(e.value));
-    }
-    if (_aMapFlutter.onRotateChangeStart != null) {
-      AMapFlutterPlatformInterface.instance
-          .onRotateChangeStart(mapId: mapId)
-          .listen((RotateChangeStartEvent e) =>
-              _aMapFlutter.onRotateChangeStart!(e.value));
-    }
-    if (_aMapFlutter.onRotateChangeEnd != null) {
-      AMapFlutterPlatformInterface.instance
-          .onRotateChangeEnd(mapId: mapId)
-          .listen((RotateChangeEndEvent e) =>
-              _aMapFlutter.onRotateChangeEnd!(e.value));
-    }
-    if (_aMapFlutter.onMouseMove != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseMove(mapId: mapId)
-          .listen((MouseMoveEvent e) => _aMapFlutter.onMouseMove!(e.position));
-    }
-    if (_aMapFlutter.onMouseWheel != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseWheel(mapId: mapId)
-          .listen((MouseWheelEvent e) => _aMapFlutter.onMouseWheel!(e.value));
-    }
-    if (_aMapFlutter.onMouseOver != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseOver(mapId: mapId)
-          .listen((MouseOverEvent e) => _aMapFlutter.onMouseOver!(e.position));
-    }
-    if (_aMapFlutter.onMouseOut != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseOut(mapId: mapId)
-          .listen((MouseOutEvent e) => _aMapFlutter.onMouseOut!(e.position));
-    }
-    if (_aMapFlutter.onMouseUp != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseUp(mapId: mapId)
-          .listen((MouseUpEvent e) => _aMapFlutter.onMouseUp!(e.position));
-    }
-    if (_aMapFlutter.onMouseDown != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMouseDown(mapId: mapId)
-          .listen((MouseDownEvent e) => _aMapFlutter.onMouseDown!(e.position));
-    }
-    if (_aMapFlutter.onDragStart != null) {
-      AMapFlutterPlatformInterface.instance
-          .onDragStart(mapId: mapId)
-          .listen((DragStartEvent e) => _aMapFlutter.onDragStart!(e.position));
-    }
-    if (_aMapFlutter.onDragging != null) {
-      AMapFlutterPlatformInterface.instance
-          .onDragging(mapId: mapId)
-          .listen((DraggingEvent e) => _aMapFlutter.onDragging!(e.position));
-    }
-    if (_aMapFlutter.onDragEnd != null) {
-      AMapFlutterPlatformInterface.instance
-          .onDragEnd(mapId: mapId)
-          .listen((DragEndEvent e) => _aMapFlutter.onDragEnd!(e.position));
-    }
-    if (_aMapFlutter.onTouchStart != null) {
-      AMapFlutterPlatformInterface.instance.onTouchStart(mapId: mapId).listen(
-          (TouchStartEvent e) => _aMapFlutter.onTouchStart!(e.position));
-    }
-    if (_aMapFlutter.onTouching != null) {
-      AMapFlutterPlatformInterface.instance
-          .onTouching(mapId: mapId)
-          .listen((TouchingEvent e) => _aMapFlutter.onTouching!(e.position));
-    }
-    if (_aMapFlutter.onTouchEnd != null) {
-      AMapFlutterPlatformInterface.instance
-          .onTouchEnd(mapId: mapId)
-          .listen((TouchEndEvent e) => _aMapFlutter.onTouchEnd!(e.position));
-    }
-    if (_aMapFlutter.onPoiClick != null) {
-      AMapFlutterPlatformInterface.instance
-          .onPoiClick(mapId: mapId)
-          .listen((PoiClickEvent e) => _aMapFlutter.onPoiClick!(e.value));
-    }
-    if (_aMapFlutter.onMarkerClick != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMarkerClick(mapId: mapId)
-          .listen((MarkerClickEvent e) => _aMapFlutter.onMarkerClick!(e.value));
-    }
-    if (_aMapFlutter.onMarkerDragStart != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMarkerDragStart(mapId: mapId)
-          .listen((MarkerDragStartEvent e) =>
-              _aMapFlutter.onMarkerDragStart!(e.value, e.position));
-    }
-    if (_aMapFlutter.onMarkerDrag != null) {
-      AMapFlutterPlatformInterface.instance.onMarkerDrag(mapId: mapId).listen(
-          (MarkerDragEvent e) =>
-              _aMapFlutter.onMarkerDrag!(e.value, e.position));
-    }
-    if (_aMapFlutter.onMarkerDragEnd != null) {
-      AMapFlutterPlatformInterface.instance
-          .onMarkerDragEnd(mapId: mapId)
-          .listen((MarkerDragEndEvent e) =>
-              _aMapFlutter.onMarkerDragEnd!(e.value, e.position));
-    }
-    if (_aMapFlutter.onUserLocationChange != null) {
-      AMapFlutterPlatformInterface.instance
-          .onUserLocationChange(mapId: mapId)
-          .listen((UserLocationChangeEvent e) =>
-              _aMapFlutter.onUserLocationChange!(e.value));
-    }
   }
 
   /// 移动地图视野
@@ -308,6 +206,42 @@ class AMapController {
   void removeMarker(String markerId) {
     AMapFlutterPlatformInterface.instance.removeMarker(
       markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 添加折线
+  Future<void> addPolyline(Polyline polyline) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.addPolyline(
+      polyline,
+      mapId: mapId,
+    );
+  }
+
+  /// 移除折线
+  Future<void> removePolyline(String polylineId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.removePolyline(
+      polylineId,
+      mapId: mapId,
+    );
+  }
+
+  /// 添加多边形
+  Future<void> addPolygon(Polygon polygon) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.addPolygon(
+      polygon,
+      mapId: mapId,
+    );
+  }
+
+  /// 移除多边形
+  Future<void> removePolygon(String polygonId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.removePolygon(
+      polygonId,
       mapId: mapId,
     );
   }
@@ -389,7 +323,8 @@ class AMapController {
 
   /// 停止当前相机动画（Android 对应 [AMap.stopAnimation]；iOS 无 SDK 等价能力，为兼容调用空实现）
   Future<void> stopCameraAnimation() {
-    return AMapFlutterPlatformInterface.instance.stopCameraAnimation(mapId: mapId);
+    return AMapFlutterPlatformInterface.instance
+        .stopCameraAnimation(mapId: mapId);
   }
 
   /// 获取当前缩放级别
@@ -491,6 +426,10 @@ class AMapController {
     if (!_mapCompletedCompleter.isCompleted) {
       _mapCompletedCompleter.complete();
     }
+    for (final subscription in _subscriptions) {
+      await subscription.cancel();
+    }
+    _subscriptions.clear();
     await AMapFlutterPlatformInterface.instance.destroy(mapId: mapId);
   }
 }

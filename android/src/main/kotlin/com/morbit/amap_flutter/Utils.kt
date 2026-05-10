@@ -10,6 +10,8 @@ import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.MyLocationStyle
+import com.amap.api.maps.model.PolygonOptions
+import com.amap.api.maps.model.PolylineOptions
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import android.location.Location as AndroidLocation
 import com.amap.api.maps.model.CameraPosition as AMapCameraPosition
@@ -94,6 +96,27 @@ fun Marker.toMarkerOptions(binding: FlutterPluginBinding): MarkerOptions {
         bitmap?.toBitmapDescriptor(binding)?.let { options.icon(it) }
         title?.takeIf { it.isNotBlank() }?.let { options.title(it) }
         snippet?.takeIf { it.isNotBlank() }?.let { options.snippet(it) }
+        options
+    }
+}
+
+fun Polyline.toPolylineOptions(): PolylineOptions {
+    return PolylineOptions().let { options ->
+        options.addAll(points.map { it.toPosition() })
+        options.color(color.toArgb())
+        options.width(width.toFloat())
+        options.visible(visible)
+        options
+    }
+}
+
+fun Polygon.toPolygonOptions(): PolygonOptions {
+    return PolygonOptions().let { options ->
+        options.addAll(points.map { it.toPosition() })
+        options.strokeWidth(strokeWidth.toFloat())
+        options.strokeColor(strokeColor.toArgb())
+        options.fillColor(fillColor.toArgb())
+        options.visible(visible)
         options
     }
 }

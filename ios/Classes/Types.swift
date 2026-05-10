@@ -309,16 +309,16 @@ struct MapInitConfig {
     let viewMode: String? = nilOrValue(list[26])
     let terrain: Bool? = nilOrValue(list[27])
     var wallColor: UIColor? = nil
-    if let color: UInt = nilOrValue(list[28]) {
-      wallColor = UIColor(hex: color)
+    if !(list[28] is NSNull) {
+      wallColor = UIColor(amapColorValue: list[28])
     }
     var roofColor: UIColor? = nil
-    if let color: UInt = nilOrValue(list[29]) {
-      roofColor = UIColor(hex: color)
+    if !(list[29] is NSNull) {
+      roofColor = UIColor(amapColorValue: list[29])
     }
     var skyColor: UIColor? = nil
-    if let color: UInt = nilOrValue(list[30]) {
-      skyColor = UIColor(hex: color)
+    if !(list[30] is NSNull) {
+      skyColor = UIColor(amapColorValue: list[30])
     }
     var customStyleOptions: CustomStyleOptions? = nil
     if list.count > 31, let customList: [Any?] = nilOrValue(list[31]) {
@@ -575,6 +575,78 @@ struct Marker {
   }
 }
 
+/// 折线覆盖物配置
+struct Polyline {
+  var id: String
+  var points: [Position]
+  var color: UIColor
+  var width: Double
+  var visible: Bool
+
+  static func fromList(_ list: [Any?]) -> Polyline {
+    let id = list[0] as! String
+    let points = (list[1] as! [[Any?]]).map { Position.fromList($0) }
+    let color = UIColor(amapColorValue: list[2])
+    let width = list[3] as! Double
+    let visible = list[4] as! Bool
+    return Polyline(
+      id: id,
+      points: points,
+      color: color,
+      width: width,
+      visible: visible
+    )
+  }
+
+  func toList() -> [Any?] {
+    return [
+      id,
+      points.map { $0.toList() },
+      color.hex,
+      width,
+      visible,
+    ]
+  }
+}
+
+/// 多边形覆盖物配置
+struct Polygon {
+  var id: String
+  var points: [Position]
+  var strokeWidth: Double
+  var strokeColor: UIColor
+  var fillColor: UIColor
+  var visible: Bool
+
+  static func fromList(_ list: [Any?]) -> Polygon {
+    let id = list[0] as! String
+    let points = (list[1] as! [[Any?]]).map { Position.fromList($0) }
+    let strokeWidth = list[2] as! Double
+    let strokeColor = UIColor(amapColorValue: list[3])
+    let fillColor = UIColor(amapColorValue: list[4])
+    let visible = list[5] as! Bool
+    return Polygon(
+      id: id,
+      points: points,
+      strokeWidth: strokeWidth,
+      strokeColor: strokeColor,
+      fillColor: fillColor,
+      visible: visible
+    )
+  }
+
+  func toList() -> [Any?] {
+    return [
+      id,
+      points.map { $0.toList() },
+      strokeWidth,
+      strokeColor.hex,
+      fillColor.hex,
+      visible,
+    ]
+  }
+}
+
 /// 地图兴趣点
 struct Poi {
   /// 兴趣点的名称
@@ -780,12 +852,12 @@ struct UserLocationStyle {
       userLocationType = UserLocationType(rawValue: type)!
     }
     var fillColor: UIColor? = nil
-    if let color: UInt = nilOrValue(list[1]) {
-      fillColor = UIColor(hex: color)
+    if !(list[1] is NSNull) {
+      fillColor = UIColor(amapColorValue: list[1])
     }
     var strokeColor: UIColor? = nil
-    if let color: UInt = nilOrValue(list[2]) {
-      strokeColor = UIColor(hex: color)
+    if !(list[2] is NSNull) {
+      strokeColor = UIColor(amapColorValue: list[2])
     }
     let lineWidth: Double? = nilOrValue(list[3])
     var image: Bitmap? = nil
@@ -800,12 +872,12 @@ struct UserLocationStyle {
     let showsAccuracyRing: Bool? = list.count > 7 ? nilOrValue(list[7]) : nil
     let showsHeadingIndicator: Bool? = list.count > 8 ? nilOrValue(list[8]) : nil
     var locationDotBgColor: UIColor? = nil
-    if list.count > 9, let color: UInt = nilOrValue(list[9]) {
-      locationDotBgColor = UIColor(hex: color)
+    if list.count > 9, !(list[9] is NSNull) {
+      locationDotBgColor = UIColor(amapColorValue: list[9])
     }
     var locationDotFillColor: UIColor? = nil
-    if list.count > 10, let color: UInt = nilOrValue(list[10]) {
-      locationDotFillColor = UIColor(hex: color)
+    if list.count > 10, !(list[10] is NSNull) {
+      locationDotFillColor = UIColor(amapColorValue: list[10])
     }
     let enablePulseAnimation: Bool? = list.count > 11 ? nilOrValue(list[11]) : nil
     let intervalMs: Int? = list.count > 12 ? nilOrValue(list[12]) : nil

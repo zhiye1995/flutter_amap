@@ -7,6 +7,8 @@ import androidx.lifecycle.LifecycleOwner
 import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.TextureMapView
 import com.amap.api.maps.model.Marker
+import com.amap.api.maps.model.Polygon as AMapPolygon
+import com.amap.api.maps.model.Polyline as AMapPolyline
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.platform.PlatformView
 
@@ -22,6 +24,8 @@ class AMapFlutter(
   val controller: AMapController
   val markers = mutableMapOf<String, Marker>()
   val aMapMarkerIdToDartMarkerId = mutableMapOf<String, String>()
+  val polylines = mutableMapOf<String, AMapPolyline>()
+  val polygons = mutableMapOf<String, AMapPolygon>()
   private var destroyed = false
 
   override fun getView(): TextureMapView {

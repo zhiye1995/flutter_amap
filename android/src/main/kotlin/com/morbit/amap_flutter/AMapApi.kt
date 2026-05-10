@@ -156,6 +156,24 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     }
   }
 
+  fun addPolyline(polyline: Polyline) {
+    removePolyline(polyline.id)
+    amap.polylines[polyline.id] = mapView.map.addPolyline(polyline.toPolylineOptions())
+  }
+
+  fun removePolyline(id: String) {
+    amap.polylines.remove(id)?.remove()
+  }
+
+  fun addPolygon(polygon: Polygon) {
+    removePolygon(polygon.id)
+    amap.polygons[polygon.id] = mapView.map.addPolygon(polygon.toPolygonOptions())
+  }
+
+  fun removePolygon(id: String) {
+    amap.polygons.remove(id)?.remove()
+  }
+
   fun showInfoWindow(markerId: String) {
     val m: AMapMarker = amap.markers[markerId] ?: return
     m.showInfoWindow()

@@ -7,9 +7,11 @@ class Position {
   Position({
     required double latitude,
     required double longitude,
-  })  : latitude = latitude < -90.0 ? -90.0 : (latitude > 90.0 ? 90.0 : latitude),
-        longitude =
-        longitude >= -180 && longitude < 180 ? longitude : (longitude + 180.0) % 360.0 - 180.0;
+  })  : latitude =
+            latitude < -90.0 ? -90.0 : (latitude > 90.0 ? 90.0 : latitude),
+        longitude = longitude >= -180 && longitude < 180
+            ? longitude
+            : (longitude + 180.0) % 360.0 - 180.0;
 
   /// 位置的纬度
   double latitude;
@@ -41,6 +43,19 @@ class Position {
       longitude: longitude ?? this.longitude,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Position &&
+        latitude == other.latitude &&
+        longitude == other.longitude;
+  }
+
+  @override
+  int get hashCode => Object.hash(latitude, longitude);
 }
 
 /// 地图区域
@@ -95,6 +110,21 @@ class Region {
       west: west ?? this.west,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Region &&
+        north == other.north &&
+        east == other.east &&
+        south == other.south &&
+        west == other.west;
+  }
+
+  @override
+  int get hashCode => Object.hash(north, east, south, west);
 }
 
 /// 对象的像素尺寸
@@ -130,6 +160,17 @@ class Size {
       height: height ?? this.height,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Size && width == other.width && height == other.height;
+  }
+
+  @override
+  int get hashCode => Object.hash(width, height);
 }
 
 /// 点标记图标锚点
@@ -168,5 +209,15 @@ class Anchor {
       y: y ?? this.y,
     );
   }
-}
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is Anchor && x == other.x && y == other.y;
+  }
+
+  @override
+  int get hashCode => Object.hash(x, y);
+}
