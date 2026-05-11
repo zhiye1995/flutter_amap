@@ -1,5 +1,6 @@
 import '../../navigation/place_picker.dart';
 import '../menu_models.dart';
+import 'poi_around_search.dart';
 import 'poi_keyword_search.dart';
 import 'weather.dart';
 
@@ -9,7 +10,11 @@ const mapQueryCategory = Map3dCategoryData('查询地图数据', [
     pageBuilder: PoiKeywordSearchPage.new,
     isCompleted: true,
   ),
-  Map3dItemData('poi周边搜索'),
+  Map3dItemData(
+    'poi周边搜索',
+    pageBuilder: PoiAroundSearchPage.new,
+    isCompleted: true,
+  ),
   Map3dItemData('poilD搜索功能'),
   Map3dItemData('沿途搜索'),
   Map3dItemData('输入提示'),

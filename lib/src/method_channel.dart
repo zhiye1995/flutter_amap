@@ -828,6 +828,39 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     }).toList();
   }
 
+  /// 结构化周边 POI 搜索
+  @override
+  Future<PoiSearchResult> searchPOIAroundWithQuery(
+    PoiAroundSearchQuery query,
+  ) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchPOIAroundWithQuery',
+      <String, dynamic>{
+        'latitude': query.center.latitude,
+        'longitude': query.center.longitude,
+        'keywords': query.keywords ?? '',
+        'types': query.types ?? '',
+        'radius': query.radius,
+        'city': query.city ?? '',
+        'page': query.page,
+        'pageSize': query.pageSize,
+        'extensions': query.extensions.value,
+        'children': query.children,
+        'sortByDistance': query.sortByDistance,
+      },
+    );
+
+    if (result == null) {
+      return PoiSearchResult(
+        items: const <PoiItem>[],
+        page: query.page,
+        pageSize: query.pageSize,
+      );
+    }
+
+    return PoiSearchResult.decodeFromMap(Map<String, dynamic>.from(result));
+  }
+
   /// POI 关键字搜索
   @override
   Future<PoiSearchResult> searchPOIKeywords(

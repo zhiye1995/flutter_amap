@@ -18,6 +18,9 @@ class AMapSearchApi: NSObject {
     /// 存储当前搜索回调
     private var inputTipsResult: FlutterResult?
     private var poiAroundResult: FlutterResult?
+    private var poiAroundQueryResult: FlutterResult?
+    private var poiAroundQueryPage = 1
+    private var poiAroundQueryPageSize = 20
     private var poiKeywordResult: FlutterResult?
     private var poiKeywordPage = 1
     private var poiKeywordPageSize = 20
@@ -62,6 +65,8 @@ class AMapSearchApi: NSObject {
             requestInputTips(call: call, result: result)
         case "searchPOIAround":
             searchPOIAround(call: call, result: result)
+        case "searchPOIAroundWithQuery":
+            searchPOIAroundWithQuery(call: call, result: result)
         case "searchPOIKeywords":
             searchPOIKeywords(call: call, result: result)
         case "searchWeatherLive":
@@ -196,6 +201,60 @@ class AMapSearchApi: NSObject {
             // 发起周边搜索
             searchAPI?.aMapPOIAroundSearch(request)
         }
+    }
+    
+    // MARK: - POI Around Search With Query
+    
+    private func searchPOIAroundWithQuery(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        
+        guard let latitude = arguments["latitude"] as? Double,
+              let longitude = arguments["longitude"] as? Double else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "latitude and longitude are required", details: nil))
+            return
+        }
+        
+        let keywords = arguments["keywords"] as? String ?? ""
+        let types = arguments["types"] as? String ?? ""
+        let radius = arguments["radius"] as? Int ?? 1000
+        let city = arguments["city"] as? String
+        let page = arguments["page"] as? Int ?? 1
+        let pageSize = arguments["pageSize"] as? Int ?? 20
+        let extensions = arguments["extensions"] as? String ?? "base"
+        let children = arguments["children"] as? Bool ?? false
+        let sortByDistance = arguments["sortByDistance"] as? Bool ?? true
+        
+        let request = AMapPOIAroundSearchRequest()
+        request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+        request.keywords = keywords
+        request.radius = radius
+        request.page = page
+        request.offset = pageSize
+        request.sortrule = sortByDistance ? 0 : 1
+        
+        if !types.isEmpty {
+            request.types = types
+        }
+        
+        if let city = city, !city.isEmpty {
+            request.city = city
+        }
+        
+        var fields: AMapPOISearchShowFieldsType =
+            extensions == "all" ? .all : .none
+        if children {
+            fields.insert(.children)
+        }
+        request.showFieldsType = fields
+        
+        self.poiAroundQueryResult = result
+        self.poiAroundQueryPage = page
+        self.poiAroundQueryPageSize = pageSize
+        
+        searchAPI?.aMapPOIAroundSearch(request)
     }
     
     // MARK: - POI Keyword Search
@@ -483,6 +542,11 @@ extension AMapSearchApi: AMapSearchDelegate {
             result(flutterError)
         }
         
+        if let result = poiAroundQueryResult {
+            poiAroundQueryResult = nil
+            result(flutterError)
+        }
+        
         if let result = poiKeywordResult {
             poiKeywordResult = nil
             result(flutterError)
@@ -501,6 +565,18 @@ extension AMapSearchApi: AMapSearchDelegate {
     
     /// POI 周边搜索回调
     func onPOISearchDone(_ request: AMapPOISearchBaseRequest!, response: AMapPOISearchResponse!) {
+        if let result = poiAroundQueryResult, request is AMapPOIAroundSearchRequest {
+            poiAroundQueryResult = nil
+            let poiList = makePoiList(response?.pois)
+            result([
+                "items": poiList,
+                "page": poiAroundQueryPage,
+                "pageSize": poiAroundQueryPageSize,
+                "total": response?.count ?? NSNull()
+            ])
+            return
+        }
+        
         if let result = poiKeywordResult, request is AMapPOIKeywordsSearchRequest {
             poiKeywordResult = nil
             let poiList = makePoiList(response?.pois)

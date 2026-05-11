@@ -66,6 +66,15 @@ class AMapSearchApi {
                     }
                 }
 
+                "searchPOIAroundWithQuery" -> {
+                    try {
+                        searchPOIAroundWithQuery(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchPOIAroundWithQuery error", e)
+                        result.error("SEARCH_ERROR", e.message, null)
+                    }
+                }
+
                 "searchPOIKeywords" -> {
                     try {
                         searchPOIKeywords(context, call, result)
@@ -261,6 +270,67 @@ class AMapSearchApi {
             })
 
             // 发起异步搜索
+            poiSearch.searchPOIAsyn()
+        }
+
+        /**
+         * 结构化周边 POI 搜索
+         */
+        private fun searchPOIAroundWithQuery(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val latitude = call.argument<Double>("latitude") ?: run {
+                result.error("INVALID_ARGUMENTS", "latitude is required", null)
+                return
+            }
+            val longitude = call.argument<Double>("longitude") ?: run {
+                result.error("INVALID_ARGUMENTS", "longitude is required", null)
+                return
+            }
+            val keywords = call.argument<String>("keywords") ?: ""
+            val types = call.argument<String>("types") ?: ""
+            val radius = call.argument<Int>("radius") ?: 1000
+            val city = call.argument<String>("city") ?: ""
+            val page = call.argument<Int>("page") ?: 1
+            val pageSize = call.argument<Int>("pageSize") ?: 20
+            val extensions = call.argument<String>("extensions") ?: "base"
+            val children = call.argument<Boolean>("children") ?: false
+            val sortByDistance = call.argument<Boolean>("sortByDistance") ?: true
+
+            val centerPoint = LatLonPoint(latitude, longitude)
+            val query = PoiSearchV2.Query(keywords, types, city)
+            query.pageSize = pageSize
+            query.pageNum = page
+            query.setLocation(centerPoint)
+            query.setDistanceSort(sortByDistance)
+            query.trySetExtensions(extensions)
+            query.tryRequireSubPois(children)
+
+            val poiSearch = PoiSearchV2(context, query)
+            poiSearch.bound = PoiSearchV2.SearchBound(centerPoint, radius, sortByDistance)
+            poiSearch.setOnPoiSearchListener(object : PoiSearchV2.OnPoiSearchListener {
+                override fun onPoiSearched(poiResult: PoiResultV2?, resultCode: Int) {
+                    if (resultCode == 1000) {
+                        val poiList = poiResult?.pois?.map { poi: PoiItemV2 ->
+                            poi.toMap(centerPoint)
+                        } ?: emptyList()
+                        result.success(
+                            mapOf(
+                                "items" to poiList,
+                                "page" to page,
+                                "pageSize" to pageSize,
+                                "total" to null,
+                            ),
+                        )
+                    } else {
+                        Log.e(TAG, "searchPOIAroundWithQuery failed: resultCode=$resultCode")
+                        result.error("SEARCH_ERROR", "POI around search failed with code: $resultCode", null)
+                    }
+                }
+
+                override fun onPoiItemSearched(poiItem: PoiItemV2?, resultCode: Int) {
+                    // 单个 POI 详情搜索回调，这里不处理
+                }
+            })
+
             poiSearch.searchPOIAsyn()
         }
 

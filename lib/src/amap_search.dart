@@ -73,6 +73,16 @@ class AMapSearch {
     return items;
   }
 
+  /// 结构化周边 POI 搜索。
+  ///
+  /// 保留分页上下文和更多查询参数，适合独立周边搜索示例页面使用。
+  static Future<PoiSearchResult> searchPOIAroundWithQuery(
+    PoiAroundSearchQuery query,
+  ) {
+    return AMapFlutterPlatformInterface.instance
+        .searchPOIAroundWithQuery(query);
+  }
+
   /// POI 关键字搜索。
   ///
   /// 对应高德 Android `PoiSearch.Query` 与 iOS

@@ -290,6 +290,85 @@ class PoiKeywordSearchQuery {
   }
 }
 
+/// POI 周边搜索查询参数。
+class PoiAroundSearchQuery {
+  PoiAroundSearchQuery({
+    required this.center,
+    this.keywords,
+    this.types,
+    this.radius = 1000,
+    this.city,
+    this.page = 1,
+    this.pageSize = 20,
+    this.extensions = PoiSearchExtensions.base,
+    this.children = false,
+    this.sortByDistance = true,
+  });
+
+  /// 周边搜索中心点。
+  final Position center;
+
+  /// 查询关键字，多个关键字用“|”分割。为空时按类型/半径检索周边 POI。
+  final String? keywords;
+
+  /// POI 类型，多个类型用“|”分割，可传类型名称或类型编码。
+  final String? types;
+
+  /// 搜索半径，单位米。高德 SDK 通常支持 0-50000。
+  final int radius;
+
+  /// 查询城市，可传城市名、citycode 或 adcode。
+  final String? city;
+
+  /// 当前页码，从 1 开始。
+  final int page;
+
+  /// 每页数量。Android SDK 通常支持 1-30，iOS SDK 通常支持 1-25。
+  final int pageSize;
+
+  /// 扩展信息范围。
+  final PoiSearchExtensions extensions;
+
+  /// 是否请求子 POI/父子关系。
+  final bool children;
+
+  /// 是否按距离排序。
+  final bool sortByDistance;
+
+  Object encode() {
+    return <Object?>[
+      center.encode(),
+      keywords,
+      types,
+      radius,
+      city,
+      page,
+      pageSize,
+      extensions.value,
+      children,
+      sortByDistance,
+    ];
+  }
+
+  static PoiAroundSearchQuery decode(List<Object?> result) {
+    return PoiAroundSearchQuery(
+      center: Position.decode(result[0]! as List<Object?>),
+      keywords: result[1] as String?,
+      types: result[2] as String?,
+      radius: result[3] as int? ?? 1000,
+      city: result[4] as String?,
+      page: result[5] as int? ?? 1,
+      pageSize: result[6] as int? ?? 20,
+      extensions: PoiSearchExtensions.values.firstWhere(
+        (value) => value.value == result[7],
+        orElse: () => PoiSearchExtensions.base,
+      ),
+      children: result[8] as bool? ?? false,
+      sortByDistance: result[9] as bool? ?? true,
+    );
+  }
+}
+
 /// POI 搜索结果。
 class PoiSearchResult {
   PoiSearchResult({

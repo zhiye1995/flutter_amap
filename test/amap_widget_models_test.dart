@@ -128,4 +128,33 @@ void main() {
     expect(decoded.children, query.children);
     expect(decoded.sortByDistance, query.sortByDistance);
   });
+
+  test('PoiAroundSearchQuery encodes and decodes all fields', () {
+    final query = PoiAroundSearchQuery(
+      center: Position(latitude: 39.9, longitude: 116.3),
+      keywords: '餐饮',
+      types: '050000',
+      radius: 1500,
+      city: '北京',
+      page: 3,
+      pageSize: 10,
+      extensions: PoiSearchExtensions.all,
+      children: true,
+      sortByDistance: false,
+    );
+
+    final decoded =
+        PoiAroundSearchQuery.decode(query.encode() as List<Object?>);
+
+    expect(decoded.center, query.center);
+    expect(decoded.keywords, query.keywords);
+    expect(decoded.types, query.types);
+    expect(decoded.radius, query.radius);
+    expect(decoded.city, query.city);
+    expect(decoded.page, query.page);
+    expect(decoded.pageSize, query.pageSize);
+    expect(decoded.extensions, query.extensions);
+    expect(decoded.children, query.children);
+    expect(decoded.sortByDistance, query.sortByDistance);
+  });
 }
