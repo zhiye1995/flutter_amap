@@ -1,239 +1,41 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
-import 'create_map/map_listview.dart';
-import 'create_map/show_map.dart';
-import 'create_map/two_map.dart';
-import 'map_interaction/change_map_center.dart';
-import 'map_interaction/custom_zoom.dart';
-import 'map_interaction/map_animation.dart';
-import 'map_interaction/map_controls.dart';
-import 'map_interaction/map_controls_position.dart';
-import 'map_interaction/map_events.dart';
-import 'map_interaction/map_restriction.dart';
-import 'map_interaction/map_screenshot.dart';
-import 'map_interaction/map_setting.dart';
-import 'map_interaction/map_zoom_restriction.dart';
-import 'map_interaction/poi_click.dart';
-import 'map_overlay/add_remove_marker.dart';
-import 'map_overlay/custom_marker_page.dart';
-import 'map_overlay/info_window_page.dart';
-import 'map_overlay/marker_animation_page.dart';
-import 'map_overlay/marker_click_callback_page.dart';
-import 'map_overlay/polyline_pages.dart';
-import 'map_overlay/user_location.dart';
-import 'map_overlay/user_location_custom_page.dart';
-import 'map_query/weather.dart';
-import 'route_planning/map_view.dart';
-import '../navigation/navigation.dart';
-import '../navigation/place_picker.dart';
-
-// ──────────────────────────────────────────────────────────
-//  数据模型（纯数据，不持有 Widget 引用以优化 const 构造）
-// ──────────────────────────────────────────────────────────
-
-class _ItemData {
-  final String title;
-  final Widget Function()? pageBuilder;
-  final bool isCompleted;
-
-  const _ItemData(this.title, {this.pageBuilder, this.isCompleted = false});
-}
-
-class _CategoryData {
-  final String title;
-  final List<_ItemData> items;
-
-  const _CategoryData(this.title, this.items);
-}
+import 'create_map/menu_data.dart';
+import 'extensions/menu_data.dart';
+import 'map_interaction/menu_data.dart';
+import 'map_overlay/menu_data.dart';
+import 'map_query/menu_data.dart';
+import 'map_tools/menu_data.dart';
+import 'menu_models.dart';
+import 'offline_map/menu_data.dart';
+import 'route_planning/menu_data.dart';
+import 'short_link/menu_data.dart';
 
 // ──────────────────────────────────────────────────────────
 //  菜单数据源（使用 pageBuilder 延迟创建目标页面，避免顶层 const
 //  对 Widget 实例的持有导致不必要的内存占用）
 // ──────────────────────────────────────────────────────────
 
-final List<_CategoryData> _menuData = [
-  _CategoryData('创建地图', [
-    _ItemData('显示地图',
-        pageBuilder: () => const ShowMapPage(), isCompleted: true),
-    _ItemData('地图ListView',
-        pageBuilder: () => const MapListViewPage(), isCompleted: true),
-    _ItemData('地图Recycle'),
-    _ItemData('显示地图(6种实现地图的方式)'),
-    _ItemData('ViewPager TextureMapView'),
-    _ItemData('地图多实例',
-        pageBuilder: () => const TwoMapPage(), isCompleted: true),
-    _ItemData('室内地图功能'),
-    _ItemData('AMapOptions实现地图'),
-  ]),
-  _CategoryData('地图交互', [
-    _ItemData('UI Settings功能',
-        pageBuilder: () => const MapControlsPage(), isCompleted: true),
-    _ItemData('地图Logo位置',
-        pageBuilder: () => const MapControlsPositionPage(), isCompleted: true),
-    _ItemData('Layers图层功能'),
-    _ItemData('手势交互',
-        pageBuilder: () => const MapSettingPage(), isCompleted: true),
-
-    _ItemData('Events功能',
-        pageBuilder: () => const MapEventsPage(), isCompleted: true),
-    _ItemData('地图Poi点击功能',
-        pageBuilder: () => const PoiClickPage(), isCompleted: true),
-
-    //
-    _ItemData(
-      '改变地图中心点',
-      pageBuilder: () => const ChangeMapCenterPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '地图动画效果',
-      pageBuilder: () => const MapAnimationPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '自定义缩放',
-      pageBuilder: () => const CustomZoomPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '地图截屏功能',
-      pageBuilder: () => const MapScreenshotPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '限制缩放级别功能',
-      pageBuilder: () => const MapZoomRestrictionPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '限制显示区域功能',
-      pageBuilder: () => const MapRestrictionPage(),
-      isCompleted: true,
-    ),
-  ]),
-  _CategoryData('地图上绘制', [
-    _ItemData('Markers功能',
-        pageBuilder: () => const AddRemoveMarkerPage(), isCompleted: true),
-    _ItemData(
-      'Marker点击回调',
-      pageBuilder: () => const MarkerClickCallbackPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'Marker动画功能',
-      pageBuilder: () => const MarkerAnimationPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'InfoWindow功能',
-      pageBuilder: () => const InfoWindowPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '自定义Marker',
-      pageBuilder: () => const CustomMarkerPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'Location几种模式',
-      pageBuilder: () => const UserLocationPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'Location小蓝点自定义功能',
-      pageBuilder: () => const UserLocationCustomPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'Location小蓝点自定义模式',
-      pageBuilder: () => const UserLocationCustomPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      'Polylines功能',
-      pageBuilder: () => const PolylinesPage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '绘制多彩线',
-      pageBuilder: () => const MultiColorPolylinePage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '绘制大地曲线',
-      pageBuilder: () => const GeodesicPolylinePage(),
-      isCompleted: true,
-    ),
-    _ItemData(
-      '绘制弧线',
-      pageBuilder: () => const ArcPolylinePage(),
-      isCompleted: true,
-    ),
-    _ItemData('NavigateArrowICircles功能'),
-    _ItemData('Polygons功能'),
-    _ItemData('热力图功能'),
-    _ItemData('GroundOverlay功能'),
-    _ItemData('Opengl接口功能'),
-    _ItemData('自定义建筑物'),
-    _ItemData('海量点功能'),
-    _ItemData('绘制空心多边形功能'),
-    _ItemData('显示单个省份地图'),
-    _ItemData('粒子效果'),
-    _ItemData('粒子效果+天气示例'),
-    _ItemData('蜂窝热力图'),
-  ]),
-  _CategoryData('查询地图数据', [
-    _ItemData('poi关键字搜索',
-        pageBuilder: () => const PlacePickerPage(), isCompleted: true),
-    _ItemData('poi周边搜索'),
-    _ItemData('poilD搜索功能'),
-    _ItemData('沿途搜索'),
-    _ItemData('输入提示'),
-    _ItemData('POI父子关系'),
-    _ItemData('天气查询',
-        pageBuilder: () => const WeatherPage(), isCompleted: true),
-    _ItemData('地理编码功能'),
-    _ItemData('逆地理编码功能'),
-    _ItemData('行政区划查询'),
-    _ItemData('行政区划边界查询'),
-    _ItemData('Busline公交查询'),
-    _ItemData('公交站点查询'),
-    _ItemData('云图检素'),
-  ]),
-  _CategoryData('出行路线规划', [
-    _ItemData('驾车路径规划',
-        pageBuilder: () => const NavigationPage(), isCompleted: true),
-    _ItemData('驾车未来路径规划'),
-    _ItemData('步行路径规划'),
-    _ItemData('公交路径规划'),
-    _ItemData('骑行路径规划'),
-    _ItemData('货车路径规划'),
-    _ItemData('距离测量',
-        pageBuilder: () => const MapViewPage(), isCompleted: true),
-    _ItemData('Route路径规划'),
-  ]),
-  _CategoryData('短串分享', [
-    _ItemData('短串分享'),
-  ]),
-  _CategoryData('离线地图', [
-    _ItemData('离线地图功能(已过时)',
-        pageBuilder: () => const MapSettingPage(), isCompleted: true),
-    _ItemData('离线地图功能(组件包含UI)'),
-  ]),
-  _CategoryData('地图计算工具', [
-    _ItemData('坐标系转换',
-        pageBuilder: () => const MapViewPage(), isCompleted: true),
-    _ItemData('经纬度转屏幕像素'),
-    _ItemData('两点间距离',
-        pageBuilder: () => const MapViewPage(), isCompleted: true),
-    _ItemData('点是否在多边形内'),
-  ]),
-  _CategoryData('扩展功能', [
-    _ItemData('轨迹纠偏功能'),
-    _ItemData('轨迹纠偏功能_便捷版'),
-    _ItemData('平滑移动'),
-  ]),
+const List<Map3dCategoryData> _menuData = [
+  // 创建地图
+  createMapCategory,
+  // 地图交互
+  mapInteractionCategory,
+  // 地图上绘制
+  mapOverlayCategory,
+  // 查询地图数据
+  mapQueryCategory,
+  // 出行路线规划
+  routePlanningCategory,
+  // 短串分享
+  shortLinkCategory,
+  // 离线地图
+  offlineMapCategory,
+  // 地图计算工具
+  mapToolsCategory,
+  // 扩展功能
+  extensionsCategory,
 ];
 
 // ──────────────────────────────────────────────────────────
@@ -283,7 +85,7 @@ class _Map3dIndexPageState extends State<Map3dIndexPage> {
 // ──────────────────────────────────────────────────────────
 
 class _CategoryTile extends StatelessWidget {
-  final _CategoryData category;
+  final Map3dCategoryData category;
   final bool isExpanded;
   final ValueChanged<bool> onExpansionChanged;
 
@@ -336,7 +138,7 @@ class _CategoryTile extends StatelessWidget {
 // ──────────────────────────────────────────────────────────
 
 class _FeatureItemTile extends StatelessWidget {
-  final _ItemData item;
+  final Map3dItemData item;
 
   const _FeatureItemTile({required this.item});
 
