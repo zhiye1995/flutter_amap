@@ -3,8 +3,9 @@ import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'pages/3d_map/index.dart';
-import 'pages/navigation/index.dart';
+import 'core/utils/utils.dart';
+import 'features/map_3d/index.dart';
+import 'features/navigation/index.dart';
 
 void main() {
   runApp(const App());
@@ -32,8 +33,8 @@ class _AppState extends State<App> {
     await AMapWidget.init(
       apiKey: ApiKey(
         iosKey: "14cf569c80ddc89d84513331ed8c5164",
-        androidKey: "25304ab4b426667f31055e3e5e4808a8", // home
-        // androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
+        // androidKey: "25304ab4b426667f31055e3e5e4808a8", // home
+        androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
         webKey: "fc9908dc4103f3d8274070bb34ab37af",
       ),
       agreePrivacy: true,
@@ -58,32 +59,31 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: ScaffoldMessenger(
-        child: CupertinoApp(
-          debugShowCheckedModeBanner: false,
-          localizationsDelegates: const [
-            DefaultMaterialLocalizations.delegate,
-            DefaultCupertinoLocalizations.delegate,
-            DefaultWidgetsLocalizations.delegate,
-          ],
-          home: FutureBuilder<void>(
-            future: _bootstrapFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.hasError) {
-                return Scaffold(
-                  body: Center(
-                    child: Text("Init failed: ${snapshot.error}"),
-                  ),
-                );
-              }
-              return const FeatureListPage();
-            },
-          ),
+      child: CupertinoApp(
+        debugShowCheckedModeBanner: false,
+        builder: LoadingUtil.init(),
+        localizationsDelegates: const [
+          DefaultMaterialLocalizations.delegate,
+          DefaultCupertinoLocalizations.delegate,
+          DefaultWidgetsLocalizations.delegate,
+        ],
+        home: FutureBuilder<void>(
+          future: _bootstrapFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: Center(
+                  child: Text("Init failed: ${snapshot.error}"),
+                ),
+              );
+            }
+            return const FeatureListPage();
+          },
         ),
       ),
     );
