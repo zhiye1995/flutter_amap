@@ -170,6 +170,181 @@ class SearchConfig {
   }
 }
 
+/// POI 关键字搜索扩展信息范围。
+enum PoiSearchExtensions {
+  /// 只返回基础数据。
+  base('base'),
+
+  /// 返回更多扩展数据，具体字段由原生 SDK 决定。
+  all('all');
+
+  const PoiSearchExtensions(this.value);
+
+  final String value;
+}
+
+/// POI 关键字搜索查询参数。
+class PoiKeywordSearchQuery {
+  PoiKeywordSearchQuery({
+    required this.keywords,
+    this.types,
+    this.city,
+    this.cityLimit = false,
+    this.page = 1,
+    this.pageSize = 20,
+    this.location,
+    this.extensions = PoiSearchExtensions.base,
+    this.children = false,
+    this.sortByDistance = false,
+  });
+
+  /// 查询关键字，多个关键字用“|”分割。
+  final String keywords;
+
+  /// POI 类型，多个类型用“|”分割，可传类型名称或类型编码。
+  final String? types;
+
+  /// 查询城市，可传城市名、citycode 或 adcode。为空时由平台按 SDK 默认处理。
+  final String? city;
+
+  /// 是否严格限制在 [city] 内搜索。
+  final bool cityLimit;
+
+  /// 当前页码，从 1 开始。
+  final int page;
+
+  /// 每页数量。Android SDK 通常支持 1-30，iOS SDK 通常支持 1-25。
+  final int pageSize;
+
+  /// 可选中心点。配合 [sortByDistance] 时用于按距离排序，并计算返回项距离。
+  final Position? location;
+
+  /// 扩展信息范围。
+  final PoiSearchExtensions extensions;
+
+  /// 是否请求子 POI/父子关系。
+  final bool children;
+
+  /// 是否按 [location] 距离排序。未提供 [location] 时平台会退回综合排序。
+  final bool sortByDistance;
+
+  Object encode() {
+    return <Object?>[
+      keywords,
+      types,
+      city,
+      cityLimit,
+      page,
+      pageSize,
+      location?.encode(),
+      extensions.value,
+      children,
+      sortByDistance,
+    ];
+  }
+
+  static PoiKeywordSearchQuery decode(List<Object?> result) {
+    return PoiKeywordSearchQuery(
+      keywords: result[0]! as String,
+      types: result[1] as String?,
+      city: result[2] as String?,
+      cityLimit: result[3] as bool? ?? false,
+      page: result[4] as int? ?? 1,
+      pageSize: result[5] as int? ?? 20,
+      location: result[6] != null
+          ? Position.decode(result[6]! as List<Object?>)
+          : null,
+      extensions: PoiSearchExtensions.values.firstWhere(
+        (value) => value.value == result[7],
+        orElse: () => PoiSearchExtensions.base,
+      ),
+      children: result[8] as bool? ?? false,
+      sortByDistance: result[9] as bool? ?? false,
+    );
+  }
+
+  PoiKeywordSearchQuery copyWith({
+    String? keywords,
+    String? types,
+    String? city,
+    bool? cityLimit,
+    int? page,
+    int? pageSize,
+    Position? location,
+    PoiSearchExtensions? extensions,
+    bool? children,
+    bool? sortByDistance,
+  }) {
+    return PoiKeywordSearchQuery(
+      keywords: keywords ?? this.keywords,
+      types: types ?? this.types,
+      city: city ?? this.city,
+      cityLimit: cityLimit ?? this.cityLimit,
+      page: page ?? this.page,
+      pageSize: pageSize ?? this.pageSize,
+      location: location ?? this.location,
+      extensions: extensions ?? this.extensions,
+      children: children ?? this.children,
+      sortByDistance: sortByDistance ?? this.sortByDistance,
+    );
+  }
+}
+
+/// POI 搜索结果。
+class PoiSearchResult {
+  PoiSearchResult({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    this.total,
+  });
+
+  /// 当前页 POI 列表。
+  final List<PoiItem> items;
+
+  /// 当前页码。
+  final int page;
+
+  /// 每页数量。
+  final int pageSize;
+
+  /// 总结果数。部分平台或 SDK 版本可能不返回。
+  final int? total;
+
+  Object encode() {
+    return <Object?>[
+      items.map((item) => item.encode()).toList(),
+      page,
+      pageSize,
+      total,
+    ];
+  }
+
+  static PoiSearchResult decode(List<Object?> result) {
+    return PoiSearchResult(
+      items: (result[0]! as List<Object?>)
+          .map((item) => PoiItem.decode(item! as List<Object?>))
+          .toList(),
+      page: result[1]! as int,
+      pageSize: result[2]! as int,
+      total: result[3] as int?,
+    );
+  }
+
+  static PoiSearchResult decodeFromMap(Map<String, dynamic> map) {
+    final rawItems = map['items'] as List<dynamic>? ?? const <dynamic>[];
+    return PoiSearchResult(
+      items: rawItems
+          .map((item) =>
+              PoiItem.decodeFromMap(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      page: (map['page'] as num?)?.toInt() ?? 1,
+      pageSize: (map['pageSize'] as num?)?.toInt() ?? rawItems.length,
+      total: (map['total'] as num?)?.toInt(),
+    );
+  }
+}
+
 /// POI 搜索结果项
 class PoiItem {
   PoiItem({

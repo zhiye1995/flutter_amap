@@ -828,6 +828,39 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     }).toList();
   }
 
+  /// POI 关键字搜索
+  @override
+  Future<PoiSearchResult> searchPOIKeywords(
+    PoiKeywordSearchQuery query,
+  ) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchPOIKeywords',
+      <String, dynamic>{
+        'keywords': query.keywords,
+        'types': query.types ?? '',
+        'city': query.city ?? '',
+        'cityLimit': query.cityLimit,
+        'page': query.page,
+        'pageSize': query.pageSize,
+        'latitude': query.location?.latitude,
+        'longitude': query.location?.longitude,
+        'extensions': query.extensions.value,
+        'children': query.children,
+        'sortByDistance': query.sortByDistance,
+      },
+    );
+
+    if (result == null) {
+      return PoiSearchResult(
+        items: const <PoiItem>[],
+        page: query.page,
+        pageSize: query.pageSize,
+      );
+    }
+
+    return PoiSearchResult.decodeFromMap(Map<String, dynamic>.from(result));
+  }
+
   // ==================== 天气相关方法实现 ====================
 
   /// 查询实时天气

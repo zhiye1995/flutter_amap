@@ -443,6 +443,11 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('searchPOIAround() has not been implemented.');
   }
 
+  /// POI 关键字搜索
+  Future<PoiSearchResult> searchPOIKeywords(PoiKeywordSearchQuery query) {
+    throw UnimplementedError('searchPOIKeywords() has not been implemented.');
+  }
+
   // ==================== 天气相关接口 ====================
 
   /// 查询实时天气

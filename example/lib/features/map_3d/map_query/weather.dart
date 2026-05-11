@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
+enum WeatherQueryMode {
+  city,
+  location,
+}
+
 /// 天气查询示例页面
 class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
@@ -22,33 +27,27 @@ class _WeatherPageState extends State<WeatherPage> {
   LocalWeatherLive? _weatherLive;
   LocalWeatherForecast? _weatherForecast;
 
+  WeatherQueryMode _selectedMode = WeatherQueryMode.city;
   WeatherType _selectedType = WeatherType.live;
 
-  Future<void> _searchWeather() async {
-    final city = _cityController.text.trim();
-    if (city.isEmpty) {
-      LoadingUtil.showToast('请输入城市名称或区域编码');
-      return;
-    }
+  String get _searchButtonText {
+    final typeText = _selectedType == WeatherType.live ? '实时天气' : '天气预报';
+    return _selectedMode == WeatherQueryMode.city
+        ? '查询$typeText'
+        : '查询当前位置$typeText';
+  }
 
+  Future<void> _searchWeather() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      if (_selectedType == WeatherType.live) {
-        final result = await AMapSearch.searchWeatherLive(city: city);
-        setState(() {
-          _weatherLive = result;
-          _weatherForecast = null;
-        });
+      if (_selectedMode == WeatherQueryMode.city) {
+        await _searchWeatherByCity();
       } else {
-        final result = await AMapSearch.searchWeatherForecast(city: city);
-        setState(() {
-          _weatherForecast = result;
-          _weatherLive = null;
-        });
+        await _searchWeatherByLocation();
       }
     } catch (e) {
       setState(() {
@@ -64,40 +63,40 @@ class _WeatherPageState extends State<WeatherPage> {
     }
   }
 
-  Future<void> _searchWeatherByLocation() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _searchWeatherByCity() async {
+    final city = _cityController.text.trim();
+    if (city.isEmpty) {
+      LoadingUtil.showToast('请输入城市名称或区域编码');
+      return;
+    }
 
-    try {
-      if (_selectedType == WeatherType.live) {
-        final result = await AMapSearch.searchWeatherLiveByLocation();
-        setState(() {
-          _weatherLive = result;
-          _weatherForecast = null;
-          // 更新城市输入框显示当前定位的城市
-          _cityController.text = result.city ?? '';
-        });
-      } else {
-        final result = await AMapSearch.searchWeatherForecastByLocation();
-        setState(() {
-          _weatherForecast = result;
-          _weatherLive = null;
-          // 更新城市输入框显示当前定位的城市
-          _cityController.text = result.city ?? '';
-        });
-      }
-    } catch (e) {
+    if (_selectedType == WeatherType.live) {
+      final result = await AMapSearch.searchWeatherLive(city: city);
       setState(() {
-        _errorMessage = e.toString();
+        _weatherLive = result;
+        _weatherForecast = null;
       });
-      if (mounted) {
-        LoadingUtil.showError('定位天气查询失败: $e');
-      }
-    } finally {
+    } else {
+      final result = await AMapSearch.searchWeatherForecast(city: city);
       setState(() {
-        _isLoading = false;
+        _weatherForecast = result;
+        _weatherLive = null;
+      });
+    }
+  }
+
+  Future<void> _searchWeatherByLocation() async {
+    if (_selectedType == WeatherType.live) {
+      final result = await AMapSearch.searchWeatherLiveByLocation();
+      setState(() {
+        _weatherLive = result;
+        _weatherForecast = null;
+      });
+    } else {
+      final result = await AMapSearch.searchWeatherForecastByLocation();
+      setState(() {
+        _weatherForecast = result;
+        _weatherLive = null;
       });
     }
   }
@@ -119,7 +118,7 @@ class _WeatherPageState extends State<WeatherPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 输入区域
+            // 查询方式
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -127,22 +126,53 @@ class _WeatherPageState extends State<WeatherPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '城市设置',
+                      '查询方式',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(
-                        labelText: '城市名称或区域编码',
-                        hintText: '例如：北京市 或 110000',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
+                    SegmentedButton<WeatherQueryMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: WeatherQueryMode.city,
+                          label: Text('输入城市查询'),
+                          icon: Icon(Icons.location_city),
+                        ),
+                        ButtonSegment(
+                          value: WeatherQueryMode.location,
+                          label: Text('当前位置查询'),
+                          icon: Icon(Icons.my_location),
+                        ),
+                      ],
+                      selected: {_selectedMode},
+                      onSelectionChanged: _isLoading
+                          ? null
+                          : (values) {
+                              setState(() {
+                                _selectedMode = values.first;
+                              });
+                            },
                     ),
+                    if (_selectedMode == WeatherQueryMode.city) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _cityController,
+                        decoration: const InputDecoration(
+                          labelText: '城市名称或区域编码',
+                          hintText: '例如：北京市 或 110000',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        '将使用设备当前位置反查城市后查询天气；请确保应用已有定位权限。',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     const Text(
-                      '查询类型',
+                      '天气类型',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -160,11 +190,13 @@ class _WeatherPageState extends State<WeatherPage> {
                         ),
                       ],
                       selected: {_selectedType},
-                      onSelectionChanged: (values) {
-                        setState(() {
-                          _selectedType = values.first;
-                        });
-                      },
+                      onSelectionChanged: _isLoading
+                          ? null
+                          : (values) {
+                              setState(() {
+                                _selectedType = values.first;
+                              });
+                            },
                     ),
                   ],
                 ),
@@ -174,33 +206,23 @@ class _WeatherPageState extends State<WeatherPage> {
             const SizedBox(height: 16),
 
             // 查询按钮
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _isLoading ? null : _searchWeather,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.search),
-                    label: Text(_isLoading ? '查询中...' : '查询天气'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _searchWeatherByLocation,
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('当前位置'),
-                  ),
-                ),
-              ],
+            FilledButton.icon(
+              onPressed: _isLoading ? null : _searchWeather,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      _selectedMode == WeatherQueryMode.city
+                          ? Icons.search
+                          : Icons.my_location,
+                    ),
+              label: Text(_isLoading ? '查询中...' : _searchButtonText),
             ),
 
             const SizedBox(height: 16),
@@ -273,7 +295,7 @@ class _WeatherPageState extends State<WeatherPage> {
                           color: Theme.of(context)
                               .colorScheme
                               .onPrimaryContainer
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -295,7 +317,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 color: Theme.of(context)
                     .colorScheme
                     .onPrimaryContainer
-                    .withOpacity(0.6),
+                    .withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -337,7 +359,7 @@ class _WeatherPageState extends State<WeatherPage> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSecondaryContainer
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -358,7 +380,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 color: Theme.of(context)
                     .colorScheme
                     .onSecondaryContainer
-                    .withOpacity(0.6),
+                    .withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -372,7 +394,7 @@ class _WeatherPageState extends State<WeatherPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -396,7 +418,7 @@ class _WeatherPageState extends State<WeatherPage> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.7),
+                        .withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -424,7 +446,7 @@ class _WeatherPageState extends State<WeatherPage> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.7),
+                        .withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -442,8 +464,10 @@ class _WeatherPageState extends State<WeatherPage> {
                 '${day.dayPower ?? ''}级',
                 style: TextStyle(
                   fontSize: 12,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -466,7 +490,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 color: Theme.of(context)
                     .colorScheme
                     .onPrimaryContainer
-                    .withOpacity(0.7),
+                    .withValues(alpha: 0.7),
               ),
             ),
           ),

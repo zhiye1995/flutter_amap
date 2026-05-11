@@ -73,6 +73,16 @@ class AMapSearch {
     return items;
   }
 
+  /// POI 关键字搜索。
+  ///
+  /// 对应高德 Android `PoiSearch.Query` 与 iOS
+  /// `AMapPOIKeywordsSearchRequest`，适合完整的地点关键字检索示例。
+  static Future<PoiSearchResult> searchPOIKeywords(
+    PoiKeywordSearchQuery query,
+  ) {
+    return AMapFlutterPlatformInterface.instance.searchPOIKeywords(query);
+  }
+
   /// 查询实时天气
   ///
   /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"

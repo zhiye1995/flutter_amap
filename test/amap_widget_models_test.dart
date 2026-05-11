@@ -99,4 +99,33 @@ void main() {
 
     expect(Polygon.decode(polygon.encode() as List<Object?>), polygon);
   });
+
+  test('PoiKeywordSearchQuery encodes and decodes all fields', () {
+    final query = PoiKeywordSearchQuery(
+      keywords: '天安门',
+      types: '110000',
+      city: '北京',
+      cityLimit: true,
+      page: 2,
+      pageSize: 15,
+      location: Position(latitude: 39.9, longitude: 116.3),
+      extensions: PoiSearchExtensions.all,
+      children: true,
+      sortByDistance: true,
+    );
+
+    final decoded =
+        PoiKeywordSearchQuery.decode(query.encode() as List<Object?>);
+
+    expect(decoded.keywords, query.keywords);
+    expect(decoded.types, query.types);
+    expect(decoded.city, query.city);
+    expect(decoded.cityLimit, query.cityLimit);
+    expect(decoded.page, query.page);
+    expect(decoded.pageSize, query.pageSize);
+    expect(decoded.location, query.location);
+    expect(decoded.extensions, query.extensions);
+    expect(decoded.children, query.children);
+    expect(decoded.sortByDistance, query.sortByDistance);
+  });
 }

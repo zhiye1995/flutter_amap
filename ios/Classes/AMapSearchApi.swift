@@ -18,6 +18,9 @@ class AMapSearchApi: NSObject {
     /// 存储当前搜索回调
     private var inputTipsResult: FlutterResult?
     private var poiAroundResult: FlutterResult?
+    private var poiKeywordResult: FlutterResult?
+    private var poiKeywordPage = 1
+    private var poiKeywordPageSize = 20
     private var weatherLiveResult: FlutterResult?
     private var weatherForecastResult: FlutterResult?
     private var weatherLiveByLocationResult: FlutterResult?
@@ -59,6 +62,8 @@ class AMapSearchApi: NSObject {
             requestInputTips(call: call, result: result)
         case "searchPOIAround":
             searchPOIAround(call: call, result: result)
+        case "searchPOIKeywords":
+            searchPOIKeywords(call: call, result: result)
         case "searchWeatherLive":
             searchWeatherLive(call: call, result: result)
         case "searchWeatherForecast":
@@ -191,6 +196,66 @@ class AMapSearchApi: NSObject {
             // 发起周边搜索
             searchAPI?.aMapPOIAroundSearch(request)
         }
+    }
+    
+    // MARK: - POI Keyword Search
+    
+    private func searchPOIKeywords(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        
+        let keywords = arguments["keywords"] as? String ?? ""
+        let types = arguments["types"] as? String ?? ""
+        guard !keywords.isEmpty || !types.isEmpty else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "keywords or types is required", details: nil))
+            return
+        }
+        
+        let city = arguments["city"] as? String
+        let cityLimit = arguments["cityLimit"] as? Bool ?? false
+        let page = arguments["page"] as? Int ?? 1
+        let pageSize = arguments["pageSize"] as? Int ?? 20
+        let latitude = arguments["latitude"] as? Double
+        let longitude = arguments["longitude"] as? Double
+        let extensions = arguments["extensions"] as? String ?? "base"
+        let children = arguments["children"] as? Bool ?? false
+        let sortByDistance = arguments["sortByDistance"] as? Bool ?? false
+        
+        print("[AMapSearchApi] searchPOIKeywords: keywords=\(keywords), types=\(types), city=\(city ?? "nil"), cityLimit=\(cityLimit)")
+        
+        let request = AMapPOIKeywordsSearchRequest()
+        request.keywords = keywords
+        request.page = page
+        request.offset = pageSize
+        request.cityLimit = cityLimit
+        request.sortrule = sortByDistance ? 0 : 1
+        
+        if !types.isEmpty {
+            request.types = types
+        }
+        
+        if let city = city, !city.isEmpty {
+            request.city = city
+        }
+        
+        if let lat = latitude, let lng = longitude {
+            request.location = AMapGeoPoint.location(withLatitude: CGFloat(lat), longitude: CGFloat(lng))
+        }
+        
+        var fields: AMapPOISearchShowFieldsType =
+            extensions == "all" ? .all : .none
+        if children {
+            fields.insert(.children)
+        }
+        request.showFieldsType = fields
+        
+        self.poiKeywordResult = result
+        self.poiKeywordPage = page
+        self.poiKeywordPageSize = pageSize
+        
+        searchAPI?.aMapPOIKeywordsSearch(request)
     }
     
     // MARK: - Weather Live Search
@@ -418,6 +483,11 @@ extension AMapSearchApi: AMapSearchDelegate {
             result(flutterError)
         }
         
+        if let result = poiKeywordResult {
+            poiKeywordResult = nil
+            result(flutterError)
+        }
+        
         if let result = weatherLiveResult {
             weatherLiveResult = nil
             result(flutterError)
@@ -431,15 +501,28 @@ extension AMapSearchApi: AMapSearchDelegate {
     
     /// POI 周边搜索回调
     func onPOISearchDone(_ request: AMapPOISearchBaseRequest!, response: AMapPOISearchResponse!) {
-        guard let result = poiAroundResult else { return }
-        poiAroundResult = nil
-        
-        guard let pois = response?.pois else {
-            result([])
+        if let result = poiKeywordResult, request is AMapPOIKeywordsSearchRequest {
+            poiKeywordResult = nil
+            let poiList = makePoiList(response?.pois)
+            result([
+                "items": poiList,
+                "page": poiKeywordPage,
+                "pageSize": poiKeywordPageSize,
+                "total": response?.count ?? NSNull()
+            ])
             return
         }
         
-        let poiList = pois.map { poi -> [String: Any?] in
+        guard let result = poiAroundResult else { return }
+        poiAroundResult = nil
+        
+        result(makePoiList(response?.pois))
+    }
+    
+    private func makePoiList(_ pois: [AMapPOI]?) -> [[String: Any?]] {
+        guard let pois = pois else { return [] }
+        
+        return pois.map { poi -> [String: Any?] in
             var latitude: Double? = nil
             var longitude: Double? = nil
             
@@ -466,9 +549,6 @@ extension AMapSearchApi: AMapSearchDelegate {
                 "provinceCode": poi.pcode
             ]
         }
-        
-        print("[AMapSearchApi] onPOISearchDone: \(poiList.count) POIs")
-        result(poiList)
     }
     
     /// 天气查询回调

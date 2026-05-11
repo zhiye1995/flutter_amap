@@ -66,6 +66,15 @@ class AMapSearchApi {
                     }
                 }
 
+                "searchPOIKeywords" -> {
+                    try {
+                        searchPOIKeywords(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchPOIKeywords error", e)
+                        result.error("SEARCH_ERROR", e.message, null)
+                    }
+                }
+
                 "searchWeatherLive" -> {
                     try {
                         searchWeatherLive(context, call, result)
@@ -253,6 +262,132 @@ class AMapSearchApi {
 
             // 发起异步搜索
             poiSearch.searchPOIAsyn()
+        }
+
+        /**
+         * POI 关键字搜索
+         */
+        private fun searchPOIKeywords(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val keywords = call.argument<String>("keywords") ?: ""
+            val types = call.argument<String>("types") ?: ""
+            if (keywords.isEmpty() && types.isEmpty()) {
+                result.error("INVALID_ARGUMENTS", "keywords or types is required", null)
+                return
+            }
+
+            val city = call.argument<String>("city") ?: ""
+            val cityLimit = call.argument<Boolean>("cityLimit") ?: false
+            val page = call.argument<Int>("page") ?: 1
+            val pageSize = call.argument<Int>("pageSize") ?: 20
+            val latitude = call.argument<Double>("latitude")
+            val longitude = call.argument<Double>("longitude")
+            val extensions = call.argument<String>("extensions") ?: "base"
+            val children = call.argument<Boolean>("children") ?: false
+            val sortByDistance = call.argument<Boolean>("sortByDistance") ?: false
+
+            Log.i(
+                TAG,
+                "searchPOIKeywords: keywords=$keywords, types=$types, city=$city, " +
+                    "cityLimit=$cityLimit, page=$page, pageSize=$pageSize",
+            )
+
+            val query = PoiSearchV2.Query(keywords, types, city)
+            query.pageSize = pageSize
+            query.pageNum = page
+            query.setCityLimit(cityLimit)
+            query.trySetExtensions(extensions)
+            query.tryRequireSubPois(children)
+
+            val searchCenter =
+                if (latitude != null && longitude != null) {
+                    LatLonPoint(latitude, longitude).also { point ->
+                        query.setLocation(point)
+                        query.setDistanceSort(sortByDistance)
+                    }
+                } else {
+                    null
+                }
+
+            val poiSearch = PoiSearchV2(context, query)
+            poiSearch.setOnPoiSearchListener(object : PoiSearchV2.OnPoiSearchListener {
+                override fun onPoiSearched(poiResult: PoiResultV2?, resultCode: Int) {
+                    if (resultCode == 1000) {
+                        val poiList = poiResult?.pois?.map { poi: PoiItemV2 ->
+                            poi.toMap(searchCenter)
+                        } ?: emptyList()
+
+                        result.success(
+                            mapOf(
+                                "items" to poiList,
+                                "page" to page,
+                                "pageSize" to pageSize,
+                                "total" to null,
+                            ),
+                        )
+                    } else {
+                        Log.e(TAG, "searchPOIKeywords failed: resultCode=$resultCode")
+                        result.error("SEARCH_ERROR", "POI keyword search failed with code: $resultCode", null)
+                    }
+                }
+
+                override fun onPoiItemSearched(poiItem: PoiItemV2?, resultCode: Int) {
+                    // 单个 POI 详情搜索回调，这里不处理
+                }
+            })
+
+            poiSearch.searchPOIAsyn()
+        }
+
+        private fun PoiSearchV2.Query.trySetExtensions(extensions: String) {
+            runCatching {
+                javaClass.getMethod("setExtensions", String::class.java)
+                    .invoke(this, extensions)
+            }.onFailure {
+                Log.i(TAG, "PoiSearchV2.Query.setExtensions is unavailable in current SDK")
+            }
+        }
+
+        private fun PoiSearchV2.Query.tryRequireSubPois(children: Boolean) {
+            runCatching {
+                javaClass.getMethod("requireSubPois", Boolean::class.javaPrimitiveType)
+                    .invoke(this, children)
+            }.onFailure {
+                Log.i(TAG, "PoiSearchV2.Query.requireSubPois is unavailable in current SDK")
+            }
+        }
+
+        private fun PoiItemV2.toMap(center: LatLonPoint?): Map<String, Any?> {
+            val distance = if (center != null) {
+                latLonPoint?.let { point ->
+                    val results = FloatArray(1)
+                    android.location.Location.distanceBetween(
+                        center.latitude, center.longitude,
+                        point.latitude, point.longitude,
+                        results,
+                    )
+                    results[0].toInt()
+                }
+            } else {
+                null
+            }
+
+            return mapOf(
+                "poiId" to (poiId ?: ""),
+                "name" to (title ?: ""),
+                "address" to snippet,
+                "latitude" to latLonPoint?.latitude,
+                "longitude" to latLonPoint?.longitude,
+                "typeName" to typeDes,
+                "typeCode" to typeCode,
+                "cityName" to cityName,
+                "cityCode" to cityCode,
+                "adName" to adName,
+                "adCode" to adCode,
+                "distance" to distance,
+                "tel" to null,
+                "provinceName" to provinceName,
+                "provinceCode" to provinceCode,
+            )
         }
 
         /**
