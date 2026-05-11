@@ -168,6 +168,16 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     amap.polylines.remove(id)?.remove()
   }
 
+  fun addNavigateArrow(arrow: NavigateArrow) {
+    removeNavigateArrow(arrow.id)
+    if (arrow.points.size < 2) return
+    amap.navigateArrows[arrow.id] = mapView.map.addNavigateArrow(arrow.toNavigateArrowOptions())
+  }
+
+  fun removeNavigateArrow(id: String) {
+    amap.navigateArrows.remove(id)?.remove()
+  }
+
   fun addArc(arc: Arc) {
     removeArc(arc.id)
     amap.arcs[arc.id] = mapView.map.addArc(arc.toArcOptions())

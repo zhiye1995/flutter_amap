@@ -200,6 +200,24 @@ class AMapController {
     );
   }
 
+  /// 添加导航箭头
+  Future<void> addNavigateArrow(NavigateArrow arrow) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.addNavigateArrow(
+      arrow,
+      mapId: mapId,
+    );
+  }
+
+  /// 移除导航箭头
+  Future<void> removeNavigateArrow(String arrowId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.removeNavigateArrow(
+      arrowId,
+      mapId: mapId,
+    );
+  }
+
   /// 添加弧线
   Future<void> addArc(Arc arc) async {
     if (_isDestroyed) return;

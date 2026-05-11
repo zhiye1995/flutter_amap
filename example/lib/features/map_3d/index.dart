@@ -18,23 +18,23 @@ import 'short_link/menu_data.dart';
 // ──────────────────────────────────────────────────────────
 
 const List<Map3dCategoryData> _menuData = [
-  // 创建地图
+  /// 创建地图
   createMapCategory,
-  // 地图交互
+  /// 地图交互
   mapInteractionCategory,
-  // 地图上绘制
+  /// 地图上绘制
   mapOverlayCategory,
-  // 查询地图数据
+  /// 查询地图数据
   mapQueryCategory,
-  // 出行路线规划
+  /// 出行路线规划
   routePlanningCategory,
-  // 短串分享
+  /// 短串分享
   shortLinkCategory,
-  // 离线地图
+  /// 离线地图
   offlineMapCategory,
-  // 地图计算工具
+  /// 地图计算工具
   mapToolsCategory,
-  // 扩展功能
+  /// 扩展功能
   extensionsCategory,
 ];
 

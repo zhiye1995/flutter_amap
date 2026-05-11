@@ -10,6 +10,7 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
+import com.amap.api.maps.model.NavigateArrowOptions
 import com.amap.api.maps.model.MyLocationStyle
 import com.amap.api.maps.model.PolygonOptions
 import com.amap.api.maps.model.PolylineOptions
@@ -110,6 +111,17 @@ fun Polyline.toPolylineOptions(): PolylineOptions {
             options.useGradient(gradient)
         }
         options.geodesic(geodesic)
+        options.width(width.toFloat())
+        options.visible(visible)
+        options
+    }
+}
+
+fun NavigateArrow.toNavigateArrowOptions(): NavigateArrowOptions {
+    return NavigateArrowOptions().let { options ->
+        options.addAll(points.map { it.toPosition() })
+        options.topColor(color.toArgb())
+        options.sideColor(sideColor.toArgb())
         options.width(width.toFloat())
         options.visible(visible)
         options

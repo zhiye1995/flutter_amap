@@ -139,6 +139,12 @@ object AMapApiCodec : StandardMessageCodec() {
         }
       }
 
+      150.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          NavigateArrow.fromList(it)
+        }
+      }
+
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -252,6 +258,11 @@ object AMapApiCodec : StandardMessageCodec() {
 
       is Arc -> {
         stream.write(149)
+        writeValue(stream, value.toList())
+      }
+
+      is NavigateArrow -> {
+        stream.write(150)
         writeValue(stream, value.toList())
       }
 

@@ -220,6 +220,14 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
 
   /// 根据 overlay 生成对应的 Renderer
   func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
+    if let line = overlay as? MAPolyline, let style = controller.api.navigateArrowStyle(for: line) {
+      let renderer = MAPolylineRenderer(polyline: line)
+      renderer?.is3DArrowLine = true
+      renderer?.strokeColor = style.color
+      renderer?.sideColor = style.sideColor
+      renderer?.lineWidth = style.width
+      return renderer
+    }
     if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
       let renderer: MAPolylineRenderer? = {
         if let multiLine = line as? MAMultiPolyline, !style.colors.isEmpty {

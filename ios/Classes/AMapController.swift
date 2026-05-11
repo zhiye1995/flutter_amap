@@ -93,6 +93,18 @@ class AMapController: NSObject {
       api.removePolyline(id: id)
       result(nil)
     }
+    else if(call.method == "addNavigateArrow") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let arrow = arguments["arrow"] as! NavigateArrow
+      api.addNavigateArrow(arrow: arrow)
+      result(nil)
+    }
+    else if(call.method == "removeNavigateArrow") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let id = arguments["id"] as! String
+      api.removeNavigateArrow(id: id)
+      result(nil)
+    }
     else if(call.method == "addArc") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let arc = arguments["arc"] as! Arc

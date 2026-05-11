@@ -69,7 +69,11 @@ const mapOverlayCategory = Map3dCategoryData('地图上绘制', [
     pageBuilder: ArcPolylinePage.new,
     isCompleted: true,
   ),
-  Map3dItemData('NavigateArrowICircles功能'),
+  Map3dItemData(
+    'NavigateArrow功能',
+    pageBuilder: NavigateArrowPage.new,
+    isCompleted: true,
+  ),
   Map3dItemData('Polygons功能'),
   Map3dItemData('热力图功能'),
   Map3dItemData('GroundOverlay功能'),

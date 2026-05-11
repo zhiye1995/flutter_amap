@@ -379,6 +379,28 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  /// 添加导航箭头
+  @override
+  Future<void> addNavigateArrow(NavigateArrow arrow, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "addNavigateArrow",
+      <String, dynamic>{
+        "arrow": arrow,
+      },
+    );
+  }
+
+  /// 移除导航箭头
+  @override
+  Future<void> removeNavigateArrow(String id, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "removeNavigateArrow",
+      <String, dynamic>{
+        "id": id,
+      },
+    );
+  }
+
   /// 添加弧线
   @override
   Future<void> addArc(Arc arc, {required int mapId}) {

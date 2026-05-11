@@ -246,6 +246,135 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
   }
 }
 
+/// NavigateArrow 功能：沿轨迹绘制 3D 导航箭头线。
+class NavigateArrowPage extends StatefulWidget {
+  const NavigateArrowPage({super.key});
+
+  static const title = 'NavigateArrow功能';
+
+  @override
+  State<NavigateArrowPage> createState() => _NavigateArrowPageState();
+}
+
+class _NavigateArrowPageState extends State<NavigateArrowPage> {
+  static const _arrowId = 'navigate_arrow_demo';
+
+  AMapController? _controller;
+  var _ready = false;
+  var _visible = true;
+  var _wide = false;
+  var _red = false;
+
+  final _points = <Position>[
+    Position(latitude: 39.9871, longitude: 116.4789),
+    Position(latitude: 39.9879, longitude: 116.4777),
+    Position(latitude: 39.9897, longitude: 116.4797),
+    Position(latitude: 39.9887, longitude: 116.4813),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text(NavigateArrowPage.title)),
+      body: Column(
+        children: [
+          Expanded(
+            child: AMapWidget(
+              initCameraPosition: CameraPosition(
+                position: Position(latitude: 39.9875, longitude: 116.48047),
+                zoom: 16,
+                skew: 38.5,
+                heading: 300,
+              ),
+              onMapCreated: _bootstrap,
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: _Panel(
+              title: '参考官方 Demo 坐标绘制导航箭头；iOS 使用 3D 箭头线等效展示。',
+              children: [
+                _LegendDot(
+                  color:
+                      _red ? const Color(0xFFE53935) : const Color(0xFF1976D2),
+                  label: _red ? '红色箭头' : '蓝色箭头',
+                ),
+                FilledButton(
+                  onPressed: !_ready ? null : _toggleVisible,
+                  child: Text(_visible ? '移除箭头' : '添加箭头'),
+                ),
+                FilledButton(
+                  onPressed: !_ready || !_visible ? null : _toggleWidth,
+                  child: Text(_wide ? '细箭头' : '粗箭头'),
+                ),
+                FilledButton(
+                  onPressed: !_ready || !_visible ? null : _toggleColor,
+                  child: Text(_red ? '蓝色' : '红色'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _bootstrap(AMapController c) async {
+    setState(() => _controller = c);
+    await c.waitForMapCompleted();
+    if (!mounted || _controller != c) return;
+    await _draw();
+    c.moveCameraToFitPosition(
+      _points,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
+    if (mounted) setState(() => _ready = true);
+  }
+
+  Future<void> _draw() async {
+    final c = _controller;
+    if (c == null || !_visible) return;
+    await c.addNavigateArrow(
+      NavigateArrow(
+        id: _arrowId,
+        points: _points,
+        color: _red ? const Color(0xFFE53935) : const Color(0xFF1976D2),
+        sideColor: _red ? const Color(0xFF8E1B14) : const Color(0xFF0D47A1),
+        width: _wide ? 24 : 16,
+      ),
+    );
+  }
+
+  Future<void> _replaceArrow() async {
+    final c = _controller;
+    if (c == null) return;
+    await c.removeNavigateArrow(_arrowId);
+    await _draw();
+  }
+
+  Future<void> _toggleVisible() async {
+    final c = _controller;
+    if (c == null) return;
+    setState(() => _visible = !_visible);
+    if (_visible) {
+      await _draw();
+    } else {
+      await c.removeNavigateArrow(_arrowId);
+    }
+  }
+
+  Future<void> _toggleWidth() async {
+    setState(() => _wide = !_wide);
+    await _replaceArrow();
+  }
+
+  Future<void> _toggleColor() async {
+    setState(() => _red = !_red);
+    await _replaceArrow();
+  }
+}
+
 /// 绘制大地曲线：同一组远距离点分别以普通折线和大地曲线展示，便于观察曲率差异。
 class GeodesicPolylinePage extends StatefulWidget {
   const GeodesicPolylinePage({super.key});

@@ -101,6 +101,18 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "addNavigateArrow" -> {
+        val arrow = call.argument<NavigateArrow>("arrow")!!
+        api.addNavigateArrow(arrow)
+        result.success(null)
+      }
+
+      "removeNavigateArrow" -> {
+        val id = call.argument<String>("id")!!
+        api.removeNavigateArrow(id)
+        result.success(null)
+      }
+
       "addArc" -> {
         val arc = call.argument<Arc>("arc")!!
         api.addArc(arc)

@@ -177,6 +177,13 @@ extension Polyline {
   }
 }
 
+extension NavigateArrow {
+  var overlay: MAPolyline {
+    var coordinates = points.map { $0.coordinate }
+    return MAPolyline(coordinates: &coordinates, count: UInt(points.count))
+  }
+}
+
 extension Arc {
   var overlay: MAArc {
     return MAArc(

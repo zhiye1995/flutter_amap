@@ -522,6 +522,44 @@ struct Polyline {
   }
 }
 
+/// 导航箭头覆盖物配置
+struct NavigateArrow {
+  var id: String
+  var points: [Position]
+  var color: UIColor
+  var sideColor: UIColor
+  var width: Double
+  var visible: Bool
+
+  static func fromList(_ list: [Any?]) -> NavigateArrow {
+    let id = list[0] as! String
+    let points = (list[1] as! [[Any?]]).map { Position.fromList($0) }
+    let color = UIColor(amapColorValue: list[2])
+    let sideColor = UIColor(amapColorValue: list[3])
+    let width = list[4] as! Double
+    let visible = list[5] as! Bool
+    return NavigateArrow(
+      id: id,
+      points: points,
+      color: color,
+      sideColor: sideColor,
+      width: width,
+      visible: visible
+    )
+  }
+
+  func toList() -> [Any?] {
+    return [
+      id,
+      points.map { $0.toList() },
+      color.hex,
+      sideColor.hex,
+      width,
+      visible,
+    ]
+  }
+}
+
 /// 弧线覆盖物配置
 struct Arc {
   var id: String

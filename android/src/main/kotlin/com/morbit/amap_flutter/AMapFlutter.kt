@@ -8,6 +8,7 @@ import com.amap.api.maps.AMapOptions
 import com.amap.api.maps.TextureMapView
 import com.amap.api.maps.model.Arc as AMapArc
 import com.amap.api.maps.model.Marker
+import com.amap.api.maps.model.NavigateArrow as AMapNavigateArrow
 import com.amap.api.maps.model.Polygon as AMapPolygon
 import com.amap.api.maps.model.Polyline as AMapPolyline
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -26,6 +27,7 @@ class AMapFlutter(
   val markers = mutableMapOf<String, Marker>()
   val aMapMarkerIdToDartMarkerId = mutableMapOf<String, String>()
   val polylines = mutableMapOf<String, AMapPolyline>()
+  val navigateArrows = mutableMapOf<String, AMapNavigateArrow>()
   val arcs = mutableMapOf<String, AMapArc>()
   val polygons = mutableMapOf<String, AMapPolygon>()
   private var destroyed = false

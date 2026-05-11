@@ -2,7 +2,15 @@
 
 本项目由 [amap_flutter](https://pub.dev/packages/amap_flutter) 原作者改编而来，目标是在 Flutter 中统一接入高德地图、搜索、定位、路线规划与导航能力，支持 Android、iOS 。
 
-Android 导航 SDK 下载地址：https://lbs.amap.com/api/android-navi-sdk/download
+![33](docs/images/33.png)
+
+官方文档：
+
+- [Android 地图 SDK](https://developer.amap.com/api/android-sdk/summary/)
+- [iOS 地图 SDK](https://developer.amap.com/api/ios-sdk/summary/)
+- [Android 导航 SDK](https://developer.amap.com/api/android-navi-sdk/summary/)
+- [iOS 导航 SDK](https://developer.amap.com/api/ios-navi-sdk/summary/)
+
 
 ## 当前状态
 
@@ -73,84 +81,172 @@ AMapWidget(
 
 ## 功能清单
 
-### 地图
+以下严格按 `example/lib/features/map_3d/index.dart` 与 `example/lib/features/navigation/index.dart` 中的示例菜单整理，勾选状态对应菜单项的 `isCompleted`。
 
-- [x] 显示地图、多地图实例、ListView 中复用地图
-- [x] 初始相机、视野移动、区域适配、缩放控制
-- [x] 地图加载完成等待：`waitForMapCompleted`
-- [x] 地图限制区域：`setRestrictRegion` / `removeRestrictRegion`
-- [x] 地图截屏：`takeMapSnapshot`
-- [x] 比例尺获取：`getScalePerPixel`
-- [x] 停止相机动画：`stopCameraAnimation`
-- [x] 自定义离线样式
+### 3D 地图
 
-### 地图交互事件
+#### 创建地图
 
-- [x] 点击、长按
-- [x] 相机变化、移动开始/移动中/移动结束
-- [x] 缩放、旋转事件
-- [x] POI 点击事件
-- [x] Marker 点击与拖拽事件
-- [x] 用户定位变化事件
+- [x] 显示地图
+- [x] 地图ListView
+- [ ] 地图Recycle
+- [ ] 显示地图(6种实现地图的方式)
+- [ ] ViewPager TextureMapView
+- [x] 地图多实例
+- [ ] 室内地图功能
+- [ ] AMapOptions实现地图
 
-### 覆盖物
+#### 地图交互
 
-- [x] Marker 声明式集合：`markers`
-- [x] Controller 增删 Marker：`addMarker` / `removeMarker`
-- [x] 自定义 Marker 图标：asset、bytes、size、CustomPainter 栅格化
-- [x] Marker 点击回调
-- [x] Marker 动画：呼吸、旋转、透明度、生长、往返移动
-- [x] Marker 动画取消：`cancelMarkerAnimation`
-- [x] InfoWindow / callout：`showInfoWindow` / `hideInfoWindow`
-- [x] Polyline 声明式集合与 Controller 增删
-- [x] 多彩线、渐变线、大地曲线
-- [x] Arc 弧线
-- [x] Polygon 多边形
-- [ ] 轨迹纠偏
-- [ ] 点平滑移动
-- [ ] 海量点图层
+- [x] UI Settings功能
+- [x] 地图Logo位置
+- [ ] Layers图层功能
+- [x] 手势交互
+- [x] Events功能
+- [x] 地图Poi点击功能
+- [x] 改变地图中心点
+- [x] 地图动画效果
+- [x] 自定义缩放
+- [x] 地图截屏功能
+- [x] 限制缩放级别功能
+- [x] 限制显示区域功能
 
-### 定位
+#### 地图上绘制
 
-- [x] 显示定位蓝点
-- [x] 获取当前定位：`getUserLocation`
-- [x] 等待首次定位：`waitForUserLocation`
-- [x] 定位模式切换：跟随、旋转、定位一次等
-- [x] 自定义定位样式：图标、精度圈颜色、锚点、定位频次、iOS 蓝点表现
-- [ ] 地理围栏
+- [x] Markers功能
+- [x] Marker点击回调
+- [x] Marker动画功能
+- [x] InfoWindow功能
+- [x] 自定义Marker
+- [x] Location几种模式
+- [x] Location小蓝点自定义功能
+- [x] Location小蓝点自定义模式
+- [x] Polylines功能
+- [x] 绘制多彩线
+- [x] 绘制大地曲线
+- [x] 绘制弧线
+- [x] NavigateArrow功能
+- [ ] Polygons功能
+- [ ] 热力图功能
+- [ ] GroundOverlay功能
+- [ ] Opengl接口功能
+- [ ] 自定义建筑物
+- [ ] 海量点功能
+- [ ] 绘制空心多边形功能
+- [ ] 显示单个省份地图
+- [ ] 粒子效果
+- [ ] 粒子效果+天气示例
+- [ ] 蜂窝热力图
 
-### 搜索与地点选择
+#### 查询地图数据
 
-- [x] 输入提示：`AMapSearch.requestInputTips`
-- [x] 周边 POI 搜索：`AMapSearch.searchPOIAround`
-- [x] 地图地点选择器：`AMapMapPlacePicker`
-- [x] 底部弹窗地点选择器：`AMapPlacePicker`
-- [x] 实时天气查询：`searchWeatherLive`
-- [x] 天气预报查询：`searchWeatherForecast`
-- [x] 基于当前位置查询天气
+- [x] poi关键字搜索
+- [ ] poi周边搜索
+- [ ] poilD搜索功能
+- [ ] 沿途搜索
+- [ ] 输入提示
+- [ ] POI父子关系
+- [x] 天气查询
+- [ ] 地理编码功能
+- [ ] 逆地理编码功能
 - [ ] 行政区划查询
-- [ ] 公交数据查询
-- [ ] 云图业务数据
-- [ ] 交通态势查询
+- [ ] 行政区划边界查询
+- [ ] Busline公交查询
+- [ ] 公交站点查询
+- [ ] 云图检素
+
+#### 出行路线规划
+
+- [x] 驾车路径规划
+- [ ] 驾车未来路径规划
+- [ ] 步行路径规划
+- [ ] 公交路径规划
+- [ ] 骑行路径规划
+- [ ] 货车路径规划
+- [x] 距离测量
+- [ ] Route路径规划
+
+#### 短串分享
+
+- [ ] 短串分享
+
+#### 离线地图
+
+- [x] 离线地图功能(已过时)
+- [ ] 离线地图功能(组件包含UI)
+
+#### 地图计算工具
+
+- [x] 坐标系转换
+- [ ] 经纬度转屏幕像素
+- [x] 两点间距离
+- [ ] 点是否在多边形内
+
+#### 扩展功能
+
+- [ ] 轨迹纠偏功能
+- [ ] 轨迹纠偏功能_便捷版
+- [ ] 平滑移动
 
 ### 导航
 
-- [x] 导航组件启动：`AMapNavi.startNavigation`
-- [x] 路线规划页与直接导航页：`NaviPageType.route` / `NaviPageType.navi`
-- [x] 驾车、步行、骑行导航类型枚举：`NaviType`
-- [x] 起点、终点、途经点配置：`NaviPoint`
-- [x] 车牌号、摩托车排量等导航配置：`NaviConfig`
-- [x] 导航状态监听：`isNavigatingListenable`
-- [x] 停止导航：`stopNavigation`
-- [x] 智能巡航：`startCruiseMode` / `stopCruiseMode`
-- [x] 巡航状态监听：`isCruisingListenable`
-- [x] 导航事件流：初始化、路线计算、偏航、拥堵重算、到达目的地、退出导航等
-- [x] 导航引导信息：剩余距离、剩余时间、下一路名、转向图标等
-- [x] 导航图标资源预加载与原生图标缓存
-- [x] 巡航道路设施、巡航统计、巡航拥堵信息事件
-- [ ] HUD 导航
-- [ ] 完全自定义导航 UI 示例
-- [ ] 外部 GPS 数据导航
+#### 导航组件(新)
+
+- [ ] 起终点算路
+- [ ] 无起点算路
+- [ ] 途经点算路
+- [x] 组件直接导航
+- [ ] 自定义 Activity 的导航组件（Android 原生容器）
+- [x] 选取地点 (POI)（示例）
+
+#### 路径规划
+
+- [ ] 驾车路径规划
+- [ ] 步行路径规划
+- [ ] 骑行路径规划
+- [ ] 货车导航路径规划
+- [ ] 独立路径规划
+
+#### 多类型导航
+
+- [ ] 内置语音导航
+- [ ] 实时导航
+- [ ] 模拟导航
+- [ ] 货车导航
+- [x] 智能巡航
+- [ ] HUD导航
+
+#### 导航UI自定义
+
+- [ ] 自定义车标
+- [ ] 自定义路线UI
+- [ ] 自定义路线纹理
+- [ ] 自定义路口转向提示
+- [ ] 正北模式
+- [ ] 自定义全览模式
+- [ ] 自定义指南针
+- [ ] 自定义路况按钮
+- [ ] 自定义放大缩小按钮
+- [ ] 自定义路口放大图
+- [ ] 自定义导航光柱(new)
+- [ ] 自定义车道信息
+
+#### 导航完全自定义示例
+
+- [ ] 自车改变位置和绘制路线示例
+- [ ] 路名、剩余距离、转向图标示例
+- [ ] 绘制导航路况条示例
+- [ ] 自定义车道信息示例
+- [ ] 路口放大图示例
+- [ ] 摄像头违章提醒示例
+- [ ] 各组件整合导航示例
+
+#### 导航扩展
+
+- [ ] 传入GPS数据导航
+- [ ] 展示导航路径详情
+- [ ] 主辅路切换
+- [ ] 科大讯飞语音集成
 
 ## 示例工程
 

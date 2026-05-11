@@ -120,6 +120,7 @@ class AMapWidget extends StatefulWidget {
     this.customStyleOptions,
     this.markers = const {},
     this.polylines = const {},
+    this.navigateArrows = const {},
     this.arcs = const {},
     this.polygons = const {},
     this.onMapCreated,
@@ -234,6 +235,9 @@ class AMapWidget extends StatefulWidget {
 
   /// 声明式折线集合。
   final Set<Polyline> polylines;
+
+  /// 声明式导航箭头集合。
+  final Set<NavigateArrow> navigateArrows;
 
   /// 声明式弧线集合。
   final Set<Arc> arcs;
@@ -578,6 +582,10 @@ class AMapWidgetState extends State<AMapWidget> {
     _syncMarkers(oldWidget?.markers ?? const <Marker>{}, widget.markers);
     _syncPolylines(
         oldWidget?.polylines ?? const <Polyline>{}, widget.polylines);
+    _syncNavigateArrows(
+      oldWidget?.navigateArrows ?? const <NavigateArrow>{},
+      widget.navigateArrows,
+    );
     _syncArcs(oldWidget?.arcs ?? const <Arc>{}, widget.arcs);
     _syncPolygons(oldWidget?.polygons ?? const <Polygon>{}, widget.polygons);
   }
@@ -612,6 +620,26 @@ class AMapWidgetState extends State<AMapWidget> {
       } else if (oldLine != entry.value) {
         _controller!.removePolyline(entry.key);
         _controller!.addPolyline(entry.value);
+      }
+    }
+  }
+
+  void _syncNavigateArrows(
+    Set<NavigateArrow> oldArrows,
+    Set<NavigateArrow> newArrows,
+  ) {
+    final Map<String, NavigateArrow> oldById = _navigateArrowsById(oldArrows);
+    final Map<String, NavigateArrow> newById = _navigateArrowsById(newArrows);
+    for (final id in oldById.keys.where((id) => !newById.containsKey(id))) {
+      _controller!.removeNavigateArrow(id);
+    }
+    for (final entry in newById.entries) {
+      final NavigateArrow? oldArrow = oldById[entry.key];
+      if (oldArrow == null) {
+        _controller!.addNavigateArrow(entry.value);
+      } else if (oldArrow != entry.value) {
+        _controller!.removeNavigateArrow(entry.key);
+        _controller!.addNavigateArrow(entry.value);
       }
     }
   }
@@ -660,6 +688,14 @@ Map<String, Marker> _markersById(Set<Marker> markers) {
 Map<String, Polyline> _polylinesById(Set<Polyline> polylines) {
   return <String, Polyline>{
     for (final polyline in polylines) polyline.id: polyline,
+  };
+}
+
+Map<String, NavigateArrow> _navigateArrowsById(
+  Set<NavigateArrow> navigateArrows,
+) {
+  return <String, NavigateArrow>{
+    for (final arrow in navigateArrows) arrow.id: arrow,
   };
 }
 

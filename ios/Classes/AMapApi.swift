@@ -20,6 +20,8 @@ class _AMapApi: NSObject {
   var markerIds = [Int: String]()
   var polylines = [String: MAPolyline]()
   var polylineStyles = [String: Polyline]()
+  var navigateArrows = [String: MAPolyline]()
+  var navigateArrowStyles = [String: NavigateArrow]()
   var arcs = [String: MAArc]()
   var arcStyles = [String: Arc]()
   var polygons = [String: MAPolygon]()
@@ -274,6 +276,25 @@ class _AMapApi: NSObject {
     }
   }
 
+  func addNavigateArrow(arrow: NavigateArrow) {
+    removeNavigateArrow(id: arrow.id)
+    guard arrow.points.count >= 2 else { return }
+    let overlay = arrow.overlay
+    navigateArrows[arrow.id] = overlay
+    navigateArrowStyles[arrow.id] = arrow
+    if arrow.visible {
+      mapView.add(overlay)
+    }
+  }
+
+  func removeNavigateArrow(id: String) {
+    if let overlay = navigateArrows[id] {
+      mapView.remove(overlay)
+      navigateArrows.removeValue(forKey: id)
+      navigateArrowStyles.removeValue(forKey: id)
+    }
+  }
+
   func addArc(arc: Arc) {
     removeArc(id: arc.id)
     let overlay = arc.overlay
@@ -313,6 +334,10 @@ class _AMapApi: NSObject {
 
   func polylineStyle(for overlay: MAPolyline) -> Polyline? {
     return polylines.first(where: { $0.value === overlay }).flatMap { polylineStyles[$0.key] }
+  }
+
+  func navigateArrowStyle(for overlay: MAPolyline) -> NavigateArrow? {
+    return navigateArrows.first(where: { $0.value === overlay }).flatMap { navigateArrowStyles[$0.key] }
   }
 
   func arcStyle(for overlay: MAArc) -> Arc? {

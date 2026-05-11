@@ -202,6 +202,18 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removePolyline() has not been implemented.');
   }
 
+  /// 添加导航箭头
+  Future<void> addNavigateArrow(NavigateArrow arrow, {required int mapId}) {
+    throw UnimplementedError('addNavigateArrow() has not been implemented.');
+  }
+
+  /// 移除导航箭头
+  Future<void> removeNavigateArrow(String id, {required int mapId}) {
+    throw UnimplementedError(
+      'removeNavigateArrow() has not been implemented.',
+    );
+  }
+
   /// 添加弧线
   Future<void> addArc(Arc arc, {required int mapId}) {
     throw UnimplementedError('addArc() has not been implemented.');

@@ -294,6 +294,102 @@ class Polyline {
       );
 }
 
+/// 导航箭头覆盖物配置。
+class NavigateArrow {
+  NavigateArrow({
+    required this.id,
+    required this.points,
+    this.color = const Color(0xCC00BFFF),
+    this.sideColor = const Color(0x6600BFFF),
+    this.width = 10,
+    this.visible = true,
+  });
+
+  /// 导航箭头ID。
+  String id;
+
+  /// 导航箭头轨迹点，至少 2 个点才会绘制。
+  List<Position> points;
+
+  /// 导航箭头顶部颜色。
+  Color color;
+
+  /// 3D 导航箭头侧边颜色。
+  Color sideColor;
+
+  /// 导航箭头宽度。
+  double width;
+
+  /// 是否可见。
+  bool visible;
+
+  Object encode() {
+    return <Object?>[
+      id,
+      points.map((position) => position.encode()).toList(),
+      color.toARGB32(),
+      sideColor.toARGB32(),
+      width,
+      visible,
+    ];
+  }
+
+  static NavigateArrow decode(List<Object?> result) {
+    return NavigateArrow(
+      id: result[0]! as String,
+      points: (result[1]! as List<Object?>)
+          .map((position) => Position.decode(position! as List<Object?>))
+          .toList(),
+      color: Color(result[2]! as int),
+      sideColor: Color(result[3]! as int),
+      width: result[4]! as double,
+      visible: result[5]! as bool,
+    );
+  }
+
+  NavigateArrow copyWith({
+    String? id,
+    List<Position>? points,
+    Color? color,
+    Color? sideColor,
+    double? width,
+    bool? visible,
+  }) {
+    return NavigateArrow(
+      id: id ?? this.id,
+      points: points ?? this.points,
+      color: color ?? this.color,
+      sideColor: sideColor ?? this.sideColor,
+      width: width ?? this.width,
+      visible: visible ?? this.visible,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is NavigateArrow &&
+        id == other.id &&
+        listEquals(points, other.points) &&
+        color == other.color &&
+        sideColor == other.sideColor &&
+        width == other.width &&
+        visible == other.visible;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        Object.hashAll(points),
+        color,
+        sideColor,
+        width,
+        visible,
+      );
+}
+
 /// 弧线覆盖物配置。
 class Arc {
   Arc({

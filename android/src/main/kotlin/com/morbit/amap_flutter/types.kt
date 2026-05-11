@@ -527,6 +527,39 @@ data class Polyline(
   }
 }
 
+/** 导航箭头覆盖物配置 */
+data class NavigateArrow(
+  val id: String,
+  val points: List<Position>,
+  val color: Color,
+  val sideColor: Color,
+  val width: Double,
+  val visible: Boolean,
+) {
+  companion object {
+    fun fromList(list: List<Any?>): NavigateArrow {
+      val id = list[0] as String
+      val points = (list[1] as List<Any?>).map { Position.fromList(it as List<Any?>) }
+      val color = colorFromValue(list[2]) ?: Color.valueOf(0xCC00BFFF.toInt())
+      val sideColor = colorFromValue(list[3]) ?: Color.valueOf(0x6600BFFF)
+      val width = (list[4] as Number).toDouble()
+      val visible = list[5] as Boolean
+      return NavigateArrow(id, points, color, sideColor, width, visible)
+    }
+  }
+
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      points.map { it.toList() },
+      color.toArgb(),
+      sideColor.toArgb(),
+      width,
+      visible,
+    )
+  }
+}
+
 /** 弧线覆盖物配置 */
 data class Arc(
   val id: String,

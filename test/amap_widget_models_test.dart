@@ -53,6 +53,22 @@ void main() {
     expect(Polyline.decode(polyline.encode() as List<Object?>), polyline);
   });
 
+  test('NavigateArrow encodes and decodes all drawing fields', () {
+    final arrow = NavigateArrow(
+      id: 'arrow-1',
+      points: <Position>[
+        Position(latitude: 39.9, longitude: 116.3),
+        Position(latitude: 39.91, longitude: 116.31),
+      ],
+      color: const Color(0xFFFF0000),
+      sideColor: const Color(0xFF880000),
+      width: 20,
+      visible: false,
+    );
+
+    expect(NavigateArrow.decode(arrow.encode() as List<Object?>), arrow);
+  });
+
   test('Arc encodes and decodes all drawing fields', () {
     final arc = Arc(
       id: 'arc-1',
