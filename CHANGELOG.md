@@ -2,7 +2,7 @@
 
 Migrate deprecated "onBackground" to "onSurface".
 
-Move conversion from "LatLng" to "Position" to web utils.
+Move conversion from "LatLng" to "Position" to shared utils.
 
 ## 0.6.1
 
@@ -80,15 +80,9 @@ Make ```position``` of ```CameraPosition``` as un-nullable.
 
 ## 0.3.1
 
-Make sure "amap" library is loaded when setting api key on web.
-
 Update README.md.
 
 ## 0.3.0
-
-Add ```webKey``` property of ```ApiKey```.
-
-Asynchronously load JS API in ```setApiKey``` method of ```AMapFlutterWebController```.
 
 ## 0.2.2
 
@@ -104,14 +98,9 @@ Use "LatLng" from "latlong2" dependency in public apis.
 
 ## 0.1.0
 
-! According to [Flutter issue #143922](https://github.com/flutter/flutter/issues/143922), 
-  add ResizeObserver to make sure creating AMap element after map container div attached to the DOM.
-
 Change the direction of map control offset to center on iOS.
 
 Extract checking platform as a common utility.
-
-Use 'dart:ui_web' instead of 'dart:ui_web'.
 
 Upgrade dependencies, and update environment restriction.
 

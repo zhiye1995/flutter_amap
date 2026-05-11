@@ -409,4 +409,3 @@ class _AMapPlacePickerState extends State<AMapPlacePicker> {
     );
   }
 }
-

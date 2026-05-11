@@ -6,7 +6,6 @@ import "package:flutter_amap/src/message_codec.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import 'package:flutter/services.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:highlight_text/highlight_text.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import "package:stream_transform/stream_transform.dart";

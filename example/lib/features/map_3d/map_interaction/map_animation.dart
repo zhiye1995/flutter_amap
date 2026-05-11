@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 /// 地图动画效果 — 对齐高德 Android_3D_Demo `CameraActivity`：
 /// 动画开关、停止动画、按像素平移（由 [getScalePerPixel] 换算经纬度）、缩放一级；
-/// 另附「去陆家嘴」长距离动画与完成提示。Web 端无比例尺像素接口，平移按钮不可用。
+/// 另附「去陆家嘴」长距离动画与完成提示。
 class MapAnimationPage extends StatefulWidget {
   const MapAnimationPage({super.key});
 
@@ -48,10 +48,6 @@ class _MapAnimationPageState extends State<MapAnimationPage> {
 
   /// 按高德 `CameraUpdateFactory.scrollBy(dx, dy)` 的像素语义，用比例尺换算中心点偏移。
   Future<void> _scrollBy(double dx, double dy) async {
-    if (PlatformUtil.isWeb) {
-      context.snackBar('Web 端未实现 getScalePerPixel，无法模拟像素平移');
-      return;
-    }
     await _controller.waitForMapCompleted();
     final scale = await _controller.getScalePerPixel();
     final cam = _controller.currentCamera;
@@ -212,9 +208,7 @@ class _MapAnimationPageState extends State<MapAnimationPage> {
             right: 12,
             bottom: 12,
             child: Text(
-              PlatformUtil.isWeb
-                  ? 'Web：平移依赖 getScalePerPixel，请使用 Android/iOS 体验完整示例。'
-                  : '平移：按官方 scrollBy(±100px) 换算；停止动画在 Android 上对应 AMap.stopAnimation。',
+              '平移：按官方 scrollBy(±100px) 换算；停止动画在 Android 上对应 AMap.stopAnimation。',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.black.withValues(alpha: 0.45),

@@ -46,14 +46,6 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     return _events(mapId).whereType<MapPressEvent>();
   }
 
-  Stream<MapDoublePressEvent> onMapDoublePress({required int mapId}) {
-    return _events(mapId).whereType<MapDoublePressEvent>();
-  }
-
-  Stream<MapRightPressEvent> onMapRightPress({required int mapId}) {
-    return _events(mapId).whereType<MapRightPressEvent>();
-  }
-
   Stream<MapLongPressEvent> onMapLongPress({required int mapId}) {
     return _events(mapId).whereType<MapLongPressEvent>();
   }
@@ -108,54 +100,6 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
 
   Stream<RotateChangeEndEvent> onRotateChangeEnd({required int mapId}) {
     return _events(mapId).whereType<RotateChangeEndEvent>();
-  }
-
-  Stream<MouseMoveEvent> onMouseMove({required int mapId}) {
-    return _events(mapId).whereType<MouseMoveEvent>();
-  }
-
-  Stream<MouseWheelEvent> onMouseWheel({required int mapId}) {
-    return _events(mapId).whereType<MouseWheelEvent>();
-  }
-
-  Stream<MouseOverEvent> onMouseOver({required int mapId}) {
-    return _events(mapId).whereType<MouseOverEvent>();
-  }
-
-  Stream<MouseOutEvent> onMouseOut({required int mapId}) {
-    return _events(mapId).whereType<MouseOutEvent>();
-  }
-
-  Stream<MouseUpEvent> onMouseUp({required int mapId}) {
-    return _events(mapId).whereType<MouseUpEvent>();
-  }
-
-  Stream<MouseDownEvent> onMouseDown({required int mapId}) {
-    return _events(mapId).whereType<MouseDownEvent>();
-  }
-
-  Stream<DragStartEvent> onDragStart({required int mapId}) {
-    return _events(mapId).whereType<DragStartEvent>();
-  }
-
-  Stream<DraggingEvent> onDragging({required int mapId}) {
-    return _events(mapId).whereType<DraggingEvent>();
-  }
-
-  Stream<DragEndEvent> onDragEnd({required int mapId}) {
-    return _events(mapId).whereType<DragEndEvent>();
-  }
-
-  Stream<TouchStartEvent> onTouchStart({required int mapId}) {
-    return _events(mapId).whereType<TouchStartEvent>();
-  }
-
-  Stream<TouchingEvent> onTouching({required int mapId}) {
-    return _events(mapId).whereType<TouchingEvent>();
-  }
-
-  Stream<TouchEndEvent> onTouchEnd({required int mapId}) {
-    return _events(mapId).whereType<TouchEndEvent>();
   }
 
   Stream<PoiClickEvent> onPoiClick({required int mapId}) {
@@ -321,7 +265,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('takeMapSnapshot() has not been implemented.');
   }
 
-  /// 停止当前相机动画（与高德 Android [AMap.stopAnimation] 对齐；Web 无操作）
+  /// 停止当前相机动画（与高德 Android [AMap.stopAnimation] 对齐；iOS 无对等 API）
   Future<void> stopCameraAnimation({required int mapId}) {
     throw UnimplementedError('stopCameraAnimation() has not been implemented.');
   }

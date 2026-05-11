@@ -7,7 +7,7 @@ part of '../flutter_amap.dart';
 ///
 /// 使用事项（强烈建议先读）：
 ///
-/// - 支持 **Android** 和 **iOS** 平台（Web 暂未实现对应原生通道）。
+/// - 支持 **Android** 和 **iOS** 平台。
 /// - 调用前请先执行 `AMapFlutter.init(apiKey: ..., agreePrivacy: ...)` 完成 SDK 初始化与隐私合规设置。
 /// - 若 `NaviConfig.start == null`（默认使用当前位置），请确保已授予运行时定位权限，否则可能导致路线计算失败/定位不更新。
 /// - Android 端建议在宿主 `AndroidManifest.xml` 的 `<application>` 内配置 `com.amap.api.v2.apikey`（内置导航/路线规划页常依赖该 meta-data）。

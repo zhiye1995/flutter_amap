@@ -235,7 +235,6 @@ struct CustomStyleOptions {
 /// 初始化地图属性
 struct MapInitConfig {
   var mapType: MapType? = nil
-  var mapStyle: String? = nil
   var cameraPosition: CameraPosition? = nil
   var fitPositions: [Position]? = nil
   var minZoom: Double? = nil
@@ -244,27 +243,11 @@ struct MapInitConfig {
   var zoomEnable: Bool? = nil
   var tiltEnable: Bool? = nil
   var rotateEnable: Bool? = nil
-  var jogEnable: Bool? = nil
-  var animateEnable: Bool? = nil
-  var keyboardEnable: Bool? = nil
   var compassControlEnabled: Bool? = nil
   var scaleControlEnabled: Bool? = nil
   var zoomControlEnabled: Bool? = nil
   var logoPosition: UIControlPosition? = nil
-  var doubleClickZoom: Bool? = nil
-  var scrollWheel: Bool? = nil
-  var touchZoom: Bool? = nil
-  var touchZoomCenter: Bool? = nil
-  var isHotspot: Bool? = nil
-  var showBuildingBlock: Bool? = nil
-  var showLabel: Bool? = nil
   var showIndoorMap: Bool? = nil
-  var defaultCursor: String? = nil
-  var viewMode: String? = nil
-  var terrain: Bool? = nil
-  var wallColor: UIColor? = nil
-  var roofColor: UIColor? = nil
-  var skyColor: UIColor? = nil
   var customStyleOptions: CustomStyleOptions? = nil
 
   static func fromList(_ list: [Any?]) -> MapInitConfig {
@@ -272,61 +255,34 @@ struct MapInitConfig {
     if let type: Int = nilOrValue(list[0]) {
       mapType = MapType(rawValue: type)!
     }
-    let mapStyle: String? = nilOrValue(list[1])
     var cameraPosition: CameraPosition? = nil
-    if let cameraPositionList: [Any?] = nilOrValue(list[2]) {
+    if let cameraPositionList: [Any?] = nilOrValue(list[1]) {
       cameraPosition = CameraPosition.fromList(cameraPositionList)
     }
     var fitPositions: [Position]? = nil
-    if let fitPositionsList: [[Any?]] = nilOrValue(list[3]) {
+    if let fitPositionsList: [[Any?]] = nilOrValue(list[2]) {
       fitPositions = fitPositionsList.map({ position in Position.fromList(position) })
     }
-    let minZoom: Double? = nilOrValue(list[4])
-    let maxZoom: Double? = nilOrValue(list[5])
-    let dragEnable: Bool? = nilOrValue(list[6])
-    let zoomEnable: Bool? = nilOrValue(list[7])
-    let tiltEnable: Bool? = nilOrValue(list[8])
-    let rotateEnable: Bool? = nilOrValue(list[9])
-    let jogEnable: Bool? = nilOrValue(list[10])
-    let animateEnable: Bool? = nilOrValue(list[11])
-    let keyboardEnable: Bool? = nilOrValue(list[12])
-    let compassControlEnabled: Bool? = nilOrValue(list[13])
-    let scaleControlEnabled: Bool? = nilOrValue(list[14])
-    let zoomControlEnabled: Bool? = nilOrValue(list[15])
+    let minZoom: Double? = nilOrValue(list[3])
+    let maxZoom: Double? = nilOrValue(list[4])
+    let dragEnable: Bool? = nilOrValue(list[5])
+    let zoomEnable: Bool? = nilOrValue(list[6])
+    let tiltEnable: Bool? = nilOrValue(list[7])
+    let rotateEnable: Bool? = nilOrValue(list[8])
+    let compassControlEnabled: Bool? = nilOrValue(list[9])
+    let scaleControlEnabled: Bool? = nilOrValue(list[10])
+    let zoomControlEnabled: Bool? = nilOrValue(list[11])
     var logoPosition: UIControlPosition? = nil
-    if let logoPositionList: [Any?] = nilOrValue(list[16]) {
+    if let logoPositionList: [Any?] = nilOrValue(list[12]) {
       logoPosition = UIControlPosition.fromList(logoPositionList)
     }
-    let doubleClickZoom: Bool? = nilOrValue(list[17])
-    let scrollWheel: Bool? = nilOrValue(list[18])
-    let touchZoom: Bool? = nilOrValue(list[19])
-    let touchZoomCenter: Bool? = nilOrValue(list[20])
-    let isHotspot: Bool? = nilOrValue(list[21])
-    let showBuildingBlock: Bool? = nilOrValue(list[22])
-    let showLabel: Bool? = nilOrValue(list[23])
-    let showIndoorMap: Bool? = nilOrValue(list[24])
-    let defaultCursor: String? = nilOrValue(list[25])
-    let viewMode: String? = nilOrValue(list[26])
-    let terrain: Bool? = nilOrValue(list[27])
-    var wallColor: UIColor? = nil
-    if !(list[28] is NSNull) {
-      wallColor = UIColor(amapColorValue: list[28])
-    }
-    var roofColor: UIColor? = nil
-    if !(list[29] is NSNull) {
-      roofColor = UIColor(amapColorValue: list[29])
-    }
-    var skyColor: UIColor? = nil
-    if !(list[30] is NSNull) {
-      skyColor = UIColor(amapColorValue: list[30])
-    }
+    let showIndoorMap: Bool? = nilOrValue(list[13])
     var customStyleOptions: CustomStyleOptions? = nil
-    if list.count > 31, let customList: [Any?] = nilOrValue(list[31]) {
+    if list.count > 14, let customList: [Any?] = nilOrValue(list[14]) {
       customStyleOptions = CustomStyleOptions.fromList(customList)
     }
     return MapInitConfig(
       mapType: mapType,
-      mapStyle: mapStyle,
       cameraPosition: cameraPosition,
       fitPositions: fitPositions,
       minZoom: minZoom,
@@ -335,27 +291,11 @@ struct MapInitConfig {
       zoomEnable: zoomEnable,
       tiltEnable: tiltEnable,
       rotateEnable: rotateEnable,
-      jogEnable: jogEnable,
-      animateEnable: animateEnable,
-      keyboardEnable: keyboardEnable,
       compassControlEnabled: compassControlEnabled,
       scaleControlEnabled: scaleControlEnabled,
       zoomControlEnabled: zoomControlEnabled,
       logoPosition: logoPosition,
-      doubleClickZoom: doubleClickZoom,
-      scrollWheel: scrollWheel,
-      touchZoom: touchZoom,
-      touchZoomCenter: touchZoomCenter,
-      isHotspot: isHotspot,
-      showBuildingBlock: showBuildingBlock,
-      showLabel: showLabel,
       showIndoorMap: showIndoorMap,
-      defaultCursor: defaultCursor,
-      viewMode: viewMode,
-      terrain: terrain,
-      wallColor: wallColor,
-      roofColor: roofColor,
-      skyColor: skyColor,
       customStyleOptions: customStyleOptions
     )
   }
@@ -363,7 +303,6 @@ struct MapInitConfig {
   func toList() -> [Any?] {
     return [
       mapType?.rawValue,
-      mapStyle,
       cameraPosition?.toList(),
       fitPositions?.map({ position in position.toList() }),
       minZoom,
@@ -372,27 +311,11 @@ struct MapInitConfig {
       zoomEnable,
       tiltEnable,
       rotateEnable,
-      jogEnable,
-      animateEnable,
-      keyboardEnable,
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
       logoPosition?.toList(),
-      doubleClickZoom,
-      scrollWheel,
-      touchZoom,
-      touchZoomCenter,
-      isHotspot,
-      showBuildingBlock,
-      showLabel,
       showIndoorMap,
-      defaultCursor,
-      viewMode,
-      terrain,
-      wallColor?.hex,
-      roofColor?.hex,
-      skyColor?.hex,
       customStyleOptions?.toList(),
     ]
   }
@@ -401,8 +324,6 @@ struct MapInitConfig {
 /// 地图属性配置
 struct MapUpdateConfig {
   var mapType: MapType? = nil
-  var mapStyle: String? = nil
-  var mapFeatures: [String]? = nil
   var dragEnable: Bool? = nil
   var zoomEnable: Bool? = nil
   var tiltEnable: Bool? = nil
@@ -410,8 +331,6 @@ struct MapUpdateConfig {
   var compassControlEnabled: Bool? = nil
   var scaleControlEnabled: Bool? = nil
   var zoomControlEnabled: Bool? = nil
-  var hawkEyeControlEnabled: Bool? = nil
-  var mapTypeControlEnabled: Bool? = nil
   var logoPosition: UIControlPosition? = nil
   var compassControlPosition: UIControlPosition? = nil
   var scaleControlPosition: UIControlPosition? = nil
@@ -419,8 +338,6 @@ struct MapUpdateConfig {
   var showTraffic: Bool? = nil
   var showBuildings: Bool? = nil
   var showIndoorMap: Bool? = nil
-  var showSatelliteLayer: Bool? = nil
-  var showRoadNetLayer: Bool? = nil
   var userLocationConfig: UserLocationConfig? = nil
   var customStyleOptions: CustomStyleOptions? = nil
   var minZoom: Double? = nil
@@ -431,52 +348,44 @@ struct MapUpdateConfig {
     if let type: Int = nilOrValue(list[0]) {
       mapType = MapType(rawValue: type)!
     }
-    let mapStyle: String? = nilOrValue(list[1])
-    let mapFeatures: [String]? = nilOrValue(list[2])
-    let dragEnable: Bool? = nilOrValue(list[3])
-    let zoomEnable: Bool? = nilOrValue(list[4])
-    let tiltEnable: Bool? = nilOrValue(list[5])
-    let rotateEnable: Bool? = nilOrValue(list[6])
-    let compassControlEnabled: Bool? = nilOrValue(list[7])
-    let scaleControlEnabled: Bool? = nilOrValue(list[8])
-    let zoomControlEnabled: Bool? = nilOrValue(list[9])
-    let hawkEyeControlEnabled: Bool? = nilOrValue(list[10])
-    let mapTypeControlEnabled: Bool? = nilOrValue(list[11])
+    let dragEnable: Bool? = nilOrValue(list[1])
+    let zoomEnable: Bool? = nilOrValue(list[2])
+    let tiltEnable: Bool? = nilOrValue(list[3])
+    let rotateEnable: Bool? = nilOrValue(list[4])
+    let compassControlEnabled: Bool? = nilOrValue(list[5])
+    let scaleControlEnabled: Bool? = nilOrValue(list[6])
+    let zoomControlEnabled: Bool? = nilOrValue(list[7])
     var logoPosition: UIControlPosition? = nil
-    if let logoPositionList: [Any?] = nilOrValue(list[12]) {
+    if let logoPositionList: [Any?] = nilOrValue(list[8]) {
       logoPosition = UIControlPosition.fromList(logoPositionList)
     }
     var compassControlPosition: UIControlPosition? = nil
-    if let compassControlPositionList: [Any?] = nilOrValue(list[13]) {
+    if let compassControlPositionList: [Any?] = nilOrValue(list[9]) {
       compassControlPosition = UIControlPosition.fromList(compassControlPositionList)
     }
     var scaleControlPosition: UIControlPosition? = nil
-    if let scaleControlPositionList: [Any?] = nilOrValue(list[14]) {
+    if let scaleControlPositionList: [Any?] = nilOrValue(list[10]) {
       scaleControlPosition = UIControlPosition.fromList(scaleControlPositionList)
     }
     var zoomControlPosition: UIControlPosition? = nil
-    if let zoomControlPositionList: [Any?] = nilOrValue(list[15]) {
+    if let zoomControlPositionList: [Any?] = nilOrValue(list[11]) {
       zoomControlPosition = UIControlPosition.fromList(zoomControlPositionList)
     }
-    let showTraffic: Bool? = nilOrValue(list[16])
-    let showBuildings: Bool? = nilOrValue(list[17])
-    let showIndoorMap: Bool? = nilOrValue(list[18])
-    let showSatelliteLayer: Bool? = nilOrValue(list[19])
-    let showRoadNetLayer: Bool? = nilOrValue(list[20])
+    let showTraffic: Bool? = nilOrValue(list[12])
+    let showBuildings: Bool? = nilOrValue(list[13])
+    let showIndoorMap: Bool? = nilOrValue(list[14])
     var userLocationConfig: UserLocationConfig? = nil
-    if let userLocationConfigList: [Any?] = nilOrValue(list[21]) {
+    if let userLocationConfigList: [Any?] = nilOrValue(list[15]) {
       userLocationConfig = UserLocationConfig.fromList(userLocationConfigList)
     }
     var customStyleOptions: CustomStyleOptions? = nil
-    if list.count > 22, let customList: [Any?] = nilOrValue(list[22]) {
+    if list.count > 16, let customList: [Any?] = nilOrValue(list[16]) {
       customStyleOptions = CustomStyleOptions.fromList(customList)
     }
-    let minZoom: Double? = list.count > 23 ? nilOrValue(list[23]) : nil
-    let maxZoom: Double? = list.count > 24 ? nilOrValue(list[24]) : nil
+    let minZoom: Double? = list.count > 17 ? nilOrValue(list[17]) : nil
+    let maxZoom: Double? = list.count > 18 ? nilOrValue(list[18]) : nil
     return MapUpdateConfig(
       mapType: mapType,
-      mapStyle: mapStyle,
-      mapFeatures: mapFeatures,
       dragEnable: dragEnable,
       zoomEnable: zoomEnable,
       tiltEnable: tiltEnable,
@@ -484,8 +393,6 @@ struct MapUpdateConfig {
       compassControlEnabled: compassControlEnabled,
       scaleControlEnabled: scaleControlEnabled,
       zoomControlEnabled: zoomControlEnabled,
-      hawkEyeControlEnabled: hawkEyeControlEnabled,
-      mapTypeControlEnabled: mapTypeControlEnabled,
       logoPosition: logoPosition,
       compassControlPosition: compassControlPosition,
       scaleControlPosition: scaleControlPosition,
@@ -493,8 +400,6 @@ struct MapUpdateConfig {
       showTraffic: showTraffic,
       showBuildings: showBuildings,
       showIndoorMap: showIndoorMap,
-      showSatelliteLayer: showSatelliteLayer,
-      showRoadNetLayer: showRoadNetLayer,
       userLocationConfig: userLocationConfig,
       customStyleOptions: customStyleOptions,
       minZoom: minZoom,
@@ -505,8 +410,6 @@ struct MapUpdateConfig {
   func toList() -> [Any?] {
     return [
       mapType?.rawValue,
-      mapStyle,
-      mapFeatures,
       dragEnable,
       zoomEnable,
       tiltEnable,
@@ -514,8 +417,6 @@ struct MapUpdateConfig {
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
-      hawkEyeControlEnabled,
-      mapTypeControlEnabled,
       logoPosition?.toList(),
       compassControlPosition?.toList(),
       scaleControlPosition?.toList(),
@@ -523,8 +424,6 @@ struct MapUpdateConfig {
       showTraffic,
       showBuildings,
       showIndoorMap,
-      showSatelliteLayer,
-      showRoadNetLayer,
       userLocationConfig?.toList(),
       customStyleOptions?.toList(),
       minZoom,

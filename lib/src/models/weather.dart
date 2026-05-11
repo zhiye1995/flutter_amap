@@ -280,7 +280,6 @@ class LocalDayWeatherForecast {
     return 'packages/flutter_amap/assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
   }
 
-
   @override
   String toString() {
     return 'LocalDayWeatherForecast(date: $date, week: $weekName, dayWeather: $dayWeather, dayTemp: $dayTemp°C, nightTemp: $nightTemp°C)';
@@ -329,7 +328,9 @@ class LocalWeatherForecast {
       province: result[2] as String?,
       reportTime: result[3] as String?,
       casts: result[4] != null
-          ? (result[4] as List).map((e) => LocalDayWeatherForecast.decode(e as List<Object?>)).toList()
+          ? (result[4] as List)
+              .map((e) => LocalDayWeatherForecast.decode(e as List<Object?>))
+              .toList()
           : null,
     );
   }
@@ -339,7 +340,8 @@ class LocalWeatherForecast {
     List<LocalDayWeatherForecast>? casts;
     if (map['casts'] != null) {
       casts = (map['casts'] as List).map((item) {
-        return LocalDayWeatherForecast.decodeFromMap(Map<String, dynamic>.from(item as Map));
+        return LocalDayWeatherForecast.decodeFromMap(
+            Map<String, dynamic>.from(item as Map));
       }).toList();
     }
 
@@ -373,7 +375,6 @@ class LocalWeatherForecast {
     return 'LocalWeatherForecast(city: $city, reportTime: $reportTime, casts: ${casts?.length ?? 0} days)';
   }
 }
-
 
 class WeatherIcon extends StatelessWidget {
   const WeatherIcon({
@@ -479,7 +480,8 @@ class WeatherIcon extends StatelessWidget {
       return SizedBox();
     }
     int iconId = _getWeatherIconId(weather);
-    String iconName = 'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
+    String iconName =
+        'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
     return Image.asset(
       iconName,
       package: 'flutter_amap',

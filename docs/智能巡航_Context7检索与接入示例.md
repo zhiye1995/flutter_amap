@@ -16,7 +16,7 @@
 
 ### 1.2 检索结论（重要）
 
-- 在当前 Context7 索引中，针对上述库的查询返回内容多为：**LBS 产品线概览**、**Web 服务 HTTP API**、或 **`amap-sdk-skills` 中与「LLM Agent / 自然语言导航」相关的示例**。
+- 在当前 Context7 索引中，针对上述库的查询返回内容多为：**LBS 产品线概览**、**HTTP API**、或 **`amap-sdk-skills` 中与「LLM Agent / 自然语言导航」相关的示例**。
 - **未检索到**与官方「智能巡航 / 无算路巡航」直接对应的可运行片段，例如：`startAimlessMode`、`AimlessModeListener`、`AMapNaviDetectedMode` 等类的**完整、可拷贝的官方示例代码**。
 
 ### 1.3 请勿混淆的概念

@@ -1,5 +1,5 @@
 name: flutter_amap
-description: A Flutter plugin that integrated Amap SDK, support Android, iOS and Web.
+description: A Flutter plugin that integrates Amap SDK for Android and iOS.
 version: 1.0.0
 repository: https://github.com/Firelands128/amap_flutter
 
@@ -10,14 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_web_plugins:
-    sdk: flutter
   plugin_platform_interface: ^2.0.2
   flutter_plugin_android_lifecycle: ^2.0.1
   stream_transform: ^2.0.0
-  web: ^1.0.0
   latlong2: ^0.9.1
-  flutter_keyboard_visibility: ^6.0.0
   highlight_text: ^1.8.0 # 高亮文本
 
 dev_dependencies:
@@ -53,9 +49,6 @@ flutter:
         pluginClass: AMapFlutterPlugin
       ios:
         pluginClass: AMapFlutterPlugin
-      web:
-        pluginClass: AMapFlutterWebPlugin
-        fileName: src/web/amap_flutter_web_plugin.dart
 
   # To add assets to your plugin package, add an assets section, like this:
   assets:

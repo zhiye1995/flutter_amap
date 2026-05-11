@@ -1,5 +1,4 @@
 import 'package:flutter_amap/flutter_amap.dart';
-import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 /// 地图视野调整页面
@@ -67,17 +66,16 @@ class _MapViewPageState extends State<MapViewPage> {
                   onPressed: () => controller.moveCamera(position1, duration),
                 ),
               ),
-              if (!PlatformUtil.isWeb)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: ElevatedButton(
-                    child: const Text(' 视野 2 '),
-                    onPressed: () => controller.moveCameraToRegion(
-                      region,
-                      duration,
-                    ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: ElevatedButton(
+                  child: const Text(' 视野 2 '),
+                  onPressed: () => controller.moveCameraToRegion(
+                    region,
+                    duration,
                   ),
                 ),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: ElevatedButton(

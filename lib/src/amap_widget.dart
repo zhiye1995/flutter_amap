@@ -11,10 +11,6 @@ class AMapMapOptions {
     this.showTraffic,
     this.showBuildings,
     this.showIndoorMap,
-    this.showSatelliteLayer,
-    this.showRoadNetLayer,
-    this.showBuildingBlock,
-    this.showLabel,
     this.customStyleOptions,
   });
 
@@ -26,10 +22,6 @@ class AMapMapOptions {
   final bool? showTraffic;
   final bool? showBuildings;
   final bool? showIndoorMap;
-  final bool? showSatelliteLayer;
-  final bool? showRoadNetLayer;
-  final bool? showBuildingBlock;
-  final bool? showLabel;
   final CustomStyleOptions? customStyleOptions;
 }
 
@@ -40,20 +32,12 @@ class AMapGestureOptions {
     this.zoomEnable,
     this.tiltEnable,
     this.rotateEnable,
-    this.doubleClickZoom,
-    this.scrollWheel,
-    this.touchZoom,
-    this.touchZoomCenter,
   });
 
   final bool? dragEnable;
   final bool? zoomEnable;
   final bool? tiltEnable;
   final bool? rotateEnable;
-  final bool? doubleClickZoom;
-  final bool? scrollWheel;
-  final bool? touchZoom;
-  final bool? touchZoomCenter;
 }
 
 /// 地图控件配置。
@@ -62,8 +46,6 @@ class AMapUiOptions {
     this.compassControlEnabled,
     this.scaleControlEnabled,
     this.zoomControlEnabled,
-    this.hawkEyeControlEnabled,
-    this.mapTypeControlEnabled,
     this.logoPosition,
     this.compassControlPosition,
     this.scaleControlPosition,
@@ -73,8 +55,6 @@ class AMapUiOptions {
   final bool? compassControlEnabled;
   final bool? scaleControlEnabled;
   final bool? zoomControlEnabled;
-  final bool? hawkEyeControlEnabled;
-  final bool? mapTypeControlEnabled;
   final UIControlPosition? logoPosition;
   final UIControlPosition? compassControlPosition;
   final UIControlPosition? scaleControlPosition;
@@ -92,37 +72,6 @@ class AMapLocationOptions {
   final bool? showUserLocation;
   final bool? geolocationControlEnabled;
   final UserLocationStyle? userLocationStyle;
-}
-
-/// Web 专属地图配置。
-class AMapWebOptions {
-  const AMapWebOptions({
-    this.mapStyle,
-    this.mapFeatures,
-    this.jogEnable,
-    this.animateEnable,
-    this.keyboardEnable,
-    this.isHotspot,
-    this.defaultCursor,
-    this.viewMode,
-    this.terrain,
-    this.wallColor,
-    this.roofColor,
-    this.skyColor,
-  });
-
-  final String? mapStyle;
-  final Set<String>? mapFeatures;
-  final bool? jogEnable;
-  final bool? animateEnable;
-  final bool? keyboardEnable;
-  final bool? isHotspot;
-  final String? defaultCursor;
-  final String? viewMode;
-  final bool? terrain;
-  final Color? wallColor;
-  final Color? roofColor;
-  final Color? skyColor;
 }
 
 /// SDK 初始化配置。
@@ -146,10 +95,7 @@ class AMapWidget extends StatefulWidget {
     this.gestureOptions,
     this.uiOptions,
     this.locationOptions,
-    this.webOptions,
     this.mapType,
-    this.mapStyle,
-    this.mapFeatures = const {"bg", "road", "point", "building"},
     this.initCameraPosition,
     this.initFitPositions,
     this.minZoom,
@@ -158,36 +104,16 @@ class AMapWidget extends StatefulWidget {
     this.zoomEnable,
     this.tiltEnable,
     this.rotateEnable,
-    this.jogEnable,
-    this.animateEnable,
-    this.keyboardEnable,
     this.compassControlEnabled,
     this.scaleControlEnabled,
     this.zoomControlEnabled,
-    this.hawkEyeControlEnabled,
-    this.mapTypeControlEnabled,
     this.logoPosition,
     this.compassControlPosition,
     this.scaleControlPosition,
     this.zoomControlPosition,
-    this.doubleClickZoom,
-    this.scrollWheel,
-    this.touchZoom,
-    this.touchZoomCenter,
-    this.isHotspot,
     this.showTraffic,
     this.showBuildings = false,
     this.showIndoorMap = false,
-    this.showSatelliteLayer = false,
-    this.showRoadNetLayer = false,
-    this.showBuildingBlock,
-    this.showLabel,
-    this.defaultCursor,
-    this.viewMode,
-    this.terrain,
-    this.wallColor,
-    this.roofColor,
-    this.skyColor,
     this.showUserLocation,
     this.geolocationControlEnabled,
     this.userLocationStyle,
@@ -200,8 +126,6 @@ class AMapWidget extends StatefulWidget {
     this.onMapInitComplete,
     this.onMapCompleted,
     this.onMapPress,
-    this.onMapDoublePress,
-    this.onMapRightPress,
     this.onMapLongPress,
     this.onCameraChange,
     this.onCameraChangeStart,
@@ -216,18 +140,6 @@ class AMapWidget extends StatefulWidget {
     this.onRotateChange,
     this.onRotateChangeStart,
     this.onRotateChangeEnd,
-    this.onMouseMove,
-    this.onMouseWheel,
-    this.onMouseOver,
-    this.onMouseOut,
-    this.onMouseUp,
-    this.onMouseDown,
-    this.onDragStart,
-    this.onDragging,
-    this.onDragEnd,
-    this.onTouchStart,
-    this.onTouching,
-    this.onTouchEnd,
     this.onPoiClick,
     this.onMarkerClick,
     this.onMarkerDragStart,
@@ -248,17 +160,8 @@ class AMapWidget extends StatefulWidget {
   /// 定位显示配置。
   final AMapLocationOptions? locationOptions;
 
-  /// Web 专属地图配置。
-  final AMapWebOptions? webOptions;
-
   /// 地图类型编号(iOS and Android Only)
   final MapType? mapType;
-
-  /// 地图样式编号(Web Only)
-  final String? mapStyle;
-
-  /// 地图显示要素(Web Only)
-  final Set<String> mapFeatures;
 
   /// 地图初始视野
   final CameraPosition? initCameraPosition;
@@ -284,32 +187,14 @@ class AMapWidget extends StatefulWidget {
   /// 地图是否允许旋转
   final bool? rotateEnable;
 
-  /// 地图是否使用缓动效果，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? jogEnable;
-
-  /// 地图平移过程中是否使用动画，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? animateEnable;
-
-  /// 地图是否可通过键盘控制，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? keyboardEnable;
-
   /// 是否显示指南针控件
   final bool? compassControlEnabled;
 
   /// 是否显示比例尺控件
   final bool? scaleControlEnabled;
 
-  /// 是否显示缩放控件(Support Web/Android)
+  /// 是否显示缩放控件(Android)
   final bool? zoomControlEnabled;
-
-  /// 是否显示鹰眼控件(Web Only)
-  final bool? hawkEyeControlEnabled;
-
-  /// 是否显示地图类型控件(Web Only)
-  final bool? mapTypeControlEnabled;
 
   /// Logo位置(Support iOS/Android)
   final UIControlPosition? logoPosition;
@@ -320,28 +205,8 @@ class AMapWidget extends StatefulWidget {
   /// 比例尺控件位置
   final UIControlPosition? scaleControlPosition;
 
-  /// 缩放控件位置(Support Web/Android)
+  /// 缩放控件位置(Android)
   final UIControlPosition? zoomControlPosition;
-
-  /// 地图是否可通过双击鼠标放大地图，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? doubleClickZoom;
-
-  /// 地图是否可通过鼠标滚轮缩放浏览，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? scrollWheel;
-
-  /// 地图在移动终端上是否可通过多点触控缩放浏览地图，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? touchZoom;
-
-  /// 手机端双指缩放是否以地图中心为中心，否则以双指中间点为中心，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? touchZoomCenter;
-
-  /// 是否开启地图热点和标注的hover效果，PC端默认是true，移动端默认是 false(Web Only)
-  /// Only valid when init map
-  final bool? isHotspot;
 
   /// 是否显示实时路况
   final bool? showTraffic;
@@ -352,44 +217,6 @@ class AMapWidget extends StatefulWidget {
   /// 是否显示室内图层
   final bool? showIndoorMap;
 
-  /// 是否显示卫星图层(Web Only)
-  final bool showSatelliteLayer;
-
-  /// 是否显示路网图层(Web Only)
-  final bool showRoadNetLayer;
-
-  /// 是否展示地图3D楼块，默认true(Web Only)
-  /// Only valid when init map
-  final bool? showBuildingBlock;
-
-  /// 是否展示地图文字和 POI 信息，默认为true(Web Only)
-  /// Only valid when init map
-  final bool? showLabel;
-
-  /// 地图默认鼠标样式(Web Only)
-  /// Only valid when init map
-  final String? defaultCursor;
-
-  /// 初始地图视图模式，默认为2D, 3D 地形图 目前仅支持 v2.1Beta(Web Only)
-  /// Only valid when init map
-  final String? viewMode;
-
-  /// 初始地图是否展示地形，默认为false(Web Only)
-  /// Only valid when init map
-  final bool? terrain;
-
-  /// 地图楼块的侧面颜色(Web Only)
-  /// Only valid when init map
-  final Color? wallColor;
-
-  /// 地图楼块的顶面颜色(Web Only)
-  /// Only valid when init map
-  final Color? roofColor;
-
-  /// 天空颜色，3D模式下带有俯仰角时会显示(Web Only)
-  /// Only valid when init map
-  final Color? skyColor;
-
   /// 是否显示当前定位
   final bool? showUserLocation;
 
@@ -399,7 +226,7 @@ class AMapWidget extends StatefulWidget {
   /// 用户定位样式
   final UserLocationStyle? userLocationStyle;
 
-  /// 离线自定义地图样式（iOS / Android），Web 端忽略
+  /// 离线自定义地图样式（iOS / Android）
   final CustomStyleOptions? customStyleOptions;
 
   /// 声明式点标记集合。
@@ -428,12 +255,6 @@ class AMapWidget extends StatefulWidget {
   /// 当地图点击时触发该回调
   final void Function(Position)? onMapPress;
 
-  /// 当地图双击时触发该回调(Web only)
-  final void Function(Position)? onMapDoublePress;
-
-  /// 当地图右键点击时触发该回调(Web only)
-  final void Function(Position)? onMapRightPress;
-
   /// 当地图长按时触发该回调
   final void Function(Position)? onMapLongPress;
 
@@ -446,13 +267,13 @@ class AMapWidget extends StatefulWidget {
   /// 当地图视野变化结束时触发该回调(Support iOS/Android)
   final void Function(CameraPosition)? onCameraChangeFinish;
 
-  /// 当地图平移开始时触发该回调(Support iOS/Web)
+  /// 当地图平移开始时触发该回调(iOS)
   final void Function(Position)? onMapMoveStart;
 
-  /// 当地图平移时触发该回调(Support iOS/Web)
+  /// 当地图平移时触发该回调(iOS)
   final void Function(Position)? onMapMove;
 
-  /// 当地图平移结束时触发该回调(Support iOS/Web)
+  /// 当地图平移结束时触发该回调(iOS)
   final void Function(Position)? onMapMoveEnd;
 
   /// 当地图容器尺寸改变时触发该回调
@@ -475,42 +296,6 @@ class AMapWidget extends StatefulWidget {
 
   /// 当地图旋转结束时触发该回调
   final void Function(double)? onRotateChangeEnd;
-
-  /// 当移动鼠标时触发该回调(Web only)
-  final void Function(Position)? onMouseMove;
-
-  /// 当鼠标滚轮缩放地图时触发该回调(Web only)
-  final void Function(double)? onMouseWheel;
-
-  /// 当鼠标移入地图容器内时触发时触发该回调(Web only)
-  final void Function(Position)? onMouseOver;
-
-  /// 当鼠标移出地图容器时触发时触发该回调(Web only)
-  final void Function(Position)? onMouseOut;
-
-  /// 当鼠标在地图上单击抬起时触发时触发该回调(Web only)
-  final void Function(Position)? onMouseUp;
-
-  /// 当鼠标在地图上单击按下时触发时触发该回调(Web only)
-  final void Function(Position)? onMouseDown;
-
-  /// 当开始拖拽地图时触发该回调(Web only)
-  final void Function(Position)? onDragStart;
-
-  /// 当拖拽地图时触发该回调(Web only)
-  final void Function(Position)? onDragging;
-
-  /// 当停止拖拽地图时触发该回调(Web only)
-  final void Function(Position)? onDragEnd;
-
-  /// 当开始触摸地图时触发该回调(Web only)
-  final void Function(Position)? onTouchStart;
-
-  /// 当触摸移动地图时触发时触发该回调(Web only)
-  final void Function(Position)? onTouching;
-
-  /// 当停止触摸地图时触发该回调(Web only)
-  final void Function(Position)? onTouchEnd;
 
   /// 当点击地图上任意的POI时调用，方法会传入点击的POI信息
   final void Function(Poi)? onPoiClick;
@@ -547,11 +332,9 @@ class AMapWidget extends StatefulWidget {
           agreePrivacy: agreePrivacy,
         );
     await AMapFlutterPlatformInterface.instance.setApiKey(sdkConfig.apiKey);
-    if (!kIsWeb) {
-      await AMapFlutterPlatformInterface.instance.agreePrivacy(
-        sdkConfig.agreePrivacy,
-      );
-    }
+    await AMapFlutterPlatformInterface.instance.agreePrivacy(
+      sdkConfig.agreePrivacy,
+    );
     if (sdkConfig.preloadNaviIcons) {
       // 预加载导航图标资源
       NaviInfo.preloadAssetIcons();
@@ -567,12 +350,6 @@ class AMapWidgetState extends State<AMapWidget> {
   @override
   Widget build(BuildContext context) {
     final MapInitConfig initConfig = _buildInitConfig();
-    if (kIsWeb) {
-      return HtmlElementView(
-        viewType: "amap_flutter",
-        onPlatformViewCreated: _onPlatformViewCreated,
-      );
-    }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return AndroidView(
@@ -607,13 +384,6 @@ class AMapWidgetState extends State<AMapWidget> {
     if (_mapType(widget) != null && _mapType(widget) != _mapType(oldWidget)) {
       config.mapType = _mapType(widget);
     }
-    if (_mapStyle(widget) != null &&
-        _mapStyle(widget) != _mapStyle(oldWidget)) {
-      config.mapStyle = _mapStyle(widget);
-    }
-    if (!setEquals(_mapFeatures(widget), _mapFeatures(oldWidget))) {
-      config.mapFeatures = _mapFeatures(widget).toList();
-    }
     if (_dragEnable(widget) != null &&
         _dragEnable(widget) != _dragEnable(oldWidget)) {
       config.dragEnable = _dragEnable(widget);
@@ -642,14 +412,6 @@ class AMapWidgetState extends State<AMapWidget> {
         _zoomControlEnabled(widget) != _zoomControlEnabled(oldWidget)) {
       config.zoomControlEnabled = _zoomControlEnabled(widget);
     }
-    if (_hawkEyeControlEnabled(widget) != null &&
-        _hawkEyeControlEnabled(widget) != _hawkEyeControlEnabled(oldWidget)) {
-      config.hawkEyeControlEnabled = _hawkEyeControlEnabled(widget);
-    }
-    if (_mapTypeControlEnabled(widget) != null &&
-        _mapTypeControlEnabled(widget) != _mapTypeControlEnabled(oldWidget)) {
-      config.mapTypeControlEnabled = _mapTypeControlEnabled(widget);
-    }
     if (_logoPosition(widget) != null &&
         _logoPosition(widget) != _logoPosition(oldWidget)) {
       config.logoPosition = _logoPosition(widget);
@@ -676,12 +438,6 @@ class AMapWidgetState extends State<AMapWidget> {
     }
     if (_showIndoorMap(widget) != _showIndoorMap(oldWidget)) {
       config.showIndoorMap = _showIndoorMap(widget);
-    }
-    if (_showSatelliteLayer(widget) != _showSatelliteLayer(oldWidget)) {
-      config.showSatelliteLayer = _showSatelliteLayer(widget);
-    }
-    if (_showRoadNetLayer(widget) != _showRoadNetLayer(oldWidget)) {
-      config.showRoadNetLayer = _showRoadNetLayer(widget);
     }
     if (_geolocationControlEnabled(widget) != null &&
         _geolocationControlEnabled(widget) !=
@@ -765,8 +521,6 @@ class AMapWidgetState extends State<AMapWidget> {
       }
       MapUpdateConfig config = MapUpdateConfig(
         mapType: _mapType(widget),
-        mapStyle: _mapStyle(widget),
-        mapFeatures: _mapFeatures(widget).toList(),
         dragEnable: _dragEnable(widget),
         zoomEnable: _zoomEnable(widget),
         tiltEnable: _tiltEnable(widget),
@@ -774,8 +528,6 @@ class AMapWidgetState extends State<AMapWidget> {
         compassControlEnabled: _compassControlEnabled(widget),
         scaleControlEnabled: _scaleControlEnabled(widget),
         zoomControlEnabled: _zoomControlEnabled(widget),
-        hawkEyeControlEnabled: _hawkEyeControlEnabled(widget),
-        mapTypeControlEnabled: _mapTypeControlEnabled(widget),
         logoPosition: _logoPosition(widget),
         compassControlPosition: _compassControlPosition(widget),
         scaleControlPosition: _scaleControlPosition(widget),
@@ -783,8 +535,6 @@ class AMapWidgetState extends State<AMapWidget> {
         showTraffic: _showTraffic(widget),
         showBuildings: _showBuildings(widget),
         showIndoorMap: _showIndoorMap(widget),
-        showSatelliteLayer: _showSatelliteLayer(widget),
-        showRoadNetLayer: _showRoadNetLayer(widget),
         userLocationConfig: UserLocationConfig(
           userLocationButton: _geolocationControlEnabled(widget),
           showUserLocation: _showUserLocation(widget),
@@ -804,7 +554,6 @@ class AMapWidgetState extends State<AMapWidget> {
   MapInitConfig _buildInitConfig() {
     return MapInitConfig(
       mapType: _mapType(widget),
-      mapStyle: _mapStyle(widget),
       cameraPosition: _initCameraPosition(widget),
       fitPositions: _initFitPositions(widget),
       minZoom: _minZoom(widget),
@@ -813,27 +562,11 @@ class AMapWidgetState extends State<AMapWidget> {
       zoomEnable: _zoomEnable(widget),
       tiltEnable: _tiltEnable(widget),
       rotateEnable: _rotateEnable(widget),
-      jogEnable: _jogEnable(widget),
-      animateEnable: _animateEnable(widget),
-      keyboardEnable: _keyboardEnable(widget),
       compassControlEnabled: _compassControlEnabled(widget),
       scaleControlEnabled: _scaleControlEnabled(widget),
       zoomControlEnabled: _zoomControlEnabled(widget),
       logoPosition: _logoPosition(widget),
-      doubleClickZoom: _doubleClickZoom(widget),
-      scrollWheel: _scrollWheel(widget),
-      touchZoom: _touchZoom(widget),
-      touchZoomCenter: _touchZoomCenter(widget),
-      isHotspot: _isHotspot(widget),
-      showBuildingBlock: _showBuildingBlock(widget),
-      showLabel: _showLabel(widget),
       showIndoorMap: _showIndoorMap(widget),
-      defaultCursor: _defaultCursor(widget),
-      viewMode: _viewMode(widget),
-      terrain: _terrain(widget),
-      wallColor: _wallColor(widget),
-      roofColor: _roofColor(widget),
-      skyColor: _skyColor(widget),
       customStyleOptions: _customStyleOptions(widget),
     );
   }
@@ -945,12 +678,6 @@ Map<String, Polygon> _polygonsById(Set<Polygon> polygons) {
 MapType? _mapType(AMapWidget widget) =>
     widget.mapOptions?.mapType ?? widget.mapType;
 
-String? _mapStyle(AMapWidget widget) =>
-    widget.webOptions?.mapStyle ?? widget.mapStyle;
-
-Set<String> _mapFeatures(AMapWidget widget) =>
-    widget.webOptions?.mapFeatures ?? widget.mapFeatures;
-
 CameraPosition? _initCameraPosition(AMapWidget widget) =>
     widget.mapOptions?.initCameraPosition ?? widget.initCameraPosition;
 
@@ -975,15 +702,6 @@ bool? _tiltEnable(AMapWidget widget) =>
 bool? _rotateEnable(AMapWidget widget) =>
     widget.gestureOptions?.rotateEnable ?? widget.rotateEnable;
 
-bool? _jogEnable(AMapWidget widget) =>
-    widget.webOptions?.jogEnable ?? widget.jogEnable;
-
-bool? _animateEnable(AMapWidget widget) =>
-    widget.webOptions?.animateEnable ?? widget.animateEnable;
-
-bool? _keyboardEnable(AMapWidget widget) =>
-    widget.webOptions?.keyboardEnable ?? widget.keyboardEnable;
-
 bool? _compassControlEnabled(AMapWidget widget) =>
     widget.uiOptions?.compassControlEnabled ?? widget.compassControlEnabled;
 
@@ -992,12 +710,6 @@ bool? _scaleControlEnabled(AMapWidget widget) =>
 
 bool? _zoomControlEnabled(AMapWidget widget) =>
     widget.uiOptions?.zoomControlEnabled ?? widget.zoomControlEnabled;
-
-bool? _hawkEyeControlEnabled(AMapWidget widget) =>
-    widget.uiOptions?.hawkEyeControlEnabled ?? widget.hawkEyeControlEnabled;
-
-bool? _mapTypeControlEnabled(AMapWidget widget) =>
-    widget.uiOptions?.mapTypeControlEnabled ?? widget.mapTypeControlEnabled;
 
 UIControlPosition? _logoPosition(AMapWidget widget) =>
     widget.uiOptions?.logoPosition ?? widget.logoPosition;
@@ -1011,21 +723,6 @@ UIControlPosition? _scaleControlPosition(AMapWidget widget) =>
 UIControlPosition? _zoomControlPosition(AMapWidget widget) =>
     widget.uiOptions?.zoomControlPosition ?? widget.zoomControlPosition;
 
-bool? _doubleClickZoom(AMapWidget widget) =>
-    widget.gestureOptions?.doubleClickZoom ?? widget.doubleClickZoom;
-
-bool? _scrollWheel(AMapWidget widget) =>
-    widget.gestureOptions?.scrollWheel ?? widget.scrollWheel;
-
-bool? _touchZoom(AMapWidget widget) =>
-    widget.gestureOptions?.touchZoom ?? widget.touchZoom;
-
-bool? _touchZoomCenter(AMapWidget widget) =>
-    widget.gestureOptions?.touchZoomCenter ?? widget.touchZoomCenter;
-
-bool? _isHotspot(AMapWidget widget) =>
-    widget.webOptions?.isHotspot ?? widget.isHotspot;
-
 bool? _showTraffic(AMapWidget widget) =>
     widget.mapOptions?.showTraffic ?? widget.showTraffic;
 
@@ -1034,36 +731,6 @@ bool? _showBuildings(AMapWidget widget) =>
 
 bool? _showIndoorMap(AMapWidget widget) =>
     widget.mapOptions?.showIndoorMap ?? widget.showIndoorMap;
-
-bool _showSatelliteLayer(AMapWidget widget) =>
-    widget.mapOptions?.showSatelliteLayer ?? widget.showSatelliteLayer;
-
-bool _showRoadNetLayer(AMapWidget widget) =>
-    widget.mapOptions?.showRoadNetLayer ?? widget.showRoadNetLayer;
-
-bool? _showBuildingBlock(AMapWidget widget) =>
-    widget.mapOptions?.showBuildingBlock ?? widget.showBuildingBlock;
-
-bool? _showLabel(AMapWidget widget) =>
-    widget.mapOptions?.showLabel ?? widget.showLabel;
-
-String? _defaultCursor(AMapWidget widget) =>
-    widget.webOptions?.defaultCursor ?? widget.defaultCursor;
-
-String? _viewMode(AMapWidget widget) =>
-    widget.webOptions?.viewMode ?? widget.viewMode;
-
-bool? _terrain(AMapWidget widget) =>
-    widget.webOptions?.terrain ?? widget.terrain;
-
-Color? _wallColor(AMapWidget widget) =>
-    widget.webOptions?.wallColor ?? widget.wallColor;
-
-Color? _roofColor(AMapWidget widget) =>
-    widget.webOptions?.roofColor ?? widget.roofColor;
-
-Color? _skyColor(AMapWidget widget) =>
-    widget.webOptions?.skyColor ?? widget.skyColor;
 
 bool? _showUserLocation(AMapWidget widget) =>
     widget.locationOptions?.showUserLocation ?? widget.showUserLocation;

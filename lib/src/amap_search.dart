@@ -116,6 +116,7 @@ class AMapSearch {
   ///
   /// 返回 [LocalWeatherForecast] 天气预报信息（包含未来几天预报）
   static Future<LocalWeatherForecast> searchWeatherForecastByLocation() {
-    return AMapFlutterPlatformInterface.instance.searchWeatherForecastByLocation();
+    return AMapFlutterPlatformInterface.instance
+        .searchWeatherForecastByLocation();
   }
 }

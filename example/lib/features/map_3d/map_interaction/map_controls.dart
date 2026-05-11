@@ -19,8 +19,6 @@ class _MapControlsPageState extends State<MapControlsPage> {
   static const scale = '比例尺';
   static const zoom = '缩放';
   static const geolocation = '定位按钮';
-  static const hawkEye = '鹰眼';
-  static const mapType = '地图类型';
 
   static const androidSupport = [compass, scale, zoom, geolocation];
   static const iOSSupport = [compass, scale];
@@ -32,13 +30,10 @@ class _MapControlsPageState extends State<MapControlsPage> {
     scale: true,
     zoom: true,
     geolocation: true,
-    hawkEye: true,
-    mapType: true,
   };
 
   List<Widget> get items {
     Iterable<String> keys = switch (PlatformUtil.platform) {
-      PlatformEnum.web => _state.keys,
       PlatformEnum.android => androidSupport,
       PlatformEnum.ios => iOSSupport,
       PlatformEnum.unknown => [],
@@ -89,8 +84,6 @@ class _MapControlsPageState extends State<MapControlsPage> {
         scaleControlEnabled: _state[scale]!,
         zoomControlEnabled: _state[zoom]!,
         geolocationControlEnabled: _state[geolocation]!,
-        hawkEyeControlEnabled: _state[hawkEye]!,
-        mapTypeControlEnabled: _state[mapType]!,
         onMapCreated: (controller) {
           setState(() {
             _controller = controller;

@@ -72,9 +72,7 @@ class _InfoWindowPageState extends State<InfoWindowPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    _ready
-                        ? '点标记或下方按钮显示信息窗；Web 端不支持 show/hideInfoWindow。'
-                        : '地图加载中…',
+                    _ready ? '点标记或下方按钮显示信息窗。' : '地图加载中…',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

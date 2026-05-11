@@ -50,7 +50,9 @@ class InputTip {
     return InputTip(
       name: result[0]! as String,
       address: result[1] as String?,
-      position: result[2] != null ? Position.decode(result[2]! as List<Object?>) : null,
+      position: result[2] != null
+          ? Position.decode(result[2]! as List<Object?>)
+          : null,
       poiId: result[3] as String?,
       district: result[4] as String?,
       adcode: result[5] as String?,
@@ -145,7 +147,9 @@ class SearchConfig {
       city: result[1] as String?,
       cityLimit: result[2] as bool? ?? false,
       types: result[3] as String?,
-      location: result[4] != null ? Position.decode(result[4]! as List<Object?>) : null,
+      location: result[4] != null
+          ? Position.decode(result[4]! as List<Object?>)
+          : null,
     );
   }
 

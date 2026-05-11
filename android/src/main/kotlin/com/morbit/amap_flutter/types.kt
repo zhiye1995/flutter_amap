@@ -254,8 +254,6 @@ data class CustomStyleOptions(
 data class MapInitConfig(
   /** 地图类型 */
   val mapType: MapType?,
-  /** 地图的显示样式 */
-  val mapStyle: String?,
   /** 地图视野 */
   val cameraPosition: CameraPosition?,
   /** 地图视野以适应位置 */
@@ -272,12 +270,6 @@ data class MapInitConfig(
   val tiltEnable: Boolean?,
   /** 地图是否允许旋转 */
   val rotateEnable: Boolean?,
-  /** 地图是否使用缓动效果，默认为true */
-  val jogEnable: Boolean?,
-  /** 地图平移过程中是否使用动画，默认为true */
-  val animateEnable: Boolean?,
-  /** 地图是否可通过键盘控制，默认为true */
-  val keyboardEnable: Boolean?,
   /** 是否显示指南针控件 */
   val compassControlEnabled: Boolean?,
   /** 是否显示比例尺控件 */
@@ -286,80 +278,36 @@ data class MapInitConfig(
   val zoomControlEnabled: Boolean?,
   /** Logo位置锚点(Android Only) */
   val logoPosition: UIControlPosition?,
-  /** 地图是否可通过双击鼠标放大地图，默认为true */
-  val doubleClickZoom: Boolean?,
-  /** 地图是否可通过鼠标滚轮缩放浏览，默认为true */
-  val scrollWheel: Boolean?,
-  /** 地图在移动终端上是否可通过多点触控缩放浏览地图，默认为true */
-  val touchZoom: Boolean?,
-  /** 手机端双指缩放是否以地图中心为中心，否则以双指中间点为中心，默认为true */
-  val touchZoomCenter: Boolean?,
-  /** 是否开启地图热点和标注的hover效果，PC端默认是true，移动端默认是 false */
-  val isHotspot: Boolean?,
-  /** 是否展示地图3D楼块，默认true */
-  val showBuildingBlock: Boolean?,
-  /** 是否展示地图文字和 POI 信息，默认为true */
-  val showLabel: Boolean?,
   /** 是否自动展示室内地图，默认是false */
   val showIndoorMap: Boolean?,
-  /** 地图默认鼠标样式 */
-  val defaultCursor: String?,
-  /** 初始地图视图模式，默认为2D, 3D 地形图 目前仅支持 v2.1Beta，（仅web端有效） */
-  val viewMode: String?,
-  /** 初始地图是否展示地形，默认为false，（仅web端有效） */
-  val terrain: Boolean?,
-  /** 地图楼块的侧面颜色 */
-  val wallColor: Color?,
-  /** 地图楼块的顶面颜色 */
-  val roofColor: Color?,
-  /** 天空颜色，3D模式下带有俯仰角时会显示 */
-  val skyColor: Color?,
   /** 自定义离线样式 */
   val customStyleOptions: CustomStyleOptions? = null,
 ) {
   companion object {
     fun fromList(list: List<Any?>): MapInitConfig {
       val mapType = (list[0] as Int?)?.let { MapType.ofRaw(it) }
-      val mapStyle = list[1] as String?
-      val cameraPosition = (list[2] as List<Any?>?)?.let { CameraPosition.fromList(it) }
+      val cameraPosition = (list[1] as List<Any?>?)?.let { CameraPosition.fromList(it) }
       val fitPositions =
-        (list[3] as List<Any?>?)?.map { position -> Position.fromList(position as List<Any?>) }
-      val minZoom = list[4] as Double?
-      val maxZoom = list[5] as Double?
-      val dragEnable = list[6] as Boolean?
-      val zoomEnable = list[7] as Boolean?
-      val tiltEnable = list[8] as Boolean?
-      val rotateEnable = list[9] as Boolean?
-      val jogEnable = list[10] as Boolean?
-      val animateEnable = list[11] as Boolean?
-      val keyboardEnable = list[12] as Boolean?
-      val compassControlEnabled = list[13] as Boolean?
-      val scaleControlEnabled = list[14] as Boolean?
-      val zoomControlEnabled = list[15] as Boolean?
-      val logoPosition = (list[16] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
-      val doubleClickZoom = list[17] as Boolean?
-      val scrollWheel = list[18] as Boolean?
-      val touchZoom = list[19] as Boolean?
-      val touchZoomCenter = list[20] as Boolean?
-      val isHotspot = list[21] as Boolean?
-      val showBuildingBlock = list[22] as Boolean?
-      val showLabel = list[23] as Boolean?
-      val showIndoorMap = list[24] as Boolean?
-      val defaultCursor = list[25] as String?
-      val viewMode = list[26] as String?
-      val terrain = list[27] as Boolean?
-      val wallColor = colorFromValue(list[28])
-      val roofColor = colorFromValue(list[29])
-      val skyColor = colorFromValue(list[30])
+        (list[2] as List<Any?>?)?.map { position -> Position.fromList(position as List<Any?>) }
+      val minZoom = list[3] as Double?
+      val maxZoom = list[4] as Double?
+      val dragEnable = list[5] as Boolean?
+      val zoomEnable = list[6] as Boolean?
+      val tiltEnable = list[7] as Boolean?
+      val rotateEnable = list[8] as Boolean?
+      val compassControlEnabled = list[9] as Boolean?
+      val scaleControlEnabled = list[10] as Boolean?
+      val zoomControlEnabled = list[11] as Boolean?
+      val logoPosition = (list[12] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
+      val showIndoorMap = list[13] as Boolean?
       val customStyleOptions =
-        if (list.size > 31) {
-          (list[31] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
+        if (list.size > 14) {
+          (list[14] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
         } else {
           null
         }
       return MapInitConfig(
         mapType,
-        mapStyle,
         cameraPosition,
         fitPositions,
         minZoom,
@@ -368,27 +316,11 @@ data class MapInitConfig(
         zoomEnable,
         tiltEnable,
         rotateEnable,
-        jogEnable,
-        animateEnable,
-        keyboardEnable,
         compassControlEnabled,
         scaleControlEnabled,
         zoomControlEnabled,
         logoPosition,
-        doubleClickZoom,
-        scrollWheel,
-        touchZoom,
-        touchZoomCenter,
-        isHotspot,
-        showBuildingBlock,
-        showLabel,
         showIndoorMap,
-        defaultCursor,
-        viewMode,
-        terrain,
-        wallColor,
-        roofColor,
-        skyColor,
         customStyleOptions,
       )
     }
@@ -397,7 +329,6 @@ data class MapInitConfig(
   fun toList(): List<Any?> {
     return listOf(
       mapType?.raw,
-      mapStyle,
       cameraPosition?.toList(),
       fitPositions?.map { it.toList() },
       minZoom,
@@ -406,27 +337,11 @@ data class MapInitConfig(
       zoomEnable,
       tiltEnable,
       rotateEnable,
-      jogEnable,
-      animateEnable,
-      keyboardEnable,
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
       logoPosition?.toList(),
-      doubleClickZoom,
-      scrollWheel,
-      touchZoom,
-      touchZoomCenter,
-      isHotspot,
-      showBuildingBlock,
-      showLabel,
       showIndoorMap,
-      defaultCursor,
-      viewMode,
-      terrain,
-      wallColor?.toArgb(),
-      roofColor?.toArgb(),
-      skyColor?.toArgb(),
       customStyleOptions?.toList(),
     )
   }
@@ -435,8 +350,6 @@ data class MapInitConfig(
 /** 地图属性配置 */
 data class MapUpdateConfig(
   val mapType: MapType? = null,
-  val mapStyle: String? = null,
-  val mapFeatures: List<String>? = null,
   val dragEnable: Boolean? = null,
   val zoomEnable: Boolean? = null,
   val tiltEnable: Boolean? = null,
@@ -444,8 +357,6 @@ data class MapUpdateConfig(
   val compassControlEnabled: Boolean? = null,
   val scaleControlEnabled: Boolean? = null,
   val zoomControlEnabled: Boolean? = null,
-  val hawkEyeControlEnabled: Boolean? = null,
-  val mapTypeControlEnabled: Boolean? = null,
   val logoPosition: UIControlPosition? = null,
   val compassControlPosition: UIControlPosition? = null,
   val scaleControlPosition: UIControlPosition? = null,
@@ -453,8 +364,6 @@ data class MapUpdateConfig(
   val showTraffic: Boolean? = null,
   val showBuildings: Boolean? = null,
   val showIndoorMap: Boolean? = null,
-  val showSatelliteLayer: Boolean? = null,
-  val showRoadNetLayer: Boolean? = null,
   val userLocationConfig: UserLocationConfig? = null,
   val customStyleOptions: CustomStyleOptions? = null,
   val minZoom: Double? = null,
@@ -464,43 +373,35 @@ data class MapUpdateConfig(
   companion object {
     fun fromList(list: List<Any?>): MapUpdateConfig {
       val mapType = (list[0] as Int?)?.let { MapType.ofRaw(it) }
-      val mapStyle = list[1] as String?
-      val mapFeatures = list[2] as List<String>?
-      val dragEnable = list[3] as Boolean?
-      val zoomEnable = list[4] as Boolean?
-      val tiltEnable = list[5] as Boolean?
-      val rotateEnable = list[6] as Boolean?
-      val compassControlEnabled = list[7] as Boolean?
-      val scaleControlEnabled = list[8] as Boolean?
-      val zoomControlEnabled = list[9] as Boolean?
-      val hawkEyeControlEnabled = list[10] as Boolean?
-      val mapTypeControlEnabled = list[11] as Boolean?
-      val logoPosition = (list[12] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
+      val dragEnable = list[1] as Boolean?
+      val zoomEnable = list[2] as Boolean?
+      val tiltEnable = list[3] as Boolean?
+      val rotateEnable = list[4] as Boolean?
+      val compassControlEnabled = list[5] as Boolean?
+      val scaleControlEnabled = list[6] as Boolean?
+      val zoomControlEnabled = list[7] as Boolean?
+      val logoPosition = (list[8] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
       val compassControlPosition =
-        (list[13] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
+        (list[9] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
       val scaleControlPosition =
-        (list[14] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
+        (list[10] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
       val zoomControlPosition =
-        (list[15] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
-      val showTraffic = list[16] as Boolean?
-      val showBuildings = list[17] as Boolean?
-      val showIndoorMap = list[18] as Boolean?
-      val showSatelliteLayer = list[19] as Boolean?
-      val showRoadNetLayer = list[20] as Boolean?
+        (list[11] as List<Any?>?)?.let { UIControlPosition.fromList(it) }
+      val showTraffic = list[12] as Boolean?
+      val showBuildings = list[13] as Boolean?
+      val showIndoorMap = list[14] as Boolean?
       val userLocationConfig =
-        (list[21] as List<Any?>?)?.let { UserLocationConfig.fromList(it) }
+        (list[15] as List<Any?>?)?.let { UserLocationConfig.fromList(it) }
       val customStyleOptions =
-        if (list.size > 22) {
-          (list[22] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
+        if (list.size > 16) {
+          (list[16] as? List<Any?>)?.let { CustomStyleOptions.fromList(it) }
         } else {
           null
         }
-      val minZoom = if (list.size > 23) (list[23] as Number?)?.toDouble() else null
-      val maxZoom = if (list.size > 24) (list[24] as Number?)?.toDouble() else null
+      val minZoom = if (list.size > 17) (list[17] as Number?)?.toDouble() else null
+      val maxZoom = if (list.size > 18) (list[18] as Number?)?.toDouble() else null
       return MapUpdateConfig(
         mapType,
-        mapStyle,
-        mapFeatures,
         dragEnable,
         zoomEnable,
         tiltEnable,
@@ -508,8 +409,6 @@ data class MapUpdateConfig(
         compassControlEnabled,
         scaleControlEnabled,
         zoomControlEnabled,
-        hawkEyeControlEnabled,
-        mapTypeControlEnabled,
         logoPosition,
         compassControlPosition,
         scaleControlPosition,
@@ -517,8 +416,6 @@ data class MapUpdateConfig(
         showTraffic,
         showBuildings,
         showIndoorMap,
-        showSatelliteLayer,
-        showRoadNetLayer,
         userLocationConfig,
         customStyleOptions,
         minZoom,
@@ -530,8 +427,6 @@ data class MapUpdateConfig(
   fun toList(): List<Any?> {
     return listOf(
       mapType?.raw,
-      mapStyle,
-      mapFeatures,
       dragEnable,
       zoomEnable,
       tiltEnable,
@@ -539,8 +434,6 @@ data class MapUpdateConfig(
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
-      hawkEyeControlEnabled,
-      mapTypeControlEnabled,
       logoPosition?.toList(),
       compassControlPosition?.toList(),
       scaleControlPosition?.toList(),
@@ -548,8 +441,6 @@ data class MapUpdateConfig(
       showTraffic,
       showBuildings,
       showIndoorMap,
-      showSatelliteLayer,
-      showRoadNetLayer,
       userLocationConfig?.toList(),
       customStyleOptions?.toList(),
       minZoom,

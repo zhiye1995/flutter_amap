@@ -66,10 +66,6 @@ class AMapController {
             _aMapFlutter.onMapCompleted?.call();
           case MapPressEvent():
             _aMapFlutter.onMapPress?.call(event.position);
-          case MapDoublePressEvent():
-            _aMapFlutter.onMapDoublePress?.call(event.position);
-          case MapRightPressEvent():
-            _aMapFlutter.onMapRightPress?.call(event.position);
           case MapLongPressEvent():
             _aMapFlutter.onMapLongPress?.call(event.position);
           case CameraChangeEvent():
@@ -100,30 +96,6 @@ class AMapController {
             _aMapFlutter.onRotateChangeStart?.call(event.value);
           case RotateChangeEndEvent():
             _aMapFlutter.onRotateChangeEnd?.call(event.value);
-          case MouseMoveEvent():
-            _aMapFlutter.onMouseMove?.call(event.position);
-          case MouseWheelEvent():
-            _aMapFlutter.onMouseWheel?.call(event.value);
-          case MouseOverEvent():
-            _aMapFlutter.onMouseOver?.call(event.position);
-          case MouseOutEvent():
-            _aMapFlutter.onMouseOut?.call(event.position);
-          case MouseUpEvent():
-            _aMapFlutter.onMouseUp?.call(event.position);
-          case MouseDownEvent():
-            _aMapFlutter.onMouseDown?.call(event.position);
-          case DragStartEvent():
-            _aMapFlutter.onDragStart?.call(event.position);
-          case DraggingEvent():
-            _aMapFlutter.onDragging?.call(event.position);
-          case DragEndEvent():
-            _aMapFlutter.onDragEnd?.call(event.position);
-          case TouchStartEvent():
-            _aMapFlutter.onTouchStart?.call(event.position);
-          case TouchingEvent():
-            _aMapFlutter.onTouching?.call(event.position);
-          case TouchEndEvent():
-            _aMapFlutter.onTouchEnd?.call(event.position);
           case PoiClickEvent():
             _aMapFlutter.onPoiClick?.call(event.value);
           case MarkerClickEvent():

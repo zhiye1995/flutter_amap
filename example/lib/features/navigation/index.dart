@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'cruise_map_page.dart';
 import 'navigation.dart';
@@ -14,18 +13,15 @@ class _ItemData {
   final String title;
   final Widget Function()? pageBuilder;
   final bool isCompleted;
-  final bool mobileOnly;
 
   const _ItemData(
     this.title, {
     this.pageBuilder,
     this.isCompleted = false,
-    this.mobileOnly = false,
   });
 
   bool get isAvailable {
     if (!isCompleted) return false;
-    if (mobileOnly && kIsWeb) return false;
     return pageBuilder != null;
   }
 }
@@ -47,14 +43,10 @@ final List<_CategoryData> _menuData = [
     _ItemData('无起点算路'),
     _ItemData('途经点算路'),
     _ItemData('组件直接导航',
-        pageBuilder: () => const NavigationPage(),
-        isCompleted: true,
-        mobileOnly: true),
+        pageBuilder: () => const NavigationPage(), isCompleted: true),
     _ItemData('自定义 Activity 的导航组件（Android 原生容器）'),
     _ItemData('选取地点 (POI)（示例）',
-        pageBuilder: () => const PlacePickerPage(),
-        isCompleted: true,
-        mobileOnly: true),
+        pageBuilder: () => const PlacePickerPage(), isCompleted: true),
   ]),
   _CategoryData('路径规划', [
     _ItemData('驾车路径规划'),
@@ -69,9 +61,7 @@ final List<_CategoryData> _menuData = [
     _ItemData('模拟导航'),
     _ItemData('货车导航'),
     _ItemData('智能巡航',
-        pageBuilder: () => const CruiseMapPage(),
-        isCompleted: true,
-        mobileOnly: true),
+        pageBuilder: () => const CruiseMapPage(), isCompleted: true),
     _ItemData('HUD导航'),
   ]),
   _CategoryData('导航UI自定义', [
@@ -206,20 +196,6 @@ class _FeatureItemTile extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (item.mobileOnly)
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    '仅移动端',
-                    style: TextStyle(fontSize: 10, color: Colors.black54),
-                  ),
-                ),
               if (!item.isCompleted)
                 Container(
                   padding:
@@ -253,8 +229,6 @@ class _FeatureItemTile extends StatelessWidget {
       );
     } else if (!item.isCompleted) {
       LoadingUtil.showToast('「${item.title}」功能正在开发中，敬请期待！');
-    } else if (item.mobileOnly && kIsWeb) {
-      LoadingUtil.showToast('此功能仅在移动端可用');
     }
   }
 }

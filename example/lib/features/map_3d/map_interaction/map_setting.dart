@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 
@@ -17,19 +16,8 @@ class MapSettingPage extends StatefulWidget {
 class _MapSettingPageState extends State<MapSettingPage> {
   bool dragEnable = true;
   bool zoomEnable = true;
-  bool jogEnable = true;
   bool tiltEnable = true;
   bool rotateEnable = true;
-  bool animateEnable = true;
-  bool keyboardEnable = true;
-  bool doubleClickZoom = true;
-  bool scrollWheel = true;
-  bool touchZoom = true;
-  bool touchZoomCenter = true;
-  bool showLabel = true;
-  bool isHotspot = true;
-  bool is3DMode = false;
-  bool showBuildingBlock = true;
   bool showIndoorMap = false;
 
   /// 与 [ShowMapPage] 中 `_buildMapTypeButton` 视觉一致：开启为蓝底，关闭为白底
@@ -74,18 +62,6 @@ class _MapSettingPageState extends State<MapSettingPage> {
               zoomEnable: zoomEnable,
               tiltEnable: tiltEnable,
               rotateEnable: rotateEnable,
-              jogEnable: jogEnable,
-              animateEnable: animateEnable,
-              keyboardEnable: keyboardEnable,
-              doubleClickZoom: doubleClickZoom,
-              scrollWheel: scrollWheel,
-              touchZoom: touchZoom,
-              touchZoomCenter: touchZoomCenter,
-              showLabel: showLabel,
-              isHotspot: isHotspot,
-              viewMode: is3DMode ? "3D" : "2D",
-              terrain: is3DMode ? true : false,
-              showBuildingBlock: showBuildingBlock,
               showIndoorMap: showIndoorMap,
             ),
           ),
@@ -119,6 +95,12 @@ class _MapSettingPageState extends State<MapSettingPage> {
                   '允许旋转',
                   rotateEnable,
                   () => setState(() => rotateEnable = !rotateEnable),
+                ),
+                const SizedBox(height: 8),
+                _buildSettingButton(
+                  '室内地图',
+                  showIndoorMap,
+                  () => setState(() => showIndoorMap = !showIndoorMap),
                 ),
               ],
             ),

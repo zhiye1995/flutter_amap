@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:crypto/crypto.dart';
 
 /// 收集的图标信息
@@ -330,32 +328,7 @@ class _NavigationPageState extends State<NavigationPage> {
       return;
     }
 
-    // 请求存储权限
-    // Android 13+: READ_MEDIA_IMAGES
-    // Android 10-12: 使用 MediaStore API，通常不需要权限
-    // Android 9-: WRITE_EXTERNAL_STORAGE
-    // iOS: photos 权限
-    bool hasPermission = false;
-
-    // 先尝试 photos 权限（iOS 和 Android 13+）
-    var status = await Permission.photos.status;
-    if (status.isDenied) {
-      status = await Permission.photos.request();
-    }
-    hasPermission = status.isGranted || status.isLimited;
-
-    // Android 旧版本尝试 storage 权限
-    if (!hasPermission) {
-      var storageStatus = await Permission.storage.status;
-      if (storageStatus.isDenied) {
-        storageStatus = await Permission.storage.request();
-      }
-      hasPermission = storageStatus.isGranted;
-    }
-
-    // saver_gallery 在 Android 10+ 使用 MediaStore API，可能不需要权限
-    // 所以即使权限未授予，也尝试保存
-    _addLog('权限状态: hasPermission=$hasPermission，尝试保存...');
+    _addLog('开始保存图标到相册...');
 
     int successCount = 0;
     int failCount = 0;

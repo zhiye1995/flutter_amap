@@ -210,7 +210,6 @@ class CustomStyleOptions {
 class MapInitConfig {
   MapInitConfig({
     this.mapType,
-    this.mapStyle,
     this.cameraPosition,
     this.fitPositions,
     this.minZoom,
@@ -219,35 +218,16 @@ class MapInitConfig {
     this.zoomEnable,
     this.tiltEnable,
     this.rotateEnable,
-    this.jogEnable,
-    this.animateEnable,
-    this.keyboardEnable,
     this.compassControlEnabled,
     this.scaleControlEnabled,
     this.zoomControlEnabled,
     this.logoPosition,
-    this.doubleClickZoom,
-    this.scrollWheel,
-    this.touchZoom,
-    this.touchZoomCenter,
-    this.isHotspot,
-    this.showBuildingBlock,
-    this.showLabel,
     this.showIndoorMap,
-    this.defaultCursor,
-    this.viewMode,
-    this.terrain,
-    this.wallColor,
-    this.roofColor,
-    this.skyColor,
     this.customStyleOptions,
   });
 
   /// 设置地图类型
   final MapType? mapType;
-
-  /// 设置地图的显示样式(Web Only)
-  final String? mapStyle;
 
   /// 地图视野
   final CameraPosition? cameraPosition;
@@ -273,15 +253,6 @@ class MapInitConfig {
   /// 地图是否允许旋转
   final bool? rotateEnable;
 
-  /// 地图是否使用缓动效果，默认为true(Web Only)
-  final bool? jogEnable;
-
-  /// 地图平移过程中是否使用动画，默认为true(Web Only)
-  final bool? animateEnable;
-
-  /// 地图是否可通过键盘控制，默认为true(Web Only)
-  final bool? keyboardEnable;
-
   /// 是否显示指南针控件
   final bool? compassControlEnabled;
 
@@ -294,47 +265,8 @@ class MapInitConfig {
   /// Logo位置锚点(Android Only)
   final UIControlPosition? logoPosition;
 
-  /// 地图是否可通过双击鼠标放大地图，默认为true(Web Only)
-  final bool? doubleClickZoom;
-
-  /// 地图是否可通过鼠标滚轮缩放浏览，默认为true(Web Only)
-  final bool? scrollWheel;
-
-  /// 地图在移动终端上是否可通过多点触控缩放浏览地图，默认为true(Web Only)
-  final bool? touchZoom;
-
-  /// 手机端双指缩放是否以地图中心为中心，否则以双指中间点为中心，默认为true(Web Only)
-  final bool? touchZoomCenter;
-
-  /// 是否开启地图热点和标注的hover效果，PC端默认是true，移动端默认是 false(Web Only)
-  final bool? isHotspot;
-
-  /// 是否展示地图3D楼块，默认true(Web Only)
-  final bool? showBuildingBlock;
-
-  /// 是否展示地图文字和 POI 信息，默认为true(Web Only)
-  final bool? showLabel;
-
-  /// 是否自动展示室内地图，默认是false(Web Only)
+  /// 是否自动展示室内地图，默认是false
   final bool? showIndoorMap;
-
-  /// 地图默认鼠标样式(Web Only)
-  final String? defaultCursor;
-
-  /// 初始地图视图模式，默认为2D, 3D 地形图 目前仅支持 v2.1Beta(Web Only)
-  final String? viewMode;
-
-  /// 初始地图是否展示地形，默认为false(Web Only)
-  final bool? terrain;
-
-  /// 地图楼块的侧面颜色(Web Only)
-  final Color? wallColor;
-
-  /// 地图楼块的顶面颜色(Web Only)
-  final Color? roofColor;
-
-  /// 天空颜色，3D模式下带有俯仰角时会显示(Web Only)
-  final Color? skyColor;
 
   /// 自定义离线样式（iOS / Android）
   final CustomStyleOptions? customStyleOptions;
@@ -342,7 +274,6 @@ class MapInitConfig {
   Object encode() {
     return <Object?>[
       mapType?.index,
-      mapStyle,
       cameraPosition?.encode(),
       fitPositions?.map((position) => position.encode()).toList(),
       minZoom,
@@ -351,27 +282,11 @@ class MapInitConfig {
       zoomEnable,
       tiltEnable,
       rotateEnable,
-      jogEnable,
-      animateEnable,
-      keyboardEnable,
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
       logoPosition?.encode(),
-      doubleClickZoom,
-      scrollWheel,
-      touchZoom,
-      touchZoomCenter,
-      isHotspot,
-      showBuildingBlock,
-      showLabel,
       showIndoorMap,
-      defaultCursor,
-      viewMode,
-      terrain,
-      wallColor?.value,
-      roofColor?.value,
-      skyColor?.value,
       customStyleOptions?.encode(),
     ];
   }
@@ -379,48 +294,35 @@ class MapInitConfig {
   static MapInitConfig decode(List<Object?> result) {
     return MapInitConfig(
       mapType: result[0] as MapType?,
-      mapStyle: result[1] as String?,
-      cameraPosition: result[2] != null ? CameraPosition.decode(result[2]! as List<Object?>) : null,
-      fitPositions: result[3] != null
-          ? (result[3] as List).map((position) => Position.decode(position)).toList()
+      cameraPosition: result[1] != null
+          ? CameraPosition.decode(result[1]! as List<Object?>)
           : null,
-      minZoom: result[4] as double?,
-      maxZoom: result[5] as double?,
-      dragEnable: result[6] as bool?,
-      zoomEnable: result[7] as bool?,
-      tiltEnable: result[8] as bool?,
-      rotateEnable: result[9] as bool?,
-      jogEnable: result[10] as bool?,
-      animateEnable: result[11] as bool?,
-      keyboardEnable: result[12] as bool?,
-      compassControlEnabled: result[13] as bool?,
-      scaleControlEnabled: result[14] as bool?,
-      zoomControlEnabled: result[15] as bool?,
-      logoPosition:
-          result[16] != null ? UIControlPosition.decode(result[16]! as List<Object?>) : null,
-      doubleClickZoom: result[17] as bool?,
-      scrollWheel: result[18] as bool?,
-      touchZoom: result[19] as bool?,
-      touchZoomCenter: result[20] as bool?,
-      isHotspot: result[21] as bool?,
-      showBuildingBlock: result[22] as bool?,
-      showLabel: result[23] as bool?,
-      showIndoorMap: result[24] as bool?,
-      defaultCursor: result[25] as String?,
-      viewMode: result[26] as String?,
-      terrain: result[27] as bool?,
-      wallColor: result[28] != null ? Color(result[28] as int) : null,
-      roofColor: result[29] != null ? Color(result[29] as int) : null,
-      skyColor: result[30] != null ? Color(result[30] as int) : null,
-      customStyleOptions: result.length > 31 && result[31] != null
-          ? CustomStyleOptions.decode(result[31]! as List<Object?>)
+      fitPositions: result[2] != null
+          ? (result[2] as List)
+              .map((position) => Position.decode(position))
+              .toList()
+          : null,
+      minZoom: result[3] as double?,
+      maxZoom: result[4] as double?,
+      dragEnable: result[5] as bool?,
+      zoomEnable: result[6] as bool?,
+      tiltEnable: result[7] as bool?,
+      rotateEnable: result[8] as bool?,
+      compassControlEnabled: result[9] as bool?,
+      scaleControlEnabled: result[10] as bool?,
+      zoomControlEnabled: result[11] as bool?,
+      logoPosition: result[12] != null
+          ? UIControlPosition.decode(result[12]! as List<Object?>)
+          : null,
+      showIndoorMap: result[13] as bool?,
+      customStyleOptions: result.length > 14 && result[14] != null
+          ? CustomStyleOptions.decode(result[14]! as List<Object?>)
           : null,
     );
   }
 
   MapInitConfig copyWith({
     MapType? mapType,
-    String? mapStyle,
     CameraPosition? cameraPosition,
     List<Position>? fitPositions,
     double? minZoom,
@@ -429,32 +331,15 @@ class MapInitConfig {
     bool? zoomEnable,
     bool? tiltEnable,
     bool? rotateEnable,
-    bool? jogEnable,
-    bool? animateEnable,
-    bool? keyboardEnable,
     bool? compassControlEnabled,
     bool? scaleControlEnabled,
     bool? zoomControlEnabled,
     UIControlPosition? logoPosition,
-    bool? doubleClickZoom,
-    bool? scrollWheel,
-    bool? touchZoom,
-    bool? touchZoomCenter,
-    bool? isHotspot,
-    bool? showBuildingBlock,
-    bool? showLabel,
     bool? showIndoorMap,
-    String? defaultCursor,
-    String? viewMode,
-    bool? terrain,
-    Color? wallColor,
-    Color? roofColor,
-    Color? skyColor,
     CustomStyleOptions? customStyleOptions,
   }) {
     return MapInitConfig(
       mapType: mapType ?? this.mapType,
-      mapStyle: mapStyle ?? this.mapStyle,
       cameraPosition: cameraPosition ?? this.cameraPosition,
       fitPositions: fitPositions ?? this.fitPositions,
       minZoom: minZoom ?? this.minZoom,
@@ -463,27 +348,12 @@ class MapInitConfig {
       zoomEnable: zoomEnable ?? this.zoomEnable,
       tiltEnable: tiltEnable ?? this.tiltEnable,
       rotateEnable: rotateEnable ?? this.rotateEnable,
-      jogEnable: jogEnable ?? this.jogEnable,
-      animateEnable: animateEnable ?? this.animateEnable,
-      keyboardEnable: keyboardEnable ?? this.keyboardEnable,
-      compassControlEnabled: compassControlEnabled ?? this.compassControlEnabled,
+      compassControlEnabled:
+          compassControlEnabled ?? this.compassControlEnabled,
       scaleControlEnabled: scaleControlEnabled ?? this.scaleControlEnabled,
       zoomControlEnabled: zoomControlEnabled ?? this.zoomControlEnabled,
       logoPosition: logoPosition ?? this.logoPosition,
-      doubleClickZoom: doubleClickZoom ?? this.doubleClickZoom,
-      scrollWheel: scrollWheel ?? this.scrollWheel,
-      touchZoom: touchZoom ?? this.touchZoom,
-      touchZoomCenter: touchZoomCenter ?? this.touchZoomCenter,
-      isHotspot: isHotspot ?? this.isHotspot,
-      showBuildingBlock: showBuildingBlock ?? this.showBuildingBlock,
-      showLabel: showLabel ?? this.showLabel,
       showIndoorMap: showIndoorMap ?? this.showIndoorMap,
-      defaultCursor: defaultCursor ?? this.defaultCursor,
-      viewMode: viewMode ?? this.viewMode,
-      terrain: terrain ?? this.terrain,
-      wallColor: wallColor ?? this.wallColor,
-      roofColor: roofColor ?? this.roofColor,
-      skyColor: skyColor ?? this.skyColor,
       customStyleOptions: customStyleOptions ?? this.customStyleOptions,
     );
   }
@@ -493,8 +363,6 @@ class MapInitConfig {
 class MapUpdateConfig {
   MapUpdateConfig({
     this.mapType,
-    this.mapStyle,
-    this.mapFeatures,
     this.dragEnable,
     this.zoomEnable,
     this.tiltEnable,
@@ -502,8 +370,6 @@ class MapUpdateConfig {
     this.compassControlEnabled,
     this.scaleControlEnabled,
     this.zoomControlEnabled,
-    this.hawkEyeControlEnabled,
-    this.mapTypeControlEnabled,
     this.logoPosition,
     this.compassControlPosition,
     this.scaleControlPosition,
@@ -511,8 +377,6 @@ class MapUpdateConfig {
     this.showTraffic,
     this.showBuildings,
     this.showIndoorMap,
-    this.showSatelliteLayer,
-    this.showRoadNetLayer,
     this.userLocationConfig,
     this.customStyleOptions,
     this.minZoom,
@@ -521,12 +385,6 @@ class MapUpdateConfig {
 
   /// 设置地图类型
   MapType? mapType;
-
-  /// 设置地图的显示样式
-  String? mapStyle;
-
-  /// 地图显示要素(Web Only)
-  List<String>? mapFeatures;
 
   /// 地图是否允许拖拽
   bool? dragEnable;
@@ -549,12 +407,6 @@ class MapUpdateConfig {
   /// 是否显示缩放控件(iOS not support)
   bool? zoomControlEnabled;
 
-  /// 是否显示鹰眼控件(Web Only)
-  bool? hawkEyeControlEnabled;
-
-  /// 是否显示地图类型控件(Web Only)
-  bool? mapTypeControlEnabled;
-
   /// Logo位置
   UIControlPosition? logoPosition;
 
@@ -576,12 +428,6 @@ class MapUpdateConfig {
   /// 是否显示室内图
   bool? showIndoorMap;
 
-  /// 是否显示卫星图层(Web Only)
-  bool? showSatelliteLayer;
-
-  /// 是否显示路网图层(Web Only)
-  bool? showRoadNetLayer;
-
   /// 用户定位配置
   UserLocationConfig? userLocationConfig;
 
@@ -597,8 +443,6 @@ class MapUpdateConfig {
   Object encode() {
     return <Object?>[
       mapType?.index,
-      mapStyle,
-      mapFeatures,
       dragEnable,
       zoomEnable,
       tiltEnable,
@@ -606,8 +450,6 @@ class MapUpdateConfig {
       compassControlEnabled,
       scaleControlEnabled,
       zoomControlEnabled,
-      hawkEyeControlEnabled,
-      mapTypeControlEnabled,
       logoPosition?.encode(),
       compassControlPosition?.encode(),
       scaleControlPosition?.encode(),
@@ -615,8 +457,6 @@ class MapUpdateConfig {
       showTraffic,
       showBuildings,
       showIndoorMap,
-      showSatelliteLayer,
-      showRoadNetLayer,
       userLocationConfig?.encode(),
       customStyleOptions?.encode(),
       minZoom,
@@ -627,44 +467,41 @@ class MapUpdateConfig {
   static MapUpdateConfig decode(List<Object?> result) {
     return MapUpdateConfig(
       mapType: result[0] as MapType?,
-      mapStyle: result[1] as String?,
-      mapFeatures: result[2] as List<String>?,
-      dragEnable: result[3] as bool?,
-      zoomEnable: result[4] as bool?,
-      tiltEnable: result[5] as bool?,
-      rotateEnable: result[6] as bool?,
-      compassControlEnabled: result[7] as bool?,
-      scaleControlEnabled: result[8] as bool?,
-      zoomControlEnabled: result[9] as bool?,
-      hawkEyeControlEnabled: result[10] as bool?,
-      mapTypeControlEnabled: result[11] as bool?,
-      logoPosition:
-          result[12] != null ? UIControlPosition.decode(result[12]! as List<Object?>) : null,
-      compassControlPosition:
-          result[13] != null ? UIControlPosition.decode(result[13]! as List<Object?>) : null,
-      scaleControlPosition:
-          result[14] != null ? UIControlPosition.decode(result[14]! as List<Object?>) : null,
-      zoomControlPosition:
-          result[15] != null ? UIControlPosition.decode(result[15]! as List<Object?>) : null,
-      showTraffic: result[16] as bool?,
-      showBuildings: result[17] as bool?,
-      showIndoorMap: result[18] as bool?,
-      showSatelliteLayer: result[19] as bool?,
-      showRoadNetLayer: result[20] as bool?,
-      userLocationConfig:
-          result[21] != null ? UserLocationConfig.decode(result[21]! as List<Object?>) : null,
-      customStyleOptions: result.length > 22 && result[22] != null
-          ? CustomStyleOptions.decode(result[22]! as List<Object?>)
+      dragEnable: result[1] as bool?,
+      zoomEnable: result[2] as bool?,
+      tiltEnable: result[3] as bool?,
+      rotateEnable: result[4] as bool?,
+      compassControlEnabled: result[5] as bool?,
+      scaleControlEnabled: result[6] as bool?,
+      zoomControlEnabled: result[7] as bool?,
+      logoPosition: result[8] != null
+          ? UIControlPosition.decode(result[8]! as List<Object?>)
           : null,
-      minZoom: result.length > 23 ? result[23] as double? : null,
-      maxZoom: result.length > 24 ? result[24] as double? : null,
+      compassControlPosition: result[9] != null
+          ? UIControlPosition.decode(result[9]! as List<Object?>)
+          : null,
+      scaleControlPosition: result[10] != null
+          ? UIControlPosition.decode(result[10]! as List<Object?>)
+          : null,
+      zoomControlPosition: result[11] != null
+          ? UIControlPosition.decode(result[11]! as List<Object?>)
+          : null,
+      showTraffic: result[12] as bool?,
+      showBuildings: result[13] as bool?,
+      showIndoorMap: result[14] as bool?,
+      userLocationConfig: result[15] != null
+          ? UserLocationConfig.decode(result[15]! as List<Object?>)
+          : null,
+      customStyleOptions: result.length > 16 && result[16] != null
+          ? CustomStyleOptions.decode(result[16]! as List<Object?>)
+          : null,
+      minZoom: result.length > 17 ? result[17] as double? : null,
+      maxZoom: result.length > 18 ? result[18] as double? : null,
     );
   }
 
   MapUpdateConfig copyWith({
     MapType? mapType,
-    String? mapStyle,
-    List<String>? mapFeatures,
     bool? dragEnable,
     bool? zoomEnable,
     bool? tiltEnable,
@@ -672,8 +509,6 @@ class MapUpdateConfig {
     bool? compassControlEnabled,
     bool? scaleControlEnabled,
     bool? zoomControlEnabled,
-    bool? hawkEyeControlEnabled,
-    bool? mapTypeControlEnabled,
     UIControlPosition? logoPosition,
     UIControlPosition? compassControlPosition,
     UIControlPosition? scaleControlPosition,
@@ -681,8 +516,6 @@ class MapUpdateConfig {
     bool? showTraffic,
     bool? showBuildings,
     bool? showIndoorMap,
-    bool? showSatelliteLayer,
-    bool? showRoadNetLayer,
     UserLocationConfig? userLocationConfig,
     CustomStyleOptions? customStyleOptions,
     double? minZoom,
@@ -690,26 +523,22 @@ class MapUpdateConfig {
   }) {
     return MapUpdateConfig(
       mapType: mapType ?? this.mapType,
-      mapStyle: mapStyle ?? this.mapStyle,
-      mapFeatures: mapFeatures ?? this.mapFeatures,
       dragEnable: dragEnable ?? this.dragEnable,
       zoomEnable: zoomEnable ?? this.zoomEnable,
       tiltEnable: tiltEnable ?? this.tiltEnable,
       rotateEnable: rotateEnable ?? this.rotateEnable,
-      compassControlEnabled: compassControlEnabled ?? this.compassControlEnabled,
+      compassControlEnabled:
+          compassControlEnabled ?? this.compassControlEnabled,
       scaleControlEnabled: scaleControlEnabled ?? this.scaleControlEnabled,
       zoomControlEnabled: zoomControlEnabled ?? this.zoomControlEnabled,
-      hawkEyeControlEnabled: hawkEyeControlEnabled ?? this.hawkEyeControlEnabled,
-      mapTypeControlEnabled: mapTypeControlEnabled ?? this.mapTypeControlEnabled,
       logoPosition: logoPosition ?? this.logoPosition,
-      compassControlPosition: compassControlPosition ?? this.compassControlPosition,
+      compassControlPosition:
+          compassControlPosition ?? this.compassControlPosition,
       scaleControlPosition: scaleControlPosition ?? this.scaleControlPosition,
       zoomControlPosition: zoomControlPosition ?? this.zoomControlPosition,
       showTraffic: showTraffic ?? this.showTraffic,
       showBuildings: showBuildings ?? this.showBuildings,
       showIndoorMap: showIndoorMap ?? this.showIndoorMap,
-      showSatelliteLayer: showSatelliteLayer ?? this.showSatelliteLayer,
-      showRoadNetLayer: showRoadNetLayer ?? this.showRoadNetLayer,
       userLocationConfig: userLocationConfig ?? this.userLocationConfig,
       customStyleOptions: customStyleOptions ?? this.customStyleOptions,
       minZoom: minZoom ?? this.minZoom,
@@ -717,4 +546,3 @@ class MapUpdateConfig {
     );
   }
 }
-

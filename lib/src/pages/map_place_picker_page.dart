@@ -90,8 +90,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   bool _isProgrammaticMove = false;
 
   // 键盘相关状态
-  late KeyboardVisibilityController _keyboardVisibilityController;
-  late StreamSubscription<bool> _keyboardSubscription;
   bool _isKeyboardVisible = false;
   double _keyboardHeight = 0;
 
@@ -102,21 +100,11 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
-
-    // 初始化键盘可见性监听
-    _keyboardVisibilityController = KeyboardVisibilityController();
-    _keyboardSubscription =
-        _keyboardVisibilityController.onChange.listen((bool visible) {
-      setState(() {
-        _isKeyboardVisible = visible;
-      });
-    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _keyboardSubscription.cancel();
     _debounceTimer?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
@@ -138,6 +126,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     if (keyboardHeight != _keyboardHeight) {
       setState(() {
         _keyboardHeight = keyboardHeight;
+        _isKeyboardVisible = keyboardHeight > 0;
       });
     }
   }
@@ -190,7 +179,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
       _isProgrammaticMove = false;
       return;
     }
-    if(_currentPosition == null) return;
+    if (_currentPosition == null) return;
 
     // 如果正在搜索关键词，不响应地图移动
     if (_isKeywordSearch) return;
@@ -398,6 +387,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                   },
                   onMapCompleted: () {},
                   onUserLocationChange: _onUserLocationChange,
+
                   /// 当地图视野变化结束时触发该回调(Support iOS/Android)
                   onCameraChangeStart: (cameraPosition) {
                     print("地图开始移动: $cameraPosition");

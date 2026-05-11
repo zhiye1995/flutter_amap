@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_amap/flutter_amap.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'core/utils/utils.dart';
 import 'features/map_3d/index.dart';
 import 'features/navigation/index.dart';
@@ -35,24 +33,9 @@ class _AppState extends State<App> {
         iosKey: "14cf569c80ddc89d84513331ed8c5164",
         // androidKey: "25304ab4b426667f31055e3e5e4808a8", // home
         androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
-        webKey: "fc9908dc4103f3d8274070bb34ab37af",
       ),
       agreePrivacy: true,
     );
-    if (!kIsWeb) {
-      await requestLocationPermission();
-    }
-  }
-
-  Future<void> requestLocationPermission() async {
-    final status = await Permission.location.status;
-    // 已授权，直接返回
-    if (status.isGranted) return;
-    // 如果已经是永久拒绝状态，不要自动跳转设置页面
-    // 避免每次启动都打开设置页面，应该让用户主动触发
-    if (status.isPermanentlyDenied) return;
-    // 首次请求权限
-    await Permission.location.request();
   }
 
   @override

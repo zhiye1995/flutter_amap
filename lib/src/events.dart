@@ -34,19 +34,10 @@ class MapPressEvent extends _PositionedMapEvent<void> {
   MapPressEvent(int mapId, Position position) : super(mapId, position, null);
 }
 
-/// 地图双击事件
-class MapDoublePressEvent extends _PositionedMapEvent<void> {
-  MapDoublePressEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 地图右键点击事件
-class MapRightPressEvent extends _PositionedMapEvent<void> {
-  MapRightPressEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
 /// 地图长按事件
 class MapLongPressEvent extends _PositionedMapEvent<void> {
-  MapLongPressEvent(int mapId, Position position) : super(mapId, position, null);
+  MapLongPressEvent(int mapId, Position position)
+      : super(mapId, position, null);
 }
 
 /// 地图视野变化事件
@@ -66,7 +57,8 @@ class CameraChangeFinishEvent extends MapEvent<CameraPosition> {
 
 /// 地图平移开始事件
 class MapMoveStartEvent extends _PositionedMapEvent<void> {
-  MapMoveStartEvent(int mapId, Position position) : super(mapId, position, null);
+  MapMoveStartEvent(int mapId, Position position)
+      : super(mapId, position, null);
 }
 
 /// 地图平移事件
@@ -114,66 +106,6 @@ class RotateChangeEndEvent extends MapEvent<double> {
   RotateChangeEndEvent(super.mapId, super.rotate);
 }
 
-/// 移动鼠标事件
-class MouseMoveEvent extends _PositionedMapEvent<void> {
-  MouseMoveEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 鼠标滚轮缩放地图事件
-class MouseWheelEvent extends MapEvent<double> {
-  MouseWheelEvent(super.mapId, super.zoom);
-}
-
-/// 鼠标移入地图容器内时触发事件
-class MouseOverEvent extends _PositionedMapEvent<void> {
-  MouseOverEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 鼠标移出地图容器时触发事件
-class MouseOutEvent extends _PositionedMapEvent<void> {
-  MouseOutEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 鼠标在地图上单击抬起时触发事件
-class MouseUpEvent extends _PositionedMapEvent<void> {
-  MouseUpEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 鼠标在地图上单击按下时触发事件
-class MouseDownEvent extends _PositionedMapEvent<void> {
-  MouseDownEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 拖拽地图开始事件
-class DragStartEvent extends _PositionedMapEvent<void> {
-  DragStartEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 地图拖拽中事件
-class DraggingEvent extends _PositionedMapEvent<void> {
-  DraggingEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 拖拽地图停止事件
-class DragEndEvent extends _PositionedMapEvent<void> {
-  DragEndEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 触摸地图开始事件
-class TouchStartEvent extends _PositionedMapEvent<void> {
-  TouchStartEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 触摸移动地图时触发事件
-class TouchingEvent extends _PositionedMapEvent<void> {
-  TouchingEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
-/// 触摸地图停止事件
-class TouchEndEvent extends _PositionedMapEvent<void> {
-  TouchEndEvent(int mapId, Position position) : super(mapId, position, null);
-}
-
 /// 点击POI事件
 class PoiClickEvent extends MapEvent<Poi> {
   PoiClickEvent(super.mapId, super.poi);
@@ -206,7 +138,8 @@ class UserLocationChangeEvent extends MapEvent<Location> {
 
 /// 点击用户定位点事件
 class UserLocationClickEvent extends _PositionedMapEvent<void> {
-  UserLocationClickEvent(int mapId, Position position) : super(mapId, position, null);
+  UserLocationClickEvent(int mapId, Position position)
+      : super(mapId, position, null);
 }
 
 // ==================== 导航相关事件 ====================
@@ -332,7 +265,8 @@ class NaviExitEvent extends NaviEvent<int> {
 // ==================== 智能巡航事件 ====================
 
 /// 巡航道路设施 / 电子眼更新（列表内每条含 [CruiseTrafficFacilityItem.source]）
-class CruiseTrafficFacilitiesEvent extends NaviEvent<List<CruiseTrafficFacilityItem>> {
+class CruiseTrafficFacilitiesEvent
+    extends NaviEvent<List<CruiseTrafficFacilityItem>> {
   CruiseTrafficFacilitiesEvent(super.facilities);
 
   List<CruiseTrafficFacilityItem> get facilities => value;

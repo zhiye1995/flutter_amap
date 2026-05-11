@@ -79,12 +79,6 @@ class _MapEventsPageState extends State<MapEventsPage> {
                         });
                         _logDebug('onMapPress', position.encode());
                       },
-                      onMapDoublePress: (position) {
-                        _logDebug('onMapDoublePress', position.encode());
-                      },
-                      onMapRightPress: (position) {
-                        _logDebug('onMapRightPress', position.encode());
-                      },
                       onMapLongPress: (position) {
                         setState(() {
                           _tapText =
@@ -143,42 +137,6 @@ class _MapEventsPageState extends State<MapEventsPage> {
                       },
                       onRotateChangeEnd: (rotate) {
                         _logDebug('onRotateChangeEnd', rotate);
-                      },
-                      onMouseMove: (position) {
-                        _logDebug('onMouseMove', position.encode());
-                      },
-                      onMouseWheel: (zoom) {
-                        _logDebug('onMouseWheel', zoom);
-                      },
-                      onMouseOver: (position) {
-                        _logDebug('onMouseOver', position.encode());
-                      },
-                      onMouseOut: (position) {
-                        _logDebug('onMouseOut', position.encode());
-                      },
-                      onMouseUp: (position) {
-                        _logDebug('onMouseUp', position.encode());
-                      },
-                      onMouseDown: (position) {
-                        _logDebug('onMouseDown', position.encode());
-                      },
-                      onDragStart: (position) {
-                        _logDebug('onDragStart', position.encode());
-                      },
-                      onDragging: (position) {
-                        _logDebug('onDragging', position.encode());
-                      },
-                      onDragEnd: (position) {
-                        _logDebug('onDragEnd', position.encode());
-                      },
-                      onTouchStart: (position) {
-                        _logDebug('onTouchStart', position.encode());
-                      },
-                      onTouching: (position) {
-                        _logDebug('onTouching', position.encode());
-                      },
-                      onTouchEnd: (position) {
-                        _logDebug('onTouchEnd', position.encode());
                       },
                       onPoiClick: (poi) {
                         _logDebug('onPoiClick', poi.encode());

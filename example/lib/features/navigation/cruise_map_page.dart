@@ -4,10 +4,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 /// 智能巡航示例：地图展示自车位置，右上角开启/关闭巡航（依赖插件 [AMapNavi.startCruiseMode]）。
 ///
@@ -236,12 +235,6 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     setState(_cruiseLogLines.clear);
   }
 
-  String _formatFileTimestamp(DateTime n) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${n.year}${two(n.month)}${two(n.day)}_'
-        '${two(n.hour)}${two(n.minute)}${two(n.second)}';
-  }
-
   String _buildExportText() {
     final DateTime now = DateTime.now();
     final StringBuffer buffer = StringBuffer()
@@ -259,27 +252,17 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     return buffer.toString();
   }
 
-  Future<void> _shareCruiseLogs() async {
+  Future<void> _copyCruiseLogs() async {
     if (_cruiseLogLines.isEmpty) {
-      LoadingUtil.showToast('暂无可导出的巡航日志');
+      LoadingUtil.showToast('暂无可复制的巡航日志');
       return;
     }
     try {
-      final Directory dir = await getTemporaryDirectory();
-      final String fileName =
-          'amap_cruise_log_${_formatFileTimestamp(DateTime.now())}.txt';
-      final File file = File('${dir.path}${Platform.pathSeparator}$fileName');
-      await file.writeAsString(_buildExportText(), encoding: utf8);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'text/plain', name: fileName)],
-          subject: 'AMap 智能巡航日志',
-          text: 'AMap 智能巡航日志，共 ${_cruiseLogLines.length} 条。',
-        ),
-      );
+      await Clipboard.setData(ClipboardData(text: _buildExportText()));
+      LoadingUtil.showSuccess('巡航日志已复制');
     } catch (e) {
       if (!mounted) return;
-      LoadingUtil.showError('导出失败：$e');
+      LoadingUtil.showError('复制失败：$e');
     }
   }
 
@@ -463,11 +446,11 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
         ),
         const Spacer(),
         IconButton(
-          tooltip: '分享日志',
+          tooltip: '复制日志',
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 32, height: 32),
           padding: EdgeInsets.zero,
-          onPressed: _cruiseLogLines.isEmpty ? null : _shareCruiseLogs,
+          onPressed: _cruiseLogLines.isEmpty ? null : _copyCruiseLogs,
           icon: const Icon(Icons.ios_share, size: 20),
         ),
         IconButton(

@@ -67,22 +67,6 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         ));
         break;
 
-      case "onMapDoublePress":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MapDoublePressEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onMapRightPress":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MapRightPressEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
       case "onMapLongPress":
         final Map<String, Object?> arguments = _getArgumentDictionary(call);
         mapEventStreamController.add(MapLongPressEvent(
@@ -192,102 +176,6 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         mapEventStreamController.add(RotateChangeEndEvent(
           mapId,
           arguments["rotate"] as double,
-        ));
-        break;
-
-      case "onMouseMove":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseMoveEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onMouseWheel":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseWheelEvent(
-          mapId,
-          arguments["zoom"] as double,
-        ));
-        break;
-
-      case "onMouseOver":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseOverEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onMouseOut":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseOutEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onMouseUp":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseUpEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onMouseDown":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(MouseDownEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onDragStart":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(DragStartEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onDragging":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(DraggingEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onDragEnd":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(DragEndEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onTouchStart":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(TouchStartEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onTouching":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(TouchingEvent(
-          mapId,
-          arguments["position"] as Position,
-        ));
-        break;
-
-      case "onTouchEnd":
-        final Map<String, Object?> arguments = _getArgumentDictionary(call);
-        mapEventStreamController.add(TouchEndEvent(
-          mapId,
-          arguments["position"] as Position,
         ));
         break;
 
