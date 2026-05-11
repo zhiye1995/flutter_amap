@@ -31,7 +31,9 @@ class AimlessModeListenerImpl : AimlessModeListener {
         send(
             mapOf(
                 "type" to "cruiseTrafficFacilities",
-                "facilities" to (infos?.map { trafficFacilityToMap(it, "specialRoad") } ?: emptyList())
+                "facilities" to (infos?.map {
+                    trafficFacilityToMap(it, "specialRoad", "onUpdateTrafficFacility")
+                } ?: emptyList())
             )
         )
     }
@@ -40,7 +42,9 @@ class AimlessModeListenerImpl : AimlessModeListener {
         send(
             mapOf(
                 "type" to "cruiseTrafficFacilities",
-                "facilities" to (cameraInfo?.map { trafficFacilityToMap(it, "elecCamera") } ?: emptyList())
+                "facilities" to (cameraInfo?.map {
+                    trafficFacilityToMap(it, "elecCamera", "onUpdateAimlessModeElecCameraInfo")
+                } ?: emptyList())
             )
         )
     }
@@ -129,7 +133,11 @@ class AimlessModeListenerImpl : AimlessModeListener {
         return mapOf("latitude" to lat, "longitude" to lng)
     }
 
-    private fun trafficFacilityToMap(info: AMapNaviTrafficFacilityInfo?, source: String): Map<String, Any?> {
+    private fun trafficFacilityToMap(
+        info: AMapNaviTrafficFacilityInfo?,
+        source: String,
+        callbackName: String
+    ): Map<String, Any?> {
         if (info == null) return emptyMap()
         val typeVal = try {
             info.broadcastType
@@ -151,6 +159,8 @@ class AimlessModeListenerImpl : AimlessModeListener {
             numberToInt(readNumber(info, "limitSpeed", "speedLimit"))
         }
         val extra = mutableMapOf<String, Any?>()
+        extra["platform"] = "android"
+        extra["callbackName"] = callbackName
         extra["sdkString"] = info.toString()
         extra["sdkClass"] = info.javaClass.name
         extra["sourceCallback"] = source
@@ -166,6 +176,7 @@ class AimlessModeListenerImpl : AimlessModeListener {
             "longitude" to lng,
             "remainDistanceMeters" to dist,
             "speedLimitKmh" to limit,
+            "callbackName" to callbackName,
             "raw" to extra
         )
     }
@@ -176,7 +187,10 @@ class AimlessModeListenerImpl : AimlessModeListener {
                 "type" to "cruiseStatistics",
                 "cumulativeDistanceMeters" to null,
                 "cumulativeTimeSeconds" to null,
-                "extra" to emptyMap<String, Any?>()
+                "extra" to mapOf(
+                    "platform" to "android",
+                    "callbackName" to "updateAimlessModeStatistics"
+                )
             )
         }
         val dist = try {
@@ -206,6 +220,8 @@ class AimlessModeListenerImpl : AimlessModeListener {
             )
         }
         val extra = mutableMapOf<String, Any?>()
+        extra["platform"] = "android"
+        extra["callbackName"] = "updateAimlessModeStatistics"
         extra["sdkString"] = stat.toString()
         return mapOf(
             "type" to "cruiseStatistics",
@@ -239,10 +255,15 @@ class AimlessModeListenerImpl : AimlessModeListener {
                 "status" to null,
                 "estimatedTimeSeconds" to null,
                 "links" to emptyList<Map<String, Any?>>(),
-                "raw" to emptyMap<String, Any?>()
+                "raw" to mapOf(
+                    "platform" to "android",
+                    "callbackName" to "updateAimlessModeCongestionInfo"
+                )
             )
         }
         val raw = mutableMapOf<String, Any?>()
+        raw["platform"] = "android"
+        raw["callbackName"] = "updateAimlessModeCongestionInfo"
         raw["sdkString"] = info.toString()
         raw["sdkClass"] = info.javaClass.name
         val roadName = try {

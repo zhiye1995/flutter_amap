@@ -217,14 +217,21 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             "type": "cruiseStatistics",
             "cumulativeDistanceMeters": nil as Int?,
             "cumulativeTimeSeconds": nil as Int?,
-            "extra": [:] as [String: Any]
+            "extra": [
+                "platform": "ios",
+                "callbackName": "updateCruiseInfo"
+            ] as [String: Any]
         ]
         guard let info = cruiseInfo else {
             sendEvent(payload)
             return
         }
         let obj = info as NSObject
-        var extra: [String: Any] = ["sdkString": "\(info)"]
+        var extra: [String: Any] = [
+            "platform": "ios",
+            "callbackName": "updateCruiseInfo",
+            "sdkString": "\(info)"
+        ]
         let distKeys = ["cruisingDriveDistance", "cruiseDistance", "totalDistance", "distance", "continuedDistance"]
         let timeKeys = ["cruisingDriveTime", "cruiseTime", "totalTime", "time", "continuedTime"]
         for k in distKeys {
@@ -245,17 +252,45 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
     
     /// 智能巡航道路交通设施 / 电子眼（iOS 聚合回调）
     func driveManager(_ driveManager: AMapNaviDriveManager, updateTrafficFacilities trafficFacilities: [AMapNaviTrafficFacilityInfo]?) {
-        let list = (trafficFacilities ?? []).map { serializeCruiseTrafficFacility($0) }
+        let list = (trafficFacilities ?? []).map {
+            serializeCruiseTrafficFacility($0, source: "unified", callbackName: "updateTrafficFacilities")
+        }
         sendEvent([
             "type": "cruiseTrafficFacilities",
             "facilities": list
         ])
     }
     
-    private func serializeCruiseTrafficFacility(_ info: AMapNaviTrafficFacilityInfo) -> [String: Any?] {
+    /// 智能巡航电子眼独立回调。
+    func driveManager(_ driveManager: AMapNaviDriveManager, updateCruiseElecCameraInfos cameraInfos: [AMapNaviTrafficFacilityInfo]?) {
+        let list = (cameraInfos ?? []).map {
+            serializeCruiseTrafficFacility($0, source: "elecCamera", callbackName: "updateCruiseElecCameraInfos")
+        }
+        sendEvent([
+            "type": "cruiseTrafficFacilities",
+            "facilities": list
+        ])
+    }
+    
+    /// 智能巡航拥堵信息回调（依赖 iOS Navi SDK 版本和实际场景）。
+    func driveManager(_ driveManager: AMapNaviDriveManager, updateCruiseCongestionInfo congestionInfo: AMapNaviCruiseCongestionInfo?) {
+        sendEvent(serializeCruiseCongestion(congestionInfo))
+    }
+    
+    private func serializeCruiseTrafficFacility(
+        _ info: AMapNaviTrafficFacilityInfo,
+        source: String,
+        callbackName: String
+    ) -> [String: Any?] {
         var m: [String: Any?] = [
-            "source": "unified",
-            "raw": ["sdkString": "\(info)"]
+            "source": source,
+            "callbackName": callbackName,
+            "raw": [
+                "platform": "ios",
+                "callbackName": callbackName,
+                "sourceCallback": source,
+                "sdkString": "\(info)"
+            ]
         ]
         let obj = info as NSObject
         var raw = m["raw"] as? [String: Any] ?? [:]
@@ -299,6 +334,56 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         }
         m["raw"] = raw
         return m
+    }
+    
+    private func serializeCruiseCongestion(_ info: AMapNaviCruiseCongestionInfo?) -> [String: Any?] {
+        guard let info = info else {
+            return [
+                "type": "cruiseCongestion",
+                "roadName": nil,
+                "lengthMeters": nil,
+                "status": nil,
+                "estimatedTimeSeconds": nil,
+                "links": [],
+                "raw": [
+                    "platform": "ios",
+                    "callbackName": "updateCruiseCongestionInfo"
+                ]
+            ]
+        }
+        let obj = info as NSObject
+        var raw: [String: Any] = [
+            "platform": "ios",
+            "callbackName": "updateCruiseCongestionInfo",
+            "sdkString": "\(info)"
+        ]
+        func intValue(_ keys: [String]) -> Int? {
+            for key in keys where obj.responds(to: NSSelectorFromString(key)) {
+                if let number = obj.value(forKey: key) as? NSNumber {
+                    raw[key] = number.intValue
+                    return number.intValue
+                }
+            }
+            return nil
+        }
+        func stringValue(_ keys: [String]) -> String? {
+            for key in keys where obj.responds(to: NSSelectorFromString(key)) {
+                if let value = obj.value(forKey: key) as? String {
+                    raw[key] = value
+                    return value
+                }
+            }
+            return nil
+        }
+        return [
+            "type": "cruiseCongestion",
+            "roadName": stringValue(["roadName", "name", "description"]),
+            "lengthMeters": intValue(["length", "distance"]),
+            "status": intValue(["status", "congestionStatus"]),
+            "estimatedTimeSeconds": intValue(["time", "estimatedTime", "estimatedTimeSeconds"]),
+            "links": [],
+            "raw": raw
+        ]
     }
 }
 

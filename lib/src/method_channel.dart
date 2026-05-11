@@ -615,8 +615,11 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         break;
 
       case 'startNavi':
-        // 导航真正开始（双保险：即使上层没走 startNavigation，也能正确置位）
-        AMapNavi._setIsNavigating(true);
+        // Android 智能巡航会复用 AMapNaviListener 并触发 startNavi。
+        // 巡航与正式导航互斥，这里不能把巡航误标记为导航中。
+        if (!AMapNavi.isCruising) {
+          AMapNavi._setIsNavigating(true);
+        }
         naviEventStreamController.add(
           NaviStartEvent(data['naviType'] as int? ?? 0),
         );
@@ -747,11 +750,19 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   }
 
   @override
-  Future<void> startCruiseMode(CruiseBroadcastMode mode) async {
+  Future<void> startCruiseMode(CruiseConfig config) async {
     _initNaviEventChannel();
     await _naviChannel.invokeMethod(
       'startCruiseMode',
-      <String, dynamic>{'mode': mode.code},
+      <String, dynamic>{
+        'mode': config.mode.code,
+        'config': config.encode(),
+        'useInnerVoice': config.useInnerVoice,
+        'allowsBackgroundLocationUpdates':
+            config.allowsBackgroundLocationUpdates,
+        'pausesLocationUpdatesAutomatically':
+            config.pausesLocationUpdatesAutomatically,
+      },
     );
   }
 

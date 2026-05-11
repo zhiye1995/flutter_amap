@@ -94,20 +94,44 @@ class AMapNavi {
   /// 与 [startNavigation] 互斥；需联网；详见类注释。
   static Future<void> startCruiseMode({
     required CruiseBroadcastMode mode,
-  }) async {
+    bool useInnerVoice = true,
+    bool allowsBackgroundLocationUpdates = true,
+    bool pausesLocationUpdatesAutomatically = false,
+  }) {
+    return startCruise(
+      CruiseConfig(
+        mode: mode,
+        useInnerVoice: useInnerVoice,
+        allowsBackgroundLocationUpdates: allowsBackgroundLocationUpdates,
+        pausesLocationUpdatesAutomatically: pausesLocationUpdatesAutomatically,
+      ),
+    );
+  }
+
+  /// 使用完整配置开启智能巡航。
+  static Future<void> startCruise(CruiseConfig config) async {
     if (isNavigating) {
       throw StateError(
         '无法在导航进行中开启巡航：请先调用 stopNavigation()',
       );
     }
-    await AMapFlutterPlatformInterface.instance.startCruiseMode(mode);
+    // Android 巡航会复用 AMapNaviListener，并可能在原生调用返回前发出
+    // startNavi 事件。先进入巡航态，避免该事件把 Dart 状态误置为导航中。
     _setIsCruising(true);
+    try {
+      await AMapFlutterPlatformInterface.instance.startCruiseMode(config);
+    } catch (_) {
+      _setIsCruising(false);
+      rethrow;
+    }
   }
 
   /// 停止智能巡航
   static Future<void> stopCruiseMode() async {
     await AMapFlutterPlatformInterface.instance.stopCruiseMode();
     _setIsCruising(false);
+    // 防御旧版/原生回调把巡航误标为导航中的遗留状态。
+    _setIsNavigating(false);
   }
 
   /// 导航初始化成功事件流

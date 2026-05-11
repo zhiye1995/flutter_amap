@@ -713,6 +713,66 @@ enum CruiseBroadcastMode {
   final int code;
 }
 
+/// 智能巡航配置。
+class CruiseConfig {
+  CruiseConfig({
+    required this.mode,
+    this.useInnerVoice = true,
+    this.allowsBackgroundLocationUpdates = true,
+    this.pausesLocationUpdatesAutomatically = false,
+  });
+
+  /// 巡航播报/检测模式。
+  final CruiseBroadcastMode mode;
+
+  /// 是否使用原生内置语音播报（Android 映射 `setUseInnerVoice`）。
+  final bool useInnerVoice;
+
+  /// iOS 是否允许后台定位更新。
+  final bool allowsBackgroundLocationUpdates;
+
+  /// iOS 是否允许系统自动暂停定位。
+  final bool pausesLocationUpdatesAutomatically;
+
+  Object encode() {
+    return <Object?>[
+      mode.code,
+      useInnerVoice,
+      allowsBackgroundLocationUpdates,
+      pausesLocationUpdatesAutomatically,
+    ];
+  }
+
+  static CruiseConfig decode(List<Object?> result) {
+    final modeCode = result[0] as int? ?? CruiseBroadcastMode.both.code;
+    return CruiseConfig(
+      mode: CruiseBroadcastMode.values.firstWhere(
+        (mode) => mode.code == modeCode,
+        orElse: () => CruiseBroadcastMode.both,
+      ),
+      useInnerVoice: result[1] as bool? ?? true,
+      allowsBackgroundLocationUpdates: result[2] as bool? ?? true,
+      pausesLocationUpdatesAutomatically: result[3] as bool? ?? false,
+    );
+  }
+
+  CruiseConfig copyWith({
+    CruiseBroadcastMode? mode,
+    bool? useInnerVoice,
+    bool? allowsBackgroundLocationUpdates,
+    bool? pausesLocationUpdatesAutomatically,
+  }) {
+    return CruiseConfig(
+      mode: mode ?? this.mode,
+      useInnerVoice: useInnerVoice ?? this.useInnerVoice,
+      allowsBackgroundLocationUpdates: allowsBackgroundLocationUpdates ??
+          this.allowsBackgroundLocationUpdates,
+      pausesLocationUpdatesAutomatically: pausesLocationUpdatesAutomatically ??
+          this.pausesLocationUpdatesAutomatically,
+    );
+  }
+}
+
 /// 巡航设施数据来源（用于对齐 Android 双回调与 iOS 聚合回调）
 enum CruiseTrafficFacilitySource {
   /// Android `onUpdateTrafficFacility`

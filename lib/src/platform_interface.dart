@@ -400,7 +400,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   }
 
   /// 开启智能巡航（无起终点；与正式导航互斥）
-  Future<void> startCruiseMode(CruiseBroadcastMode mode) {
+  Future<void> startCruiseMode(CruiseConfig config) {
     throw UnimplementedError('startCruiseMode() has not been implemented.');
   }
 

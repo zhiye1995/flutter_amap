@@ -28,6 +28,7 @@ class AMapNaviApi: NSObject {
     
     /// 智能巡航是否开启（用于 stopNavigation / 互斥）
     private var isCruiseModeActive: Bool = false
+    private var cruiseDataRepresentativeAttached: Bool = false
     
     private weak var registrar: FlutterPluginRegistrar?
     
@@ -414,6 +415,8 @@ class AMapNaviApi: NSObject {
             return
         }
         let modeCode = arguments["mode"] as? Int ?? 3
+        let allowsBackgroundLocationUpdates = arguments["allowsBackgroundLocationUpdates"] as? Bool ?? true
+        let pausesLocationUpdatesAutomatically = arguments["pausesLocationUpdatesAutomatically"] as? Bool ?? false
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
@@ -434,8 +437,9 @@ class AMapNaviApi: NSObject {
             
             let driveManager = AMapNaviDriveManager.sharedInstance()
             driveManager.delegate = self.naviDelegate
-            driveManager.allowsBackgroundLocationUpdates = true
-            driveManager.pausesLocationUpdatesAutomatically = false
+            driveManager.allowsBackgroundLocationUpdates = allowsBackgroundLocationUpdates
+            driveManager.pausesLocationUpdatesAutomatically = pausesLocationUpdatesAutomatically
+            self.attachCruiseDataRepresentative(to: driveManager)
             
             let detected: AMapNaviDetectedMode
             switch modeCode {
@@ -465,10 +469,28 @@ class AMapNaviApi: NSObject {
             }
             let driveManager = AMapNaviDriveManager.sharedInstance()
             driveManager.detectedMode = .none
+            self.detachCruiseDataRepresentative(from: driveManager)
+            driveManager.delegate = nil
             self.isCruiseModeActive = false
             print("[AMapNaviApi] stopCruiseMode")
             result(nil)
         }
+    }
+    
+    private func attachCruiseDataRepresentative(to driveManager: AMapNaviDriveManager) {
+        guard !cruiseDataRepresentativeAttached, let delegate = naviDelegate else {
+            return
+        }
+        driveManager.addDataRepresentative(delegate)
+        cruiseDataRepresentativeAttached = true
+    }
+    
+    private func detachCruiseDataRepresentative(from driveManager: AMapNaviDriveManager) {
+        guard cruiseDataRepresentativeAttached, let delegate = naviDelegate else {
+            return
+        }
+        driveManager.removeDataRepresentative(delegate)
+        cruiseDataRepresentativeAttached = false
     }
     
     private func handleWalkRideNaviDismiss() {
@@ -496,7 +518,10 @@ class AMapNaviApi: NSObject {
             }
             
             if self.isCruiseModeActive {
-                AMapNaviDriveManager.sharedInstance().detectedMode = .none
+                let driveManager = AMapNaviDriveManager.sharedInstance()
+                driveManager.detectedMode = .none
+                self.detachCruiseDataRepresentative(from: driveManager)
+                driveManager.delegate = nil
                 self.isCruiseModeActive = false
             }
             
@@ -513,6 +538,7 @@ class AMapNaviApi: NSObject {
                 if let delegate = self.naviDelegate {
                     driveManager.removeDataRepresentative(delegate)
                 }
+                self.cruiseDataRepresentativeAttached = false
                 driveManager.delegate = nil
                 
             case .walk:
@@ -684,6 +710,7 @@ extension AMapNaviApi: AMapNaviCompositeManagerDelegate {
             if let delegate = self.naviDelegate {
                 driveManager.removeDataRepresentative(delegate)
             }
+            self.cruiseDataRepresentativeAttached = false
             driveManager.delegate = nil
         }
     }

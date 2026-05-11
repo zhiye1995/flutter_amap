@@ -8,6 +8,8 @@ void main() {
   const int mapId = 7;
   const String channelName = 'plugins.flutter.dev/amap_$mapId';
   const MethodChannel channel = MethodChannel(channelName);
+  const MethodChannel naviChannel =
+      MethodChannel('plugins.flutter.dev/amap_navi');
 
   final AMapFlutterMethodChannel platform = AMapFlutterMethodChannel();
 
@@ -18,6 +20,8 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(naviChannel, null);
   });
 
   test('animateMarker sends stable animation code', () async {
@@ -65,5 +69,16 @@ void main() {
         'markerId': 'marker-1',
       },
     );
+  });
+
+  test('stopCruiseMode clears stale navigation state', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(naviChannel, (MethodCall call) async => null);
+
+    await AMapNavi.startNavigation(config: NaviConfig());
+    expect(AMapNavi.isNavigating, isTrue);
+
+    await AMapNavi.stopCruiseMode();
+    expect(AMapNavi.isNavigating, isFalse);
   });
 }

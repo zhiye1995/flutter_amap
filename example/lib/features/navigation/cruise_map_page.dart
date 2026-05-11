@@ -35,6 +35,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
 
   AMapController? _controller;
   Location? _lastLocation;
+  CruiseBroadcastMode _selectedMode = CruiseBroadcastMode.both;
 
   /// 巡航统计：仅驱动统计条局部重绘，不打日志。
   final ValueNotifier<_CruiseStatsSnapshot> _cruiseStats =
@@ -282,8 +283,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
 
   Future<void> _startCruise() async {
     try {
-      await AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both);
-      _appendCruiseLog('已调用 startCruiseMode(mode=CruiseBroadcastMode.both)');
+      await AMapNavi.startCruiseMode(mode: _selectedMode);
+      _appendCruiseLog('已调用 startCruiseMode(mode=${_selectedMode.name})');
       if (!mounted) return;
       LoadingUtil.showSuccess('已开启智能巡航（需联网）');
     } on StateError catch (e) {
@@ -331,7 +332,9 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
         return AlertDialog(
           title: const Text('智能巡航说明'),
           content: const Text(
-            '地图展示定位；巡航播报与设施数据由高德导航 SDK 通过事件下发（需在户外驾车场景验证）。',
+            '智能巡航无需起终点和算路，但需要联网和真实驾车场景。'
+            'Android 通过 AimlessModeListener 下发电子眼、特殊路段、统计和拥堵；'
+            'iOS 通过 AMapNaviDriveManager 的 delegate/dataRepresentative 下发统计、设施、电子眼和部分 SDK 版本支持的巡航拥堵。',
           ),
           actions: [
             TextButton(
@@ -353,7 +356,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
           geolocationControlEnabled: true,
           userLocationStyle: UserLocationStyle(
             userLocationType: Platform.isAndroid
-                ? UserLocationType.locationTypeLocationRotate
+                ? UserLocationType.locationTypeLocationRotateNoCenter
                 : UserLocationType.locationTypeMapRotate,
           ),
           onUserLocationChange: (location) => _lastLocation = location,
@@ -395,6 +398,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildModeSelector(context),
+                  const Divider(height: 10),
                   _buildStatsRow(context),
                   const Divider(height: 10),
                   _buildLogHeader(context),
@@ -407,6 +412,55 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildModeSelector(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AMapNavi.isCruisingListenable,
+      builder: (context, cruising, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<CruiseBroadcastMode>(
+              segments: const [
+                ButtonSegment(
+                  value: CruiseBroadcastMode.elecCameraOnly,
+                  label: Text('电子眼'),
+                  icon: Icon(Icons.speed),
+                ),
+                ButtonSegment(
+                  value: CruiseBroadcastMode.specialRoadOnly,
+                  label: Text('特殊路段'),
+                  icon: Icon(Icons.alt_route),
+                ),
+                ButtonSegment(
+                  value: CruiseBroadcastMode.both,
+                  label: Text('两者'),
+                  icon: Icon(Icons.all_inclusive),
+                ),
+              ],
+              selected: {_selectedMode},
+              onSelectionChanged: cruising
+                  ? null
+                  : (values) => setState(() => _selectedMode = values.first),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '当前模式：${_modeLabel(_selectedMode)}。${Platform.isIOS ? 'iOS 巡航拥堵回调取决于 SDK 版本和实际路况。' : 'Android 会拆分电子眼、特殊路段、统计和拥堵回调。'}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _modeLabel(CruiseBroadcastMode mode) {
+    return switch (mode) {
+      CruiseBroadcastMode.elecCameraOnly => '仅电子眼',
+      CruiseBroadcastMode.specialRoadOnly => '仅特殊路段',
+      CruiseBroadcastMode.both => '电子眼 + 特殊路段',
+    };
   }
 
   Widget _buildStatsRow(BuildContext context) {

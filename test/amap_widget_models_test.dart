@@ -157,4 +157,26 @@ void main() {
     expect(decoded.children, query.children);
     expect(decoded.sortByDistance, query.sortByDistance);
   });
+
+  test('CruiseConfig encodes and decodes all fields', () {
+    final config = CruiseConfig(
+      mode: CruiseBroadcastMode.specialRoadOnly,
+      useInnerVoice: false,
+      allowsBackgroundLocationUpdates: false,
+      pausesLocationUpdatesAutomatically: true,
+    );
+
+    final decoded = CruiseConfig.decode(config.encode() as List<Object?>);
+
+    expect(decoded.mode, config.mode);
+    expect(decoded.useInnerVoice, config.useInnerVoice);
+    expect(
+      decoded.allowsBackgroundLocationUpdates,
+      config.allowsBackgroundLocationUpdates,
+    );
+    expect(
+      decoded.pausesLocationUpdatesAutomatically,
+      config.pausesLocationUpdatesAutomatically,
+    );
+  });
 }

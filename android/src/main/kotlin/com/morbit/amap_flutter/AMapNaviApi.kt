@@ -262,6 +262,7 @@ class AMapNaviApi {
                 AimLessMode.SPECIALROAD_DETECTED -> AimLessMode.SPECIALROAD_DETECTED
                 else -> AimLessMode.CAMERA_AND_SPECIALROAD_DETECTED
             }
+            val useInnerVoice = call.argument<Boolean>("useInnerVoice") ?: true
             NaviSetting.updatePrivacyShow(context, true, true)
             NaviSetting.updatePrivacyAgree(context, true)
 
@@ -273,7 +274,7 @@ class AMapNaviApi {
 
             val ctx = activityRef ?: context
             aMapNavi = AMapNavi.getInstance(ctx)
-            aMapNavi?.setUseInnerVoice(true)
+            aMapNavi?.setUseInnerVoice(useInnerVoice)
             if (!naviListenerAttached) {
                 attachNaviListener()
                 cruiseAttachedNaviListener = true
@@ -287,7 +288,7 @@ class AMapNaviApi {
                 }
                 aMapNavi?.startAimlessMode(mode)
                 cruiseActive = true
-                Log.i(TAG, "startCruiseMode: mode=$mode")
+                Log.i(TAG, "startCruiseMode: mode=$mode, useInnerVoice=$useInnerVoice")
             }
         }
 
