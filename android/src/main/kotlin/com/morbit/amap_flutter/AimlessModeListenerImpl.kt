@@ -41,7 +41,7 @@ class AimlessModeListenerImpl : AimlessModeListener {
     override fun onUpdateAimlessModeElecCameraInfo(cameraInfo: Array<out AMapNaviTrafficFacilityInfo>?) {
         send(
             mapOf(
-                "type" to "cruiseTrafficFacilities",
+                "type" to "cruiseElecCameraInfo",
                 "facilities" to (cameraInfo?.map {
                     trafficFacilityToMap(it, "elecCamera", "onUpdateAimlessModeElecCameraInfo")
                 } ?: emptyList())

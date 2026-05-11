@@ -267,7 +267,7 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             serializeCruiseTrafficFacility($0, source: "elecCamera", callbackName: "updateCruiseElecCameraInfos")
         }
         sendEvent([
-            "type": "cruiseTrafficFacilities",
+            "type": "cruiseElecCameraInfo",
             "facilities": list
         ])
     }

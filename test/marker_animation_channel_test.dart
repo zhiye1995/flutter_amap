@@ -81,4 +81,34 @@ void main() {
     await AMapNavi.stopCruiseMode();
     expect(AMapNavi.isNavigating, isFalse);
   });
+
+  test('cruise facility streams are split by callback type', () async {
+    final trafficFacility = CruiseTrafficFacilityEvent(
+      <CruiseTrafficFacilityItem>[
+        CruiseTrafficFacilityItem(
+          source: CruiseTrafficFacilitySource.specialRoad,
+          remainDistanceMeters: 120,
+        ),
+      ],
+    );
+    final elecCameraInfo = CruiseElecCameraInfoEvent(
+      <CruiseTrafficFacilityItem>[
+        CruiseTrafficFacilityItem(
+          source: CruiseTrafficFacilitySource.elecCamera,
+          speedLimitKmh: 60,
+        ),
+      ],
+    );
+
+    final trafficFuture = platform.onCruiseTrafficFacility.first;
+    final cameraFuture = platform.onCruiseElecCameraInfo.first;
+
+    platform.naviEventStreamController.add(trafficFacility);
+    platform.naviEventStreamController.add(elecCameraInfo);
+
+    expect((await trafficFuture).facilities.single.source,
+        CruiseTrafficFacilitySource.specialRoad);
+    expect((await cameraFuture).cameraInfos.single.source,
+        CruiseTrafficFacilitySource.elecCamera);
+  });
 }

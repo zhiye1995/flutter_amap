@@ -377,7 +377,15 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   Stream<NaviExitEvent> get onNaviExit =>
       naviEventStream.whereType<NaviExitEvent>();
 
-  /// 巡航道路设施 / 电子眼更新事件流
+  /// 巡航道路设施更新事件流
+  Stream<CruiseTrafficFacilityEvent> get onCruiseTrafficFacility =>
+      naviEventStream.whereType<CruiseTrafficFacilityEvent>();
+
+  /// 巡航电子眼更新事件流
+  Stream<CruiseElecCameraInfoEvent> get onCruiseElecCameraInfo =>
+      naviEventStream.whereType<CruiseElecCameraInfoEvent>();
+
+  /// 巡航道路设施 / 电子眼更新事件流（兼容旧版合并事件）
   Stream<CruiseTrafficFacilitiesEvent> get onCruiseTrafficFacilities =>
       naviEventStream.whereType<CruiseTrafficFacilitiesEvent>();
 
@@ -455,6 +463,16 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   /// POI 关键字搜索
   Future<PoiSearchResult> searchPOIKeywords(PoiKeywordSearchQuery query) {
     throw UnimplementedError('searchPOIKeywords() has not been implemented.');
+  }
+
+  /// 地理编码
+  Future<List<GeocodeResult>> searchGeocode(GeocodeQuery query) {
+    throw UnimplementedError('searchGeocode() has not been implemented.');
+  }
+
+  /// 逆地理编码
+  Future<ReGeocodeResult> searchReGeocode(ReGeocodeQuery query) {
+    throw UnimplementedError('searchReGeocode() has not been implemented.');
   }
 
   // ==================== 天气相关接口 ====================

@@ -130,7 +130,7 @@ val aimlessListener = object : AimlessModeListener {
 
 | 层级 | 说明与路径 |
 |------|------------|
-| Dart | `AMapNavi.startCruiseMode` / `stopCruiseMode`；事件流 `onCruiseTrafficFacilities`、`onCruiseStatistics`、`onCruiseCongestion`（见 [lib/src/amap_navi.dart](../lib/src/amap_navi.dart)） |
+| Dart | `AMapNavi.startCruiseMode` / `stopCruiseMode`；事件流 `onCruiseTrafficFacility`、`onCruiseElecCameraInfo`、`onCruiseStatistics`、`onCruiseCongestion`（见 [lib/src/amap_navi.dart](../lib/src/amap_navi.dart)） |
 | Android | `AMapNaviApi` 中 `startCruiseMode` / `stopCruiseMode`，注册 [AimlessModeListenerImpl.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AimlessModeListenerImpl.kt) 并写入与导航共用的 EventChannel（[AMapNaviApi.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AMapNaviApi.kt)） |
 | iOS | [AMapNaviApi.swift](../ios/Classes/AMapNaviApi.swift) 设置 `detectedMode`；巡航统计与设施回调在 [AMapNaviDelegate.swift](../ios/Classes/AMapNaviDelegate.swift) |
 

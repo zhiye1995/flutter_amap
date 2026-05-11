@@ -7,6 +7,13 @@ import com.amap.api.location.AMapLocationClientOption
 import com.amap.api.services.core.AMapException
 import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.core.PoiItemV2
+import com.amap.api.services.geocoder.GeocodeAddress
+import com.amap.api.services.geocoder.GeocodeQuery
+import com.amap.api.services.geocoder.GeocodeResult
+import com.amap.api.services.geocoder.GeocodeSearch
+import com.amap.api.services.geocoder.RegeocodeAddress
+import com.amap.api.services.geocoder.RegeocodeQuery
+import com.amap.api.services.geocoder.RegeocodeResult
 import com.amap.api.services.help.Inputtips
 import com.amap.api.services.help.InputtipsQuery
 import com.amap.api.services.help.Tip
@@ -81,6 +88,24 @@ class AMapSearchApi {
                     } catch (e: Exception) {
                         Log.e(TAG, "searchPOIKeywords error", e)
                         result.error("SEARCH_ERROR", e.message, null)
+                    }
+                }
+
+                "searchGeocode" -> {
+                    try {
+                        searchGeocode(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchGeocode error", e)
+                        result.error("GEOCODE_ERROR", e.message, null)
+                    }
+                }
+
+                "searchReGeocode" -> {
+                    try {
+                        searchReGeocode(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchReGeocode error", e)
+                        result.error("GEOCODE_ERROR", e.message, null)
                     }
                 }
 
@@ -458,6 +483,159 @@ class AMapSearchApi {
                 "provinceName" to provinceName,
                 "provinceCode" to provinceCode,
             )
+        }
+
+        private fun searchGeocode(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val address = call.argument<String>("address") ?: ""
+            if (address.isEmpty()) {
+                result.error("INVALID_ARGUMENTS", "address is required", null)
+                return
+            }
+            val city = call.argument<String>("city") ?: ""
+            val search = GeocodeSearch(context)
+            search.setOnGeocodeSearchListener(object : GeocodeSearch.OnGeocodeSearchListener {
+                override fun onGeocodeSearched(geocodeResult: GeocodeResult?, rCode: Int) {
+                    if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                        result.success(
+                            geocodeResult?.geocodeAddressList?.map { it.toMap() } ?: emptyList<Map<String, Any?>>()
+                        )
+                    } else {
+                        result.error("GEOCODE_ERROR", "Geocode failed with code: $rCode", null)
+                    }
+                }
+
+                override fun onRegeocodeSearched(regeocodeResult: RegeocodeResult?, rCode: Int) {
+                    // Not used here.
+                }
+            })
+            search.getFromLocationNameAsyn(GeocodeQuery(address, city))
+        }
+
+        private fun searchReGeocode(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val latitude = call.argument<Double>("latitude") ?: run {
+                result.error("INVALID_ARGUMENTS", "latitude is required", null)
+                return
+            }
+            val longitude = call.argument<Double>("longitude") ?: run {
+                result.error("INVALID_ARGUMENTS", "longitude is required", null)
+                return
+            }
+            val radius = (call.argument<Int>("radius") ?: 1000).toFloat()
+            val extensions = call.argument<String>("extensions") ?: "base"
+            val coordinateType = call.argument<String>("coordinateType") ?: "amap"
+            val latLonType = if (coordinateType == "gps") GeocodeSearch.GPS else GeocodeSearch.AMAP
+            val search = GeocodeSearch(context)
+            search.setOnGeocodeSearchListener(object : GeocodeSearch.OnGeocodeSearchListener {
+                override fun onGeocodeSearched(geocodeResult: GeocodeResult?, rCode: Int) {
+                    // Not used here.
+                }
+
+                override fun onRegeocodeSearched(regeocodeResult: RegeocodeResult?, rCode: Int) {
+                    if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                        result.success(regeocodeResult?.regeocodeAddress?.toMap(latitude, longitude))
+                    } else {
+                        result.error("GEOCODE_ERROR", "ReGeocode failed with code: $rCode", null)
+                    }
+                }
+            })
+            val query = RegeocodeQuery(LatLonPoint(latitude, longitude), radius, latLonType)
+            query.extensions = if (extensions == "all") {
+                GeocodeSearch.EXTENSIONS_ALL
+            } else {
+                GeocodeSearch.EXTENSIONS_BASE
+            }
+            search.getFromLocationAsyn(query)
+        }
+
+        private fun GeocodeAddress.toMap(): Map<String, Any?> {
+            val point = latLonPoint
+            return mapOf(
+                "formattedAddress" to formatAddress,
+                "latitude" to point?.latitude,
+                "longitude" to point?.longitude,
+                "province" to province,
+                "city" to city,
+                "district" to district,
+                "township" to township,
+                "neighborhood" to neighborhood,
+                "building" to building,
+                "adCode" to adcode,
+                "cityCode" to readStringMember(this, "cityCode", "citycode"),
+                "level" to level,
+                "raw" to mapOf(
+                    "platform" to "android",
+                    "sdkString" to toString()
+                )
+            )
+        }
+
+        private fun RegeocodeAddress.toMap(latitude: Double, longitude: Double): Map<String, Any?> {
+            return mapOf(
+                "formattedAddress" to formatAddress,
+                "latitude" to latitude,
+                "longitude" to longitude,
+                "province" to province,
+                "city" to city,
+                "district" to district,
+                "township" to township,
+                "townCode" to towncode,
+                "neighborhood" to neighborhood,
+                "building" to building,
+                "adCode" to adCode,
+                "cityCode" to cityCode,
+                "country" to country,
+                "countryCode" to countryCode,
+                "roads" to (roads?.mapNotNull { it.name } ?: emptyList()),
+                "crosses" to (crossroads?.mapNotNull { it.name } ?: emptyList()),
+                "pois" to (pois?.map { poi ->
+                    mapOf(
+                        "poiId" to (poi.poiId ?: ""),
+                        "name" to (poi.title ?: ""),
+                        "address" to poi.snippet,
+                        "latitude" to poi.latLonPoint?.latitude,
+                        "longitude" to poi.latLonPoint?.longitude,
+                        "typeName" to poi.typeDes,
+                        "typeCode" to poi.typeCode,
+                        "cityName" to poi.cityName,
+                        "cityCode" to poi.cityCode,
+                        "adName" to poi.adName,
+                        "adCode" to poi.adCode,
+                        "distance" to null,
+                        "tel" to null,
+                        "provinceName" to poi.provinceName,
+                        "provinceCode" to poi.provinceCode
+                    )
+                } ?: emptyList()),
+                "aois" to (aois?.mapNotNull { it.aoiName } ?: emptyList()),
+                "raw" to mapOf(
+                    "platform" to "android",
+                    "sdkString" to toString()
+                )
+            )
+        }
+
+        private fun readStringMember(target: Any, vararg names: String): String? {
+            for (name in names) {
+                val cap = name.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                for (methodName in listOf(name, "get$cap")) {
+                    runCatching {
+                        val method = target.javaClass.methods.firstOrNull {
+                            it.name == methodName && it.parameterCount == 0
+                        }
+                        val value = method?.invoke(target)
+                        if (value != null) return value.toString()
+                    }
+                }
+                runCatching {
+                    val field = target.javaClass.declaredFields.firstOrNull { it.name == name }
+                    if (field != null) {
+                        field.isAccessible = true
+                        val value = field.get(target)
+                        if (value != null) return value.toString()
+                    }
+                }
+            }
+            return null
         }
 
         /**

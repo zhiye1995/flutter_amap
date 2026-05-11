@@ -45,7 +45,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
 
   final List<_CruiseLogEntry> _cruiseLogLines = [];
 
-  StreamSubscription<CruiseTrafficFacilitiesEvent>? _subFacilities;
+  StreamSubscription<CruiseTrafficFacilityEvent>? _subTrafficFacility;
+  StreamSubscription<CruiseElecCameraInfoEvent>? _subElecCameraInfo;
   StreamSubscription<CruiseStatisticsEvent>? _subStatistics;
   StreamSubscription<CruiseCongestionEvent>? _subCongestion;
   StreamSubscription<NaviTextEvent>? _subNaviText;
@@ -53,11 +54,19 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   @override
   void initState() {
     super.initState();
-    _subFacilities = AMapNavi.onCruiseTrafficFacilities.listen(
-      (CruiseTrafficFacilitiesEvent e) {
+    _subTrafficFacility = AMapNavi.onCruiseTrafficFacility.listen(
+      (CruiseTrafficFacilityEvent e) {
         _appendCruiseLog(
-          '巡航道路设施 / 电子眼等信息: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
+          '巡航道路设施: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
           detail: _stringify(_facilitiesToDetail(e.facilities)),
+        );
+      },
+    );
+    _subElecCameraInfo = AMapNavi.onCruiseElecCameraInfo.listen(
+      (CruiseElecCameraInfoEvent e) {
+        _appendCruiseLog(
+          '巡航电子眼: ${e.cameraInfos.length} 条 ${_summarizeFacilities(e.cameraInfos)}',
+          detail: _stringify(_facilitiesToDetail(e.cameraInfos)),
         );
       },
     );
@@ -269,7 +278,8 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
 
   @override
   void dispose() {
-    _subFacilities?.cancel();
+    _subTrafficFacility?.cancel();
+    _subElecCameraInfo?.cancel();
     _subStatistics?.cancel();
     _subCongestion?.cancel();
     _subNaviText?.cancel();
@@ -533,7 +543,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     if (_cruiseLogLines.isEmpty) {
       return Center(
         child: Text(
-          '开启巡航后显示设施 / 拥堵 / 播报文案，点击日志可看原数据。',
+          '开启巡航后分别显示道路设施 / 电子眼 / 拥堵 / 播报文案，点击日志可看原数据。',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),

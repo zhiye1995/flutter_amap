@@ -115,7 +115,7 @@
 
 当前仓库已封装智能巡航能力：
 
-- Dart：通过 [AMapNavi.startCruiseMode](../lib/src/amap_navi.dart) / `stopCruiseMode` 启停，并通过 `onCruiseTrafficFacilities`、`onCruiseStatistics`、`onCruiseCongestion` 订阅巡航事件。
+- Dart：通过 [AMapNavi.startCruiseMode](../lib/src/amap_navi.dart) / `stopCruiseMode` 启停，并通过 `onCruiseTrafficFacility`、`onCruiseElecCameraInfo`、`onCruiseStatistics`、`onCruiseCongestion` 订阅巡航事件。
 - Android：通过 [AMapNaviApi.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AMapNaviApi.kt) 注册 [AimlessModeListenerImpl.kt](../android/src/main/kotlin/com/morbit/amap_flutter/AimlessModeListenerImpl.kt)，调用 `startAimlessMode` / `stopAimlessMode`，并转发设施、电子眼、统计和拥堵事件。
 - iOS：通过 [AMapNaviApi.swift](../ios/Classes/AMapNaviApi.swift) 设置 `AMapNaviDriveManager.detectedMode`，并在 [AMapNaviDelegate.swift](../ios/Classes/AMapNaviDelegate.swift) 转发巡航统计和设施事件。
 

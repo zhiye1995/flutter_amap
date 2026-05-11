@@ -93,6 +93,16 @@ class AMapSearch {
     return AMapFlutterPlatformInterface.instance.searchPOIKeywords(query);
   }
 
+  /// 地理编码：地址转坐标。
+  static Future<List<GeocodeResult>> searchGeocode(GeocodeQuery query) {
+    return AMapFlutterPlatformInterface.instance.searchGeocode(query);
+  }
+
+  /// 逆地理编码：坐标转地址。
+  static Future<ReGeocodeResult> searchReGeocode(ReGeocodeQuery query) {
+    return AMapFlutterPlatformInterface.instance.searchReGeocode(query);
+  }
+
   /// 查询实时天气
   ///
   /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"

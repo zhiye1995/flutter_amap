@@ -207,7 +207,15 @@ class AMapNavi {
       AMapFlutterPlatformInterface.instance.onNaviExit;
 
   // ====================================== 智能巡航相关事件流 ======================================
-  /// 巡航道路设施 / 电子眼等信息
+  /// 巡航道路设施信息，对应 Android `AimlessModeListener.onUpdateTrafficFacility`。
+  static Stream<CruiseTrafficFacilityEvent> get onCruiseTrafficFacility =>
+      AMapFlutterPlatformInterface.instance.onCruiseTrafficFacility;
+
+  /// 巡航电子眼信息，对应 Android `AimlessModeListener.onUpdateAimlessModeElecCameraInfo`。
+  static Stream<CruiseElecCameraInfoEvent> get onCruiseElecCameraInfo =>
+      AMapFlutterPlatformInterface.instance.onCruiseElecCameraInfo;
+
+  /// 巡航道路设施 / 电子眼等信息（兼容旧版合并事件，新代码建议分别订阅上面两个流）
   static Stream<CruiseTrafficFacilitiesEvent> get onCruiseTrafficFacilities =>
       AMapFlutterPlatformInterface.instance.onCruiseTrafficFacilities;
 

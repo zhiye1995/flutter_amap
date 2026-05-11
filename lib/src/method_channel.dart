@@ -693,6 +693,25 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
             }
           }
         }
+        naviEventStreamController.add(CruiseTrafficFacilityEvent(items));
+        naviEventStreamController.add(CruiseTrafficFacilitiesEvent(items));
+        break;
+
+      case 'cruiseElecCameraInfo':
+        final rawList = data['facilities'] as List?;
+        final items = <CruiseTrafficFacilityItem>[];
+        if (rawList != null) {
+          for (final e in rawList) {
+            if (e is Map) {
+              items.add(
+                CruiseTrafficFacilityItem.decodeFromMap(
+                  Map<String, dynamic>.from(e),
+                ),
+              );
+            }
+          }
+        }
+        naviEventStreamController.add(CruiseElecCameraInfoEvent(items));
         naviEventStreamController.add(CruiseTrafficFacilitiesEvent(items));
         break;
 
@@ -903,6 +922,51 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     }
 
     return PoiSearchResult.decodeFromMap(Map<String, dynamic>.from(result));
+  }
+
+  /// 地理编码
+  @override
+  Future<List<GeocodeResult>> searchGeocode(GeocodeQuery query) async {
+    final result = await _searchChannel.invokeMethod<List<dynamic>>(
+      'searchGeocode',
+      <String, dynamic>{
+        'address': query.address,
+        'city': query.city ?? '',
+        'country': query.country ?? '',
+      },
+    );
+
+    if (result == null) {
+      return const <GeocodeResult>[];
+    }
+
+    return result.map((item) {
+      return GeocodeResult.decodeFromMap(
+        Map<String, dynamic>.from(item as Map),
+      );
+    }).toList();
+  }
+
+  /// 逆地理编码
+  @override
+  Future<ReGeocodeResult> searchReGeocode(ReGeocodeQuery query) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'searchReGeocode',
+      <String, dynamic>{
+        'latitude': query.position.latitude,
+        'longitude': query.position.longitude,
+        'radius': query.radius,
+        'extensions': query.extensions.value,
+        'coordinateType': query.coordinateType.value,
+        'poiTypes': query.poiTypes ?? '',
+      },
+    );
+
+    if (result == null) {
+      throw StateError('Failed to get re-geocode data');
+    }
+
+    return ReGeocodeResult.decodeFromMap(Map<String, dynamic>.from(result));
   }
 
   // ==================== 天气相关方法实现 ====================

@@ -424,6 +424,213 @@ class PoiSearchResult {
   }
 }
 
+/// 逆地理编码扩展信息范围。
+enum ReGeocodeExtensions {
+  /// 只返回基础地址数据。
+  base('base'),
+
+  /// 返回 POI、道路、交叉路口、AOI 等扩展数据（取决于平台 SDK）。
+  all('all');
+
+  const ReGeocodeExtensions(this.value);
+
+  final String value;
+}
+
+/// 逆地理编码坐标类型。
+enum ReGeocodeCoordinateType {
+  /// 高德坐标系。
+  amap('amap'),
+
+  /// GPS 原始坐标系。
+  gps('gps');
+
+  const ReGeocodeCoordinateType(this.value);
+
+  final String value;
+}
+
+/// 地理编码查询参数。
+class GeocodeQuery {
+  GeocodeQuery({
+    required this.address,
+    this.city,
+    this.country,
+  });
+
+  /// 地址名称。
+  final String address;
+
+  /// 查询城市，可传城市名、citycode 或 adcode。
+  final String? city;
+
+  /// 查询国家，iOS 海外场景支持；Android 侧会忽略。
+  final String? country;
+}
+
+/// 逆地理编码查询参数。
+class ReGeocodeQuery {
+  ReGeocodeQuery({
+    required this.position,
+    this.radius = 1000,
+    this.extensions = ReGeocodeExtensions.base,
+    this.coordinateType = ReGeocodeCoordinateType.amap,
+    this.poiTypes,
+  });
+
+  /// 查询坐标。
+  final Position position;
+
+  /// 查询半径，单位米。Android 示例常用 200，iOS 默认 1000。
+  final int radius;
+
+  /// 是否返回扩展信息。
+  final ReGeocodeExtensions extensions;
+
+  /// 坐标类型。
+  final ReGeocodeCoordinateType coordinateType;
+
+  /// 扩展 POI 类型过滤，多个 typecode 用“|”分割。
+  final String? poiTypes;
+}
+
+/// 地理编码结果。
+class GeocodeResult {
+  GeocodeResult({
+    required this.formattedAddress,
+    required this.position,
+    this.province,
+    this.city,
+    this.district,
+    this.township,
+    this.neighborhood,
+    this.building,
+    this.adCode,
+    this.cityCode,
+    this.country,
+    this.level,
+    this.raw,
+  });
+
+  final String formattedAddress;
+  final Position position;
+  final String? province;
+  final String? city;
+  final String? district;
+  final String? township;
+  final String? neighborhood;
+  final String? building;
+  final String? adCode;
+  final String? cityCode;
+  final String? country;
+  final String? level;
+  final Map<String, dynamic>? raw;
+
+  static GeocodeResult decodeFromMap(Map<String, dynamic> map) {
+    final lat = (map['latitude'] as num?)?.toDouble() ?? 0;
+    final lng = (map['longitude'] as num?)?.toDouble() ?? 0;
+    final raw = map['raw'];
+    return GeocodeResult(
+      formattedAddress: map['formattedAddress'] as String? ?? '',
+      position: Position(latitude: lat, longitude: lng),
+      province: map['province'] as String?,
+      city: map['city'] as String?,
+      district: map['district'] as String?,
+      township: map['township'] as String?,
+      neighborhood: map['neighborhood'] as String?,
+      building: map['building'] as String?,
+      adCode: map['adCode'] as String?,
+      cityCode: map['cityCode'] as String?,
+      country: map['country'] as String?,
+      level: map['level'] as String?,
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
+/// 逆地理编码结果。
+class ReGeocodeResult {
+  ReGeocodeResult({
+    required this.formattedAddress,
+    this.position,
+    this.province,
+    this.city,
+    this.district,
+    this.township,
+    this.neighborhood,
+    this.building,
+    this.adCode,
+    this.cityCode,
+    this.country,
+    this.countryCode,
+    this.townCode,
+    this.roads = const <String>[],
+    this.crosses = const <String>[],
+    this.pois = const <PoiItem>[],
+    this.aois = const <String>[],
+    this.raw,
+  });
+
+  final String formattedAddress;
+  final Position? position;
+  final String? province;
+  final String? city;
+  final String? district;
+  final String? township;
+  final String? neighborhood;
+  final String? building;
+  final String? adCode;
+  final String? cityCode;
+  final String? country;
+  final String? countryCode;
+  final String? townCode;
+  final List<String> roads;
+  final List<String> crosses;
+  final List<PoiItem> pois;
+  final List<String> aois;
+  final Map<String, dynamic>? raw;
+
+  static ReGeocodeResult decodeFromMap(Map<String, dynamic> map) {
+    Position? position;
+    final lat = (map['latitude'] as num?)?.toDouble();
+    final lng = (map['longitude'] as num?)?.toDouble();
+    if (lat != null && lng != null) {
+      position = Position(latitude: lat, longitude: lng);
+    }
+    final rawPois = map['pois'] as List<dynamic>? ?? const <dynamic>[];
+    final raw = map['raw'];
+    return ReGeocodeResult(
+      formattedAddress: map['formattedAddress'] as String? ?? '',
+      position: position,
+      province: map['province'] as String?,
+      city: map['city'] as String?,
+      district: map['district'] as String?,
+      township: map['township'] as String?,
+      neighborhood: map['neighborhood'] as String?,
+      building: map['building'] as String?,
+      adCode: map['adCode'] as String?,
+      cityCode: map['cityCode'] as String?,
+      country: map['country'] as String?,
+      countryCode: map['countryCode'] as String?,
+      townCode: map['townCode'] as String?,
+      roads: (map['roads'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList(),
+      crosses: (map['crosses'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList(),
+      pois: rawPois
+          .map((item) =>
+              PoiItem.decodeFromMap(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      aois: (map['aois'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => item.toString())
+          .toList(),
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
 /// POI 搜索结果项
 class PoiItem {
   PoiItem({

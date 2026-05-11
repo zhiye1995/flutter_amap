@@ -264,7 +264,23 @@ class NaviExitEvent extends NaviEvent<int> {
 
 // ==================== 智能巡航事件 ====================
 
-/// 巡航道路设施 / 电子眼更新（列表内每条含 [CruiseTrafficFacilityItem.source]）
+/// 巡航道路设施更新，对应 Android `onUpdateTrafficFacility`。
+class CruiseTrafficFacilityEvent
+    extends NaviEvent<List<CruiseTrafficFacilityItem>> {
+  CruiseTrafficFacilityEvent(super.facilities);
+
+  List<CruiseTrafficFacilityItem> get facilities => value;
+}
+
+/// 巡航电子眼更新，对应 Android `onUpdateAimlessModeElecCameraInfo`。
+class CruiseElecCameraInfoEvent
+    extends NaviEvent<List<CruiseTrafficFacilityItem>> {
+  CruiseElecCameraInfoEvent(super.cameraInfos);
+
+  List<CruiseTrafficFacilityItem> get cameraInfos => value;
+}
+
+/// 巡航道路设施 / 电子眼更新（兼容旧版合并事件）
 class CruiseTrafficFacilitiesEvent
     extends NaviEvent<List<CruiseTrafficFacilityItem>> {
   CruiseTrafficFacilitiesEvent(super.facilities);

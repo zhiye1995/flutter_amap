@@ -24,6 +24,10 @@ class AMapSearchApi: NSObject {
     private var poiKeywordResult: FlutterResult?
     private var poiKeywordPage = 1
     private var poiKeywordPageSize = 20
+    private var geocodeResult: FlutterResult?
+    private var reGeocodeResult: FlutterResult?
+    private var reGeocodeLatitude: Double?
+    private var reGeocodeLongitude: Double?
     private var weatherLiveResult: FlutterResult?
     private var weatherForecastResult: FlutterResult?
     private var weatherLiveByLocationResult: FlutterResult?
@@ -69,6 +73,10 @@ class AMapSearchApi: NSObject {
             searchPOIAroundWithQuery(call: call, result: result)
         case "searchPOIKeywords":
             searchPOIKeywords(call: call, result: result)
+        case "searchGeocode":
+            searchGeocode(call: call, result: result)
+        case "searchReGeocode":
+            searchReGeocode(call: call, result: result)
         case "searchWeatherLive":
             searchWeatherLive(call: call, result: result)
         case "searchWeatherForecast":
@@ -317,6 +325,53 @@ class AMapSearchApi: NSObject {
         searchAPI?.aMapPOIKeywordsSearch(request)
     }
     
+    // MARK: - Geocode
+    
+    private func searchGeocode(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        let address = arguments["address"] as? String ?? ""
+        guard !address.isEmpty else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "address is required", details: nil))
+            return
+        }
+        let request = AMapGeocodeSearchRequest()
+        request.address = address
+        if let city = arguments["city"] as? String, !city.isEmpty {
+            request.city = city
+        }
+        if let country = arguments["country"] as? String, !country.isEmpty {
+            request.country = country
+        }
+        self.geocodeResult = result
+        searchAPI?.aMapGeocodeSearch(request)
+    }
+    
+    private func searchReGeocode(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "参数无效", details: nil))
+            return
+        }
+        guard let latitude = arguments["latitude"] as? Double,
+              let longitude = arguments["longitude"] as? Double else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "latitude and longitude are required", details: nil))
+            return
+        }
+        let request = AMapReGeocodeSearchRequest()
+        request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+        request.radius = arguments["radius"] as? Int ?? 1000
+        request.requireExtension = (arguments["extensions"] as? String) == "all"
+        if let poiTypes = arguments["poiTypes"] as? String, !poiTypes.isEmpty {
+            request.poitype = poiTypes
+        }
+        self.reGeocodeResult = result
+        self.reGeocodeLatitude = latitude
+        self.reGeocodeLongitude = longitude
+        searchAPI?.aMapReGoecodeSearch(request)
+    }
+    
     // MARK: - Weather Live Search
     
     private func searchWeatherLive(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -552,6 +607,16 @@ extension AMapSearchApi: AMapSearchDelegate {
             result(flutterError)
         }
         
+        if let result = geocodeResult {
+            geocodeResult = nil
+            result(flutterError)
+        }
+        
+        if let result = reGeocodeResult {
+            reGeocodeResult = nil
+            result(flutterError)
+        }
+        
         if let result = weatherLiveResult {
             weatherLiveResult = nil
             result(flutterError)
@@ -625,6 +690,67 @@ extension AMapSearchApi: AMapSearchDelegate {
                 "provinceCode": poi.pcode
             ]
         }
+    }
+    
+    func onGeocodeSearchDone(_ request: AMapGeocodeSearchRequest!, response: AMapGeocodeSearchResponse!) {
+        guard let result = geocodeResult else { return }
+        geocodeResult = nil
+        let items = (response?.geocodes ?? []).map { geocode -> [String: Any?] in
+            return [
+                "formattedAddress": geocode.formattedAddress,
+                "latitude": geocode.location?.latitude,
+                "longitude": geocode.location?.longitude,
+                "province": geocode.province,
+                "city": geocode.city,
+                "district": geocode.district,
+                "township": geocode.township,
+                "neighborhood": geocode.neighborhood,
+                "building": geocode.building,
+                "adCode": geocode.adcode,
+                "cityCode": geocode.citycode,
+                "country": geocode.country,
+                "level": geocode.level,
+                "raw": [
+                    "platform": "ios",
+                    "sdkString": "\(geocode)"
+                ]
+            ]
+        }
+        result(items)
+    }
+    
+    func onReGeocodeSearchDone(_ request: AMapReGeocodeSearchRequest!, response: AMapReGeocodeSearchResponse!) {
+        guard let result = reGeocodeResult else { return }
+        reGeocodeResult = nil
+        guard let geocode = response?.regeocode else {
+            result(FlutterError(code: "GEOCODE_ERROR", message: "No re-geocode data returned", details: nil))
+            return
+        }
+        let pois = makePoiList(geocode.pois)
+        result([
+            "formattedAddress": geocode.formattedAddress,
+            "latitude": reGeocodeLatitude ?? request?.location?.latitude,
+            "longitude": reGeocodeLongitude ?? request?.location?.longitude,
+            "province": geocode.addressComponent?.province,
+            "city": geocode.addressComponent?.city,
+            "district": geocode.addressComponent?.district,
+            "township": geocode.addressComponent?.township,
+            "neighborhood": geocode.addressComponent?.neighborhood,
+            "building": geocode.addressComponent?.building,
+            "adCode": geocode.addressComponent?.adcode,
+            "cityCode": geocode.addressComponent?.citycode,
+            "country": geocode.addressComponent?.country,
+            "countryCode": nil,
+            "townCode": geocode.addressComponent?.towncode,
+            "roads": (geocode.roads ?? []).compactMap { $0.name },
+            "crosses": (geocode.roadinters ?? []).compactMap { $0.firstName },
+            "pois": pois,
+            "aois": (geocode.aois ?? []).compactMap { $0.name },
+            "raw": [
+                "platform": "ios",
+                "sdkString": "\(geocode)"
+            ]
+        ])
     }
     
     /// 天气查询回调

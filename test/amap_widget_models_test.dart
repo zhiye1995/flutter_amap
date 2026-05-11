@@ -179,4 +179,51 @@ void main() {
       config.pausesLocationUpdatesAutomatically,
     );
   });
+
+  test('GeocodeResult decodes map fields', () {
+    final result = GeocodeResult.decodeFromMap(<String, dynamic>{
+      'formattedAddress': '北京市东城区天安门',
+      'latitude': 39.908722,
+      'longitude': 116.397499,
+      'province': '北京市',
+      'city': '北京市',
+      'district': '东城区',
+      'adCode': '110101',
+      'level': '兴趣点',
+    });
+
+    expect(result.formattedAddress, '北京市东城区天安门');
+    expect(result.position.latitude, 39.908722);
+    expect(result.position.longitude, 116.397499);
+    expect(result.adCode, '110101');
+  });
+
+  test('ReGeocodeResult decodes map fields', () {
+    final result = ReGeocodeResult.decodeFromMap(<String, dynamic>{
+      'formattedAddress': '北京市东城区东长安街',
+      'latitude': 39.908722,
+      'longitude': 116.397499,
+      'province': '北京市',
+      'city': '北京市',
+      'district': '东城区',
+      'adCode': '110101',
+      'roads': <String>['东长安街'],
+      'aois': <String>['天安门广场'],
+      'pois': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'poiId': 'poi-1',
+          'name': '天安门',
+          'latitude': 39.908722,
+          'longitude': 116.397499,
+        },
+      ],
+    });
+
+    expect(result.formattedAddress, '北京市东城区东长安街');
+    expect(
+        result.position, Position(latitude: 39.908722, longitude: 116.397499));
+    expect(result.roads, <String>['东长安街']);
+    expect(result.aois, <String>['天安门广场']);
+    expect(result.pois.single.name, '天安门');
+  });
 }
