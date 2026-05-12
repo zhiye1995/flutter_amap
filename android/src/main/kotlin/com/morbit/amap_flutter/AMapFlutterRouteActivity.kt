@@ -9,68 +9,64 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.amap.api.navi.AmapRouteActivity
 
-/**
- * 用于承载高德内置路线规划/导航页面的自定义 Activity：
- * - 强制显示状态栏/导航栏（避免 SDK 或宿主开启沉浸式后变成全屏）
- * - 将 WindowInsets 转为 padding，达到类似 Flutter SafeArea 的效果
- */
+
 class AMapFlutterRouteActivity : AmapRouteActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+override fun onCreate(savedInstanceState: Bundle?) {
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+
         super.onCreate(savedInstanceState)
-        applySafeAreaAndSystemBars()
+
+        hideStatusBar()
+        applySystemBarInsets()
     }
 
     override fun onResume() {
         super.onResume()
-        applySafeAreaAndSystemBars()
+        window.decorView.post {
+            hideStatusBar()
+            ViewCompat.requestApplyInsets(window.decorView)
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            applySafeAreaAndSystemBars()
+            hideStatusBar()
+            ViewCompat.requestApplyInsets(window.decorView)
         }
     }
 
-    private fun applySafeAreaAndSystemBars() {
-        // 防止全屏/透明系统栏导致“状态栏/底部栏都不见了”
-//        已弃用
-//Use WindowInsetsController.hide(int) with WindowInsets.Type.statusBars() instead.
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-//        已弃用
-//Use Window.setStatusBarColor(int) with a half-translucent color instead.
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-//        已弃用
-//Use Window.setNavigationBarColor(int) with a half-translucent color instead.
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+    private fun hideStatusBar() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
-        // 让内容可以绘制到系统栏区域，但我们用 Insets 转 padding 来做 SafeArea
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.systemUiVisibility =
+            window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_FULLSCREEN and
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv() and
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION.inv()
 
-        // 强制显示系统栏（某些 SDK Activity 会在 onResume/onFocus 时重置沉浸式）
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.show(WindowInsetsCompat.Type.systemBars())
+        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.statusBars())
+        WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.navigationBars())
+    }
 
-        // 兼容旧 API：清除隐藏系统栏相关 flag
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and
-            View.SYSTEM_UI_FLAG_FULLSCREEN.inv() and
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv() and
-            View.SYSTEM_UI_FLAG_IMMERSIVE.inv() and
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY.inv()
+    private fun applySystemBarInsets() {
+        val contentView = window.decorView.findViewById<View>(android.R.id.content)
 
-        val content = findViewById<View>(android.R.id.content) ?: return
-        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
-            val safeInsets = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val tappableElement = insets.getInsets(WindowInsetsCompat.Type.tappableElement())
+            val bottomInset = maxOf(
+                navigationBars.bottom,
+                tappableElement.bottom
             )
-            v.setPadding(safeInsets.left, safeInsets.top, safeInsets.right, safeInsets.bottom)
+
+            contentView.setPadding(systemBars.left, 0, systemBars.right, bottomInset)
             insets
         }
-        ViewCompat.requestApplyInsets(content)
+
+        ViewCompat.requestApplyInsets(window.decorView)
     }
 }
 
