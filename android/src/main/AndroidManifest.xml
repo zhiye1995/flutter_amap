@@ -4,12 +4,15 @@
         <!--
           高德内置路线规划/导航页面的承载 Activity（用于系统栏/安全区处理）。
           通过 AmapNaviPage.showRouteActivity(..., customActivityClass) 启动。
+           android:launchMode="singleInstance"
+            android:taskAffinity="" example/android/app/src/main/AndroidManifest.xml
+            这样设置会后台新开一个任务栈。
         -->
         <activity
-            android:name="com.morbit.amap_flutter.AMapFlutterRouteActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|navigation"
-            android:launchMode="singleInstance"
-            android:theme="@android:style/Theme.Light.NoTitleBar" />
+                android:name="com.morbit.amap_flutter.AMapFlutterRouteActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize|navigation"
+                android:launchMode="singleInstance"
+                android:theme="@style/AMapFlutterRouteTheme"/>
     </application>
 </manifest>
     
