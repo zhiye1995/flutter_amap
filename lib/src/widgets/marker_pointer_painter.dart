@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 /// 标记点下方小尖角绘制器
 class MarkerPointerPainter extends CustomPainter {
-  MarkerPointerPainter({required this.color});
+  const MarkerPointerPainter({required this.color});
 
   final Color color;
 

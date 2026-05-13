@@ -46,6 +46,15 @@ String _mapPlacePickerFormatSubtitle(PoiItem poi) {
   return '';
 }
 
+List<String> _mapPlacePickerBuildSubtitles(List<PoiItem> pois) {
+  if (pois.isEmpty) return const <String>[];
+  return List<String>.generate(
+    pois.length,
+    (index) => _mapPlacePickerFormatSubtitle(pois[index]),
+    growable: false,
+  );
+}
+
 Map<String, HighlightedWord>? _mapPlacePickerKeywordHighlights(
   String keyword,
   TextStyle highlightStyle,

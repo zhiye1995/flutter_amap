@@ -31,68 +31,67 @@ class _MapPlacePickerSearchField extends StatelessWidget {
       );
     }
 
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller,
-      builder: (context, value, _) {
-        return SizedBox(
-          height: 40,
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF333333),
-            ),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF999999),
-              ),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: Color(0xFF999999),
-                size: 18,
-              ),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: 36,
-              ),
-              suffixIcon: value.text.isNotEmpty
-                  ? IconButton(
-                      onPressed: () => controller.clear(),
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
-                      ),
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.clear,
-                        color: Color(0xFF999999),
-                        size: 18,
-                      ),
-                    )
-                  : null,
-              suffixIconConstraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: 36,
-              ),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 9,
-              ),
-              filled: true,
-              fillColor: const Color(0xFFEAE8E8),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            textInputAction: TextInputAction.search,
+    return SizedBox(
+      height: 40,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF333333),
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF999999),
           ),
-        );
-      },
+          prefixIcon: const Icon(
+            Icons.search,
+            color: Color(0xFF999999),
+            size: 18,
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 36,
+            minHeight: 36,
+          ),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                onPressed: controller.clear,
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.clear,
+                  color: Color(0xFF999999),
+                  size: 18,
+                ),
+              );
+            },
+          ),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 36,
+            minHeight: 36,
+          ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 9,
+          ),
+          filled: true,
+          fillColor: const Color(0xFFEAE8E8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        textInputAction: TextInputAction.search,
+      ),
     );
   }
 }

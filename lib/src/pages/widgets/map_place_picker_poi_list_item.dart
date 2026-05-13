@@ -4,7 +4,7 @@ class _MapPlacePickerPoiListItem extends StatelessWidget {
   const _MapPlacePickerPoiListItem({
     required this.poi,
     required this.index,
-    required this.isSelected,
+    required this.selectedIndexListenable,
     required this.subtitle,
     required this.highlightWords,
     required this.onTap,
@@ -12,7 +12,7 @@ class _MapPlacePickerPoiListItem extends StatelessWidget {
 
   final PoiItem poi;
   final int index;
-  final bool isSelected;
+  final ValueListenable<int> selectedIndexListenable;
   final String subtitle;
   final Map<String, HighlightedWord>? highlightWords;
   final void Function(int index) onTap;
@@ -53,6 +53,7 @@ class _MapPlacePickerPoiListItem extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (words != null && words.isNotEmpty)
                     TextHighlight(
@@ -90,14 +91,37 @@ class _MapPlacePickerPoiListItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (isSelected)
-              const Icon(
-                Icons.check,
-                color: Color(0xFF07C160),
-                size: 24,
-              ),
+            _MapPlacePickerPoiSelectionCheck(
+              index: index,
+              selectedIndexListenable: selectedIndexListenable,
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MapPlacePickerPoiSelectionCheck extends StatelessWidget {
+  const _MapPlacePickerPoiSelectionCheck({
+    required this.index,
+    required this.selectedIndexListenable,
+  });
+
+  final int index;
+  final ValueListenable<int> selectedIndexListenable;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: selectedIndexListenable,
+      builder: (context, selectedIndex, child) {
+        return index == selectedIndex ? child! : const SizedBox.shrink();
+      },
+      child: const Icon(
+        Icons.check,
+        color: Color(0xFF07C160),
+        size: 24,
       ),
     );
   }

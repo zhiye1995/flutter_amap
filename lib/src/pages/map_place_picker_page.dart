@@ -1,5 +1,9 @@
 part of '../../../flutter_amap.dart';
 
+const _kMapPlacePickerPanelAnimationDuration = Duration(milliseconds: 280);
+const _kMapPlacePickerCameraAnimationDuration = Duration(milliseconds: 300);
+const _kMapPlacePickerPanelAnimationCurve = Curves.easeInOutCubic;
+
 /// 地图地点选择器页面（仿微信发送位置）
 ///
 /// 全屏页面，包含地图和 POI 列表
@@ -36,6 +40,7 @@ class AMapMapPlacePicker extends StatefulWidget {
 class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ValueNotifier<int> _selectedIndexNotifier = ValueNotifier<int>(0);
 
   final UserLocationStyle _userLocationStyleForPicker = UserLocationStyle(
     userLocationType: UserLocationType.locationTypeLocate,
@@ -45,16 +50,18 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   Position? _currentPosition;
   Position? _mapCenterPosition;
   List<PoiItem> _poiList = [];
+  List<String> _poiSubtitles = const <String>[];
   bool _isLoading = true;
   String? _errorMessage;
+  String? _lastKeywordSearchText;
   Timer? _keywordDebounceTimer;
   Timer? _cameraDebounceTimer;
 
-  int _selectedIndex = 0;
   bool _isKeywordSearch = false;
   bool _isProgrammaticMove = false;
   bool _isSearchExpanded = false;
   bool _showSearchTextField = false;
+  bool _showLoadingOnNextNearbySearch = false;
 
   /// 并发搜索代数：仅最新一次搜索允许写回 UI。
   int _searchGeneration = 0;
@@ -86,6 +93,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _selectedIndexNotifier.dispose();
     _mapController?.destroy();
     super.dispose();
   }
@@ -95,25 +103,38 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
     if (keywords.isEmpty) {
       _keywordDebounceTimer?.cancel();
-      setState(() {
-        _isKeywordSearch = false;
-      });
+      _lastKeywordSearchText = null;
+      if (_isKeywordSearch) {
+        setState(() {
+          _isKeywordSearch = false;
+        });
+      }
       final center = _mapCenterPosition;
       if (center != null) {
+        final showLoading = _showLoadingOnNextNearbySearch || _poiList.isEmpty;
+        _showLoadingOnNextNearbySearch = false;
         _searchNearby(
           center,
-          showLoading: _poiList.isEmpty,
+          showLoading: showLoading,
         );
       }
       return;
     }
 
     _keywordDebounceTimer?.cancel();
-    setState(() {
-      _isLoading = true;
-      _isKeywordSearch = true;
-      _errorMessage = null;
-    });
+    final nextNeedsLoading = _lastKeywordSearchText != keywords;
+    _lastKeywordSearchText = keywords;
+    if (!_isKeywordSearch ||
+        (nextNeedsLoading && !_isLoading) ||
+        _errorMessage != null) {
+      setState(() {
+        if (nextNeedsLoading) {
+          _isLoading = true;
+        }
+        _isKeywordSearch = true;
+        _errorMessage = null;
+      });
+    }
 
     _keywordDebounceTimer = Timer(config.debounceDelay, () {
       _searchByKeywords(keywords);
@@ -145,6 +166,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
     if (_isKeywordSearch || _searchController.text.trim().isNotEmpty) {
       _keywordDebounceTimer?.cancel();
+      _showLoadingOnNextNearbySearch = true;
       _searchController.clear();
       return;
     }
@@ -159,7 +181,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               _kMinNearbySearchMoveMeters) {
         return;
       }
-      _searchNearby(center);
+      _searchNearby(center, showLoading: true);
     });
   }
 
@@ -196,7 +218,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
       setState(() {
         _poiList = pois;
-        _selectedIndex = 0;
+        _poiSubtitles = _mapPlacePickerBuildSubtitles(pois);
+        _selectedIndexNotifier.value = 0;
         _isLoading = false;
         _lastNearbySearchCenter = position;
       });
@@ -216,7 +239,13 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     final gen = ++_searchGeneration;
     final searchPosition = _mapCenterPosition ?? _currentPosition;
 
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
+      
       final result = await AMapSearch.searchPOIKeywords(
         PoiKeywordSearchQuery(
           keywords: keywords,
@@ -232,7 +261,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
       setState(() {
         _poiList = result.items;
-        _selectedIndex = 0;
+        _poiSubtitles = _mapPlacePickerBuildSubtitles(result.items);
+        _selectedIndexNotifier.value = 0;
         _isLoading = false;
       });
     } catch (e) {
@@ -255,15 +285,13 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     final closeEnough = center != null &&
         _mapPlacePickerDistanceMeters(center, poi.position) <
             _kSkipMoveCameraMeters;
-    final sameItem = index == _selectedIndex;
+    final sameItem = index == _selectedIndexNotifier.value;
 
     if (sameItem && closeEnough) {
       return;
     }
 
-    setState(() {
-      _selectedIndex = index;
-    });
+    _selectedIndexNotifier.value = index;
 
     if (closeEnough) {
       _mapCenterPosition = poi.position;
@@ -276,7 +304,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         position: poi.position,
         zoom: 16,
       ),
-      const Duration(milliseconds: 300),
+      _kMapPlacePickerCameraAnimationDuration,
     );
     if (!mounted) return;
     _mapCenterPosition = poi.position;
@@ -284,8 +312,9 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 确认选中
   void _onConfirm() {
-    if (_poiList.isNotEmpty && _selectedIndex < _poiList.length) {
-      Navigator.of(context).pop(_poiList[_selectedIndex]);
+    final selectedIndex = _selectedIndexNotifier.value;
+    if (_poiList.isNotEmpty && selectedIndex < _poiList.length) {
+      Navigator.of(context).pop(_poiList[selectedIndex]);
     }
   }
 
@@ -307,7 +336,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         position: pos,
         zoom: 16,
       ),
-      const Duration(milliseconds: 300),
+      _kMapPlacePickerCameraAnimationDuration,
     );
     if (!mounted) return;
     _searchNearby(pos);
@@ -356,8 +385,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   }
 
   // 根据屏幕高度估算键盘高度（用于动画时机判断）
-  double getEstimatedKeyboardHeight(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
+  double getEstimatedKeyboardHeight(double height) {
     if (height < 700) {
       return height * 0.42;
     } else if (height < 900) {
@@ -369,8 +397,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   @override
   Widget build(BuildContext context) {
-    // 获取状态栏高度
-    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final mediaPadding = MediaQuery.paddingOf(context);
+    final statusBarHeight = mediaPadding.top;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -378,7 +406,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         builder: (context, constraints) {
           final totalHeight = constraints.maxHeight;
           final pickerHeight = (_isSearchExpanded
-                  ? getEstimatedKeyboardHeight(context) + 240
+                  ? getEstimatedKeyboardHeight(totalHeight) + 240
                   : totalHeight * 0.4)
               .clamp(0.0, totalHeight);
           final mapHeight = totalHeight - pickerHeight;
@@ -386,25 +414,26 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
           return Column(
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
+                duration: _kMapPlacePickerPanelAnimationDuration,
+                curve: _kMapPlacePickerPanelAnimationCurve,
                 height: mapHeight,
                 child: Stack(
                   children: [
-                    AMapWidget(
-                      showUserLocation: true,
-                      userLocationStyle: _userLocationStyleForPicker,
-                      initCameraPosition: CameraPosition(
-                        position: config.initialPosition,
-                        zoom: 16,
+                    RepaintBoundary(
+                      child: AMapWidget(
+                        showUserLocation: true,
+                        userLocationStyle: _userLocationStyleForPicker,
+                        initCameraPosition: CameraPosition(
+                          position: config.initialPosition,
+                          zoom: 16,
+                        ),
+                        zoomControlEnabled: false,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                        },
+                        onUserLocationChange: _onUserLocationChange,
+                        onCameraChangeFinish: _onCameraChangeFinish,
                       ),
-                      zoomControlEnabled: false,
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
-                      onMapCompleted: () {},
-                      onUserLocationChange: _onUserLocationChange,
-                      onCameraChangeFinish: _onCameraChangeFinish,
                     ),
                     Center(
                       child: Padding(
@@ -427,8 +456,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                 ),
               ),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
+                duration: _kMapPlacePickerPanelAnimationDuration,
+                curve: _kMapPlacePickerPanelAnimationCurve,
                 height: pickerHeight,
                 onEnd: _onSearchPanelAnimationEnd,
                 child: Column(
@@ -449,13 +478,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                         onTapPlaceholder: _expandSearchPanel,
                       ),
                     ),
-                    const Divider(
-                      height: 1,
-                      color: Color(0xFFE0E0E0),
-                    ),
-                    Expanded(
-                      child: _buildPoiList(),
-                    ),
+                    Expanded(child: _buildPoiList()),
                   ],
                 ),
               ),
@@ -468,7 +491,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 构建顶部操作栏
   Widget _buildTopBar() {
-    final title = config.title;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
@@ -488,7 +510,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               child: const Text('取消'),
             ),
           ),
-          Spacer(),
+          const Spacer(),
           SizedBox(
             height: 37,
             width: 64,
@@ -511,17 +533,17 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 构建中心标记点
   Widget _buildCenterMarker() {
-    return Column(
+    return const Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 20,
-          height: 20,
+        DecoratedBox(
           decoration: BoxDecoration(
-            color: const Color(0xFF07C160),
+            color: Color(0xFF07C160),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: const [
+            border: Border.fromBorderSide(
+              BorderSide(color: Colors.white, width: 2),
+            ),
+            boxShadow: [
               BoxShadow(
                 color: Color(0x33000000),
                 blurRadius: 8,
@@ -529,11 +551,15 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               ),
             ],
           ),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+          ),
         ),
         CustomPaint(
-          size: const ui.Size(12, 8),
+          size: ui.Size(12, 8),
           painter: MarkerPointerPainter(
-            color: const Color(0xFF07C160),
+            color: Color(0xFF07C160),
           ),
         ),
       ],
@@ -594,9 +620,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   /// 构建 POI 列表
   Widget _buildPoiList() {
     if (_isLoading) {
-      return const Center(
-        child: CupertinoActivityIndicator(),
-      );
+      return const _MapPlacePickerLoadingView();
     }
 
     if (_errorMessage != null) {
@@ -641,26 +665,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     }
 
     if (_poiList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.location_off,
-              size: 48,
-              color: Colors.black.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '未找到附近地点',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black.withValues(alpha: 0.5),
-              ),
-            ),
-          ],
-        ),
-      );
+      return const _MapPlacePickerEmptyView();
     }
 
     final keyword = _searchController.text.trim();
@@ -676,16 +681,86 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       itemCount: _poiList.length,
       itemBuilder: (context, index) {
         final poi = _poiList[index];
-        final subtitle = _mapPlacePickerFormatSubtitle(poi);
         return _MapPlacePickerPoiListItem(
           poi: poi,
           index: index,
-          isSelected: index == _selectedIndex,
-          subtitle: subtitle,
+          selectedIndexListenable: _selectedIndexNotifier,
+          subtitle: _poiSubtitles[index],
           highlightWords: highlights,
-          onTap: (i) => _onPoiSelected(i),
+          onTap: _onPoiSelected,
         );
       },
+    );
+  }
+}
+
+class _MapPlacePickerLoadingView extends StatelessWidget {
+  const _MapPlacePickerLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    final indicator = const CupertinoActivityIndicator(
+      color: Colors.black,
+      radius: 16,
+    );
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (!isKeyboardVisible) {
+      return Center(
+        child: indicator,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: indicator,
+      ),
+    );
+  }
+}
+
+class _MapPlacePickerEmptyView extends StatelessWidget {
+  const _MapPlacePickerEmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    return AnimatedPadding(
+      duration: _kMapPlacePickerPanelAnimationDuration,
+      curve: _kMapPlacePickerPanelAnimationCurve,
+      padding: EdgeInsets.only(top: isKeyboardVisible ? 20 : 0),
+      child: AnimatedAlign(
+        duration: _kMapPlacePickerPanelAnimationDuration,
+        curve: _kMapPlacePickerPanelAnimationCurve,
+        alignment: isKeyboardVisible ? Alignment.topCenter : Alignment.center,
+        child: const _MapPlacePickerEmptyContent(),
+      ),
+    );
+  }
+}
+
+class _MapPlacePickerEmptyContent extends StatelessWidget {
+  const _MapPlacePickerEmptyContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.location_off,
+          size: 45,
+          color: Colors.black.withValues(alpha: 0.3),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '未找到附近地点',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black.withValues(alpha: 0.5),
+          ),
+        ),
+      ],
     );
   }
 }
