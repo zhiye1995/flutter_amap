@@ -298,8 +298,8 @@ class AMapNaviApi: NSObject {
             if let vehicleInfo = vehicleInfo {
                 config.setVehicleInfo(self.makeVehicleInfo(vehicleInfo, fallbackCarNumber: carNumber))
             }
-            config.setDriveStrategy(
-                AMapNaviDrivingStrategy(rawValue: drivingStrategy) ?? AMapNaviDrivingStrategy.MotorStrategyMultipleDefault
+            config.setDrive(
+                AMapNaviDrivingStrategy(rawValue: drivingStrategy) ?? AMapNaviDrivingStrategy.motorStrategyMultipleDefault
             )
             
             // 根据页面类型设置是否直接开始导航
