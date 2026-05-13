@@ -299,7 +299,7 @@ class AMapNaviApi: NSObject {
                 config.setVehicleInfo(self.makeVehicleInfo(vehicleInfo, fallbackCarNumber: carNumber))
             }
             config.setDriveStrategy(
-                AMapNaviDrivingStrategy(rawValue: drivingStrategy) ?? AMapNaviDrivingStrategy.multipleDefault
+                AMapNaviDrivingStrategy(rawValue: drivingStrategy) ?? AMapNaviDrivingStrategy.MotorStrategyMultipleDefault
             )
             
             // 根据页面类型设置是否直接开始导航
@@ -359,9 +359,9 @@ class AMapNaviApi: NSObject {
             
             // 计算步行路线（步行导航只支持单起点单终点）
             print("[AMapNaviApi] 计算步行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
-            if startPoiId != nil || endPoiId != nil || travelStrategy != nil {
-                let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle)
-                let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle)
+            if let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle),
+               let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle),
+               (startPoiId != nil || endPoiId != nil || travelStrategy != nil) {
                 let strategy = AMapNaviTravelStrategy(rawValue: travelStrategy ?? 1000) ?? AMapNaviTravelStrategy.singleDefault
                 walkManager.calculateWalkRoute(withStart: startInfo, end: endInfo, strategy: strategy)
             } else if let start = startPoint {
@@ -410,9 +410,9 @@ class AMapNaviApi: NSObject {
             
             // 计算骑行路线（骑行导航只支持单起点单终点）
             print("[AMapNaviApi] 计算骑行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
-            if startPoiId != nil || endPoiId != nil || travelStrategy != nil {
-                let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle)
-                let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle)
+            if let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle),
+               let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle),
+               (startPoiId != nil || endPoiId != nil || travelStrategy != nil) {
                 let strategy = AMapNaviTravelStrategy(rawValue: travelStrategy ?? 1000) ?? AMapNaviTravelStrategy.singleDefault
                 rideManager.calculateRideRoute(withStart: startInfo, end: endInfo, strategy: strategy)
             } else if let start = startPoint {
