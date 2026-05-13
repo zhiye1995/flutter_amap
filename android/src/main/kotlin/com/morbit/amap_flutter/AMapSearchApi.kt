@@ -19,6 +19,18 @@ import com.amap.api.services.help.InputtipsQuery
 import com.amap.api.services.help.Tip
 import com.amap.api.services.poisearch.PoiResultV2
 import com.amap.api.services.poisearch.PoiSearchV2
+import com.amap.api.services.route.BusRouteResult
+import com.amap.api.services.route.DrivePath
+import com.amap.api.services.route.DriveRouteResult
+import com.amap.api.services.route.DriveStep
+import com.amap.api.services.route.RidePath
+import com.amap.api.services.route.RideRouteResult
+import com.amap.api.services.route.RideStep
+import com.amap.api.services.route.RouteSearch
+import com.amap.api.services.route.TMC
+import com.amap.api.services.route.WalkPath
+import com.amap.api.services.route.WalkRouteResult
+import com.amap.api.services.route.WalkStep
 import com.amap.api.services.weather.LocalDayWeatherForecast
 import com.amap.api.services.weather.LocalWeatherForecast
 import com.amap.api.services.weather.LocalWeatherForecastResult
@@ -106,6 +118,33 @@ class AMapSearchApi {
                     } catch (e: Exception) {
                         Log.e(TAG, "searchReGeocode error", e)
                         result.error("GEOCODE_ERROR", e.message, null)
+                    }
+                }
+
+                "searchDriveRoute" -> {
+                    try {
+                        searchDriveRoute(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchDriveRoute error", e)
+                        result.error("ROUTE_ERROR", e.message, null)
+                    }
+                }
+
+                "searchWalkRoute" -> {
+                    try {
+                        searchWalkRoute(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchWalkRoute error", e)
+                        result.error("ROUTE_ERROR", e.message, null)
+                    }
+                }
+
+                "searchRideRoute" -> {
+                    try {
+                        searchRideRoute(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "searchRideRoute error", e)
+                        result.error("ROUTE_ERROR", e.message, null)
                     }
                 }
 
@@ -633,6 +672,297 @@ class AMapSearchApi {
                     "sdkString" to toString()
                 )
             )
+        }
+
+        private fun searchDriveRoute(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val search = RouteSearch(context)
+            val fromAndTo = RouteSearch.FromAndTo(call.routePoint("origin"), call.routePoint("destination"))
+            val wayPoints = call.routePointList("wayPoints").take(6)
+            val avoidPolygons = call.avoidPolygons().take(32)
+            val query = RouteSearch.DriveRouteQuery(
+                fromAndTo,
+                call.argument<Int>("strategy") ?: 10,
+                wayPoints,
+                avoidPolygons,
+                call.argument<String>("avoidRoad") ?: "",
+            )
+            query.trySetExtensions(call.argument<String>("extensions") ?: "base")
+            query.trySetInt("setCarType", call.argument<Int>("carType"))
+            query.trySetInt("setExclude", call.argument<Int>("excludeRoadType"))
+            query.trySetString("setPlateNumber", call.argument<String>("carNumber"))
+            query.trySetString("setPlateProvince", call.argument<String>("plateProvince"))
+            query.trySetBoolean("setFerry", call.argument<Boolean>("ferry"))
+            search.setRouteSearchListener(routeListener(
+                result = result,
+                onDrive = { driveResult -> result.success(driveResult.toMap()) },
+            ))
+            search.calculateDriveRouteAsyn(query)
+        }
+
+        private fun searchWalkRoute(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val search = RouteSearch(context)
+            val query = RouteSearch.WalkRouteQuery(
+                RouteSearch.FromAndTo(call.routePoint("origin"), call.routePoint("destination")),
+                call.argument<Int>("mode") ?: 0,
+            )
+            search.setRouteSearchListener(routeListener(
+                result = result,
+                onWalk = { walkResult -> result.success(walkResult.toMap()) },
+            ))
+            search.calculateWalkRouteAsyn(query)
+        }
+
+        private fun searchRideRoute(context: Context, call: MethodCall, result: MethodChannel.Result) {
+            val search = RouteSearch(context)
+            val query = RouteSearch.RideRouteQuery(
+                RouteSearch.FromAndTo(call.routePoint("origin"), call.routePoint("destination")),
+                call.argument<Int>("mode") ?: call.argument<Int>("strategy") ?: 0,
+            )
+            search.setRouteSearchListener(routeListener(
+                result = result,
+                onRide = { rideResult -> result.success(rideResult.toMap()) },
+            ))
+            search.calculateRideRouteAsyn(query)
+        }
+
+        private fun routeListener(
+            result: MethodChannel.Result,
+            onDrive: ((DriveRouteResult) -> Unit)? = null,
+            onWalk: ((WalkRouteResult) -> Unit)? = null,
+            onRide: ((RideRouteResult) -> Unit)? = null,
+        ): RouteSearch.OnRouteSearchListener {
+            return object : RouteSearch.OnRouteSearchListener {
+                override fun onDriveRouteSearched(routeResult: DriveRouteResult?, rCode: Int) {
+                    if (rCode == AMapException.CODE_AMAP_SUCCESS && routeResult != null && onDrive != null) {
+                        onDrive(routeResult)
+                    } else {
+                        result.error("ROUTE_ERROR", "Drive route search failed with code: $rCode", rCode)
+                    }
+                }
+
+                override fun onWalkRouteSearched(routeResult: WalkRouteResult?, rCode: Int) {
+                    if (rCode == AMapException.CODE_AMAP_SUCCESS && routeResult != null && onWalk != null) {
+                        onWalk(routeResult)
+                    } else {
+                        result.error("ROUTE_ERROR", "Walk route search failed with code: $rCode", rCode)
+                    }
+                }
+
+                override fun onRideRouteSearched(routeResult: RideRouteResult?, rCode: Int) {
+                    if (rCode == AMapException.CODE_AMAP_SUCCESS && routeResult != null && onRide != null) {
+                        onRide(routeResult)
+                    } else {
+                        result.error("ROUTE_ERROR", "Ride route search failed with code: $rCode", rCode)
+                    }
+                }
+
+                override fun onBusRouteSearched(routeResult: BusRouteResult?, rCode: Int) = Unit
+            }
+        }
+
+        private fun MethodCall.routePoint(key: String): LatLonPoint {
+            val map = argument<Map<String, Any?>>(key)
+            val latitude = (map?.get("latitude") as? Number)?.toDouble()
+                ?: argument<Double>("${key}Latitude")
+                ?: error("$key.latitude is required")
+            val longitude = (map?.get("longitude") as? Number)?.toDouble()
+                ?: argument<Double>("${key}Longitude")
+                ?: error("$key.longitude is required")
+            return LatLonPoint(latitude, longitude)
+        }
+
+        private fun MethodCall.routePointList(key: String): List<LatLonPoint> {
+            @Suppress("UNCHECKED_CAST")
+            val list = argument<List<Map<String, Any?>>>(key) ?: return emptyList()
+            return list.mapNotNull { item ->
+                val latitude = (item["latitude"] as? Number)?.toDouble()
+                val longitude = (item["longitude"] as? Number)?.toDouble()
+                if (latitude != null && longitude != null) LatLonPoint(latitude, longitude) else null
+            }
+        }
+
+        private fun MethodCall.avoidPolygons(): List<List<LatLonPoint>> {
+            @Suppress("UNCHECKED_CAST")
+            val list = argument<List<Map<String, Any?>>>("avoidPolygons") ?: return emptyList()
+            return list.mapNotNull { polygon ->
+                @Suppress("UNCHECKED_CAST")
+                val points = polygon["points"] as? List<Map<String, Any?>> ?: return@mapNotNull null
+                points.mapNotNull { point ->
+                    val latitude = (point["latitude"] as? Number)?.toDouble()
+                    val longitude = (point["longitude"] as? Number)?.toDouble()
+                    if (latitude != null && longitude != null) LatLonPoint(latitude, longitude) else null
+                }.takeIf { it.size >= 3 }
+            }
+        }
+
+        private fun DriveRouteResult.toMap(): Map<String, Any?> {
+            return mapOf(
+                "type" to "drive",
+                "origin" to startPos?.toRoutePointMap(),
+                "destination" to targetPos?.toRoutePointMap(),
+                "taxiCost" to taxiCost,
+                "paths" to (paths?.map { it.toMap() } ?: emptyList()),
+                "raw" to mapOf("platform" to "android", "sdkString" to toString()),
+            )
+        }
+
+        private fun WalkRouteResult.toMap(): Map<String, Any?> {
+            return mapOf(
+                "type" to "walk",
+                "origin" to startPos?.toRoutePointMap(),
+                "destination" to targetPos?.toRoutePointMap(),
+                "paths" to (paths?.map { it.toMap() } ?: emptyList()),
+                "raw" to mapOf("platform" to "android", "sdkString" to toString()),
+            )
+        }
+
+        private fun RideRouteResult.toMap(): Map<String, Any?> {
+            return mapOf(
+                "type" to "ride",
+                "origin" to startPos?.toRoutePointMap(),
+                "destination" to targetPos?.toRoutePointMap(),
+                "paths" to (paths?.map { it.toMap() } ?: emptyList()),
+                "raw" to mapOf("platform" to "android", "sdkString" to toString()),
+            )
+        }
+
+        private fun DrivePath.toMap(): Map<String, Any?> {
+            val routeSteps = steps ?: emptyList()
+            return mapOf(
+                "distance" to distance,
+                "duration" to duration,
+                "strategy" to strategy,
+                "tolls" to tolls,
+                "tollDistance" to tollDistance,
+                "totalTrafficLights" to totalTrafficlights,
+                "restriction" to restriction,
+                "steps" to routeSteps.map { it.toMap() },
+                "polyline" to routeSteps.flatMap { it.polyline ?: emptyList() }.toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun WalkPath.toMap(): Map<String, Any?> {
+            val routeSteps = steps ?: emptyList()
+            return mapOf(
+                "distance" to distance,
+                "duration" to duration,
+                "steps" to routeSteps.map { it.toMap() },
+                "polyline" to routeSteps.flatMap { it.polyline ?: emptyList() }.toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun RidePath.toMap(): Map<String, Any?> {
+            val routeSteps = steps ?: emptyList()
+            return mapOf(
+                "distance" to distance,
+                "duration" to duration,
+                "steps" to routeSteps.map { it.toMap() },
+                "polyline" to routeSteps.flatMap { it.polyline ?: emptyList() }.toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun DriveStep.toMap(): Map<String, Any?> {
+            return mapOf(
+                "instruction" to instruction,
+                "orientation" to orientation,
+                "road" to road,
+                "action" to action,
+                "assistantAction" to assistantAction,
+                "distance" to distance,
+                "duration" to duration,
+                "tolls" to tolls,
+                "tollDistance" to tollDistance,
+                "polyline" to (polyline ?: emptyList()).toRoutePolyline(),
+                "tmcs" to (tmCs ?: emptyList<TMC>()).map { it.toMap() },
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun WalkStep.toMap(): Map<String, Any?> {
+            return mapOf(
+                "instruction" to instruction,
+                "orientation" to orientation,
+                "road" to road,
+                "action" to action,
+                "assistantAction" to assistantAction,
+                "distance" to distance,
+                "duration" to duration,
+                "polyline" to (polyline ?: emptyList()).toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun RideStep.toMap(): Map<String, Any?> {
+            return mapOf(
+                "instruction" to instruction,
+                "orientation" to orientation,
+                "road" to road,
+                "action" to action,
+                "assistantAction" to assistantAction,
+                "distance" to distance,
+                "duration" to duration,
+                "polyline" to (polyline ?: emptyList()).toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun TMC.toMap(): Map<String, Any?> {
+            return mapOf(
+                "status" to status,
+                "distance" to distance,
+                "polyline" to (polyline ?: emptyList()).toRoutePolyline(),
+                "raw" to mapOf("sdkString" to toString()),
+            )
+        }
+
+        private fun LatLonPoint.toRoutePointMap(): Map<String, Any?> {
+            return mapOf("latitude" to latitude, "longitude" to longitude)
+        }
+
+        private fun List<LatLonPoint>.toRoutePolyline(): List<Map<String, Any?>> {
+            return map { it.toRoutePointMap() }
+        }
+
+        private fun Any.trySetExtensions(extensions: String) {
+            runCatching {
+                javaClass.getMethod("setExtensions", String::class.java)
+                    .invoke(this, extensions)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.setExtensions is unavailable in current SDK")
+            }
+        }
+
+        private fun Any.trySetInt(methodName: String, value: Int?) {
+            if (value == null) return
+            runCatching {
+                javaClass.getMethod(methodName, Int::class.javaPrimitiveType)
+                    .invoke(this, value)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.$methodName is unavailable in current SDK")
+            }
+        }
+
+        private fun Any.trySetString(methodName: String, value: String?) {
+            if (value.isNullOrEmpty()) return
+            runCatching {
+                javaClass.getMethod(methodName, String::class.java)
+                    .invoke(this, value)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.$methodName is unavailable in current SDK")
+            }
+        }
+
+        private fun Any.trySetBoolean(methodName: String, value: Boolean?) {
+            if (value == null) return
+            runCatching {
+                javaClass.getMethod(methodName, Boolean::class.javaPrimitiveType)
+                    .invoke(this, value)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.$methodName is unavailable in current SDK")
+            }
         }
 
         private fun distanceBetween(start: LatLonPoint, end: LatLonPoint): Int {

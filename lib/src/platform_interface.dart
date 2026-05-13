@@ -475,6 +475,21 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('searchReGeocode() has not been implemented.');
   }
 
+  /// 驾车路线规划
+  Future<RoutePlanResult> searchDriveRoute(DriveRouteQuery query) {
+    throw UnimplementedError('searchDriveRoute() has not been implemented.');
+  }
+
+  /// 步行路线规划
+  Future<RoutePlanResult> searchWalkRoute(WalkRouteQuery query) {
+    throw UnimplementedError('searchWalkRoute() has not been implemented.');
+  }
+
+  /// 骑行路线规划
+  Future<RoutePlanResult> searchRideRoute(RideRouteQuery query) {
+    throw UnimplementedError('searchRideRoute() has not been implemented.');
+  }
+
   // ==================== 天气相关接口 ====================
 
   /// 查询实时天气

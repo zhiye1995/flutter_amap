@@ -187,9 +187,9 @@ extension NavigateArrow {
 extension Arc {
   var overlay: MAArc {
     return MAArc(
-      startCoordinate: start.coordinate,
+      start: start.coordinate,
       passedCoordinate: passed.coordinate,
-      endCoordinate: end.coordinate
+      end: end.coordinate
     )
   }
 }

@@ -742,17 +742,28 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         'motorcycleCC': config.motorcycleCC,
         'naviType': config.naviType.index,
         'pageType': config.pageType.index,
+        'drivingStrategy': config.drivingStrategy,
+        'travelStrategy': config.travelStrategy,
+        'multipleRoute': config.multipleRoute,
+        'startNaviDirectly': config.startNaviDirectly,
+        'vehicleInfo': config.vehicleInfo?.toMap(),
         'startLat': config.start?.position.latitude,
         'startLng': config.start?.position.longitude,
         'startName': config.start?.name,
+        'startPoiId': config.start?.poiId,
+        'startAngle': config.start?.startAngle,
         'endLat': config.end?.position.latitude,
         'endLng': config.end?.position.longitude,
         'endName': config.end?.name,
+        'endPoiId': config.end?.poiId,
+        'endAngle': config.end?.startAngle,
         'wayPoints': config.wayPoints
             ?.map((e) => <String, dynamic>{
                   'lat': e.position.latitude,
                   'lng': e.position.longitude,
                   'name': e.name,
+                  'poiId': e.poiId,
+                  'startAngle': e.startAngle,
                 })
             .toList(),
       },
@@ -967,6 +978,38 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     }
 
     return ReGeocodeResult.decodeFromMap(Map<String, dynamic>.from(result));
+  }
+
+  /// 驾车路线规划
+  @override
+  Future<RoutePlanResult> searchDriveRoute(DriveRouteQuery query) {
+    return _searchRoute('searchDriveRoute', query);
+  }
+
+  /// 步行路线规划
+  @override
+  Future<RoutePlanResult> searchWalkRoute(WalkRouteQuery query) {
+    return _searchRoute('searchWalkRoute', query);
+  }
+
+  /// 骑行路线规划
+  @override
+  Future<RoutePlanResult> searchRideRoute(RideRouteQuery query) {
+    return _searchRoute('searchRideRoute', query);
+  }
+
+  Future<RoutePlanResult> _searchRoute(
+    String method,
+    RoutePlanQuery query,
+  ) async {
+    final result = await _searchChannel.invokeMethod<Map<dynamic, dynamic>>(
+      method,
+      query.toMap(),
+    );
+    if (result == null) {
+      return RoutePlanResult.empty(type: query.type);
+    }
+    return RoutePlanResult.decodeFromMap(Map<String, dynamic>.from(result));
   }
 
   // ==================== 天气相关方法实现 ====================

@@ -634,6 +634,410 @@ class ReGeocodeResult {
   }
 }
 
+/// 路线规划类型。
+enum RoutePlanType {
+  drive('drive'),
+  walk('walk'),
+  ride('ride');
+
+  const RoutePlanType(this.value);
+
+  final String value;
+}
+
+/// 路线规划扩展信息范围。
+enum RoutePlanExtensions {
+  base('base'),
+  all('all');
+
+  const RoutePlanExtensions(this.value);
+
+  final String value;
+}
+
+/// 路线规划坐标点，可携带名称和 POI ID。
+class RoutePoint {
+  RoutePoint({
+    required this.position,
+    this.name,
+    this.poiId,
+  });
+
+  final Position position;
+  final String? name;
+  final String? poiId;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+      'name': name ?? '',
+      'poiId': poiId ?? '',
+    };
+  }
+
+  static RoutePoint decodeFromMap(Map<String, dynamic> map) {
+    return RoutePoint(
+      position: Position(
+        latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+      ),
+      name: map['name'] as String?,
+      poiId: map['poiId'] as String?,
+    );
+  }
+}
+
+/// 驾车避让区域。
+class RouteAvoidPolygon {
+  RouteAvoidPolygon(this.points);
+
+  final List<Position> points;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'points': points
+          .map((point) => <String, dynamic>{
+                'latitude': point.latitude,
+                'longitude': point.longitude,
+              })
+          .toList(),
+    };
+  }
+}
+
+abstract class RoutePlanQuery {
+  RoutePlanQuery({
+    required this.type,
+    required this.origin,
+    required this.destination,
+  });
+
+  final RoutePlanType type;
+  final RoutePoint origin;
+  final RoutePoint destination;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'type': type.value,
+      'origin': origin.toMap(),
+      'destination': destination.toMap(),
+      'originLatitude': origin.position.latitude,
+      'originLongitude': origin.position.longitude,
+      'destinationLatitude': destination.position.latitude,
+      'destinationLongitude': destination.position.longitude,
+      'originName': origin.name ?? '',
+      'destinationName': destination.name ?? '',
+      'originPoiId': origin.poiId ?? '',
+      'destinationPoiId': destination.poiId ?? '',
+    };
+  }
+}
+
+/// 驾车路线规划查询。
+class DriveRouteQuery extends RoutePlanQuery {
+  DriveRouteQuery({
+    required super.origin,
+    required super.destination,
+    this.strategy = 10,
+    this.wayPoints = const <RoutePoint>[],
+    this.avoidPolygons = const <RouteAvoidPolygon>[],
+    this.avoidRoad,
+    this.extensions = RoutePlanExtensions.all,
+    this.carType,
+    this.carNumber,
+    this.plateProvince,
+    this.excludeRoadType,
+    this.ferry,
+  }) : super(type: RoutePlanType.drive);
+
+  /// 驾车策略。官方地图 SDK 支持 0-20。
+  final int strategy;
+
+  /// 途经点。地图 SDK 驾车最多支持 6 个，导航 SDK 最多 16 个。
+  final List<RoutePoint> wayPoints;
+
+  /// 避让区域。官方最多 32 个区域，每个区域最多 16 个点。
+  final List<RouteAvoidPolygon> avoidPolygons;
+
+  /// 避让道路，仅支持一条；和避让区域同时存在时官方以避让道路为准。
+  final String? avoidRoad;
+  final RoutePlanExtensions extensions;
+  final int? carType;
+  final String? carNumber;
+  final String? plateProvince;
+  final int? excludeRoadType;
+  final bool? ferry;
+
+  @override
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      ...super.toMap(),
+      'strategy': strategy,
+      'wayPoints': wayPoints.map((point) => point.toMap()).toList(),
+      'avoidPolygons': avoidPolygons.map((polygon) => polygon.toMap()).toList(),
+      'avoidRoad': avoidRoad ?? '',
+      'extensions': extensions.value,
+      'carType': carType,
+      'carNumber': carNumber ?? '',
+      'plateProvince': plateProvince ?? '',
+      'excludeRoadType': excludeRoadType,
+      'ferry': ferry,
+    };
+  }
+}
+
+/// 步行路线规划查询。
+class WalkRouteQuery extends RoutePlanQuery {
+  WalkRouteQuery({
+    required super.origin,
+    required super.destination,
+    this.mode = 0,
+    this.alternativeRoute,
+    this.indoor,
+    this.multiPath,
+    this.extensions = RoutePlanExtensions.all,
+  }) : super(type: RoutePlanType.walk);
+
+  /// Android: RouteSearch.WALK_DEFAULT / WALK_MULTI_PATH。
+  final int mode;
+
+  /// iOS 可选多方案参数，具体支持取决于 SDK 版本。
+  final int? alternativeRoute;
+  final bool? indoor;
+  final bool? multiPath;
+  final RoutePlanExtensions extensions;
+
+  @override
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      ...super.toMap(),
+      'mode': mode,
+      'alternativeRoute': alternativeRoute,
+      'indoor': indoor,
+      'multiPath': multiPath,
+      'extensions': extensions.value,
+    };
+  }
+}
+
+/// 骑行路线规划查询。
+class RideRouteQuery extends RoutePlanQuery {
+  RideRouteQuery({
+    required super.origin,
+    required super.destination,
+    this.mode = 0,
+    this.strategy,
+    this.extensions = RoutePlanExtensions.all,
+  }) : super(type: RoutePlanType.ride);
+
+  /// Android RideRouteQuery mode。
+  final int mode;
+
+  /// iOS 或导航 SDK 旅行策略，具体支持取决于 SDK 版本。
+  final int? strategy;
+  final RoutePlanExtensions extensions;
+
+  @override
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      ...super.toMap(),
+      'mode': mode,
+      'strategy': strategy,
+      'extensions': extensions.value,
+    };
+  }
+}
+
+class RoutePlanResult {
+  RoutePlanResult({
+    required this.type,
+    this.origin,
+    this.destination,
+    this.taxiCost,
+    this.paths = const <RoutePath>[],
+    this.raw,
+  });
+
+  final RoutePlanType type;
+  final RoutePoint? origin;
+  final RoutePoint? destination;
+  final double? taxiCost;
+  final List<RoutePath> paths;
+  final Map<String, dynamic>? raw;
+
+  static RoutePlanResult empty({required RoutePlanType type}) {
+    return RoutePlanResult(type: type);
+  }
+
+  static RoutePlanResult decodeFromMap(Map<String, dynamic> map) {
+    final typeValue = map['type'] as String? ?? RoutePlanType.drive.value;
+    final rawPaths = map['paths'] as List<dynamic>? ?? const <dynamic>[];
+    final raw = map['raw'];
+    RoutePoint? decodePoint(Object? value) {
+      if (value is Map) {
+        return RoutePoint.decodeFromMap(Map<String, dynamic>.from(value));
+      }
+      return null;
+    }
+
+    return RoutePlanResult(
+      type: RoutePlanType.values.firstWhere(
+        (value) => value.value == typeValue,
+        orElse: () => RoutePlanType.drive,
+      ),
+      origin: decodePoint(map['origin']),
+      destination: decodePoint(map['destination']),
+      taxiCost: (map['taxiCost'] as num?)?.toDouble(),
+      paths: rawPaths
+          .map((item) =>
+              RoutePath.decodeFromMap(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
+class RoutePath {
+  RoutePath({
+    this.distance,
+    this.duration,
+    this.strategy,
+    this.tolls,
+    this.tollDistance,
+    this.totalTrafficLights,
+    this.restriction,
+    this.polyline = const <Position>[],
+    this.steps = const <RouteStep>[],
+    this.raw,
+  });
+
+  final double? distance;
+  final double? duration;
+  final String? strategy;
+  final double? tolls;
+  final double? tollDistance;
+  final int? totalTrafficLights;
+  final int? restriction;
+  final List<Position> polyline;
+  final List<RouteStep> steps;
+  final Map<String, dynamic>? raw;
+
+  static RoutePath decodeFromMap(Map<String, dynamic> map) {
+    final rawSteps = map['steps'] as List<dynamic>? ?? const <dynamic>[];
+    final rawPolyline = map['polyline'] as List<dynamic>? ?? const <dynamic>[];
+    final raw = map['raw'];
+    return RoutePath(
+      distance: (map['distance'] as num?)?.toDouble(),
+      duration: (map['duration'] as num?)?.toDouble(),
+      strategy: map['strategy'] as String?,
+      tolls: (map['tolls'] as num?)?.toDouble(),
+      tollDistance: (map['tollDistance'] as num?)?.toDouble(),
+      totalTrafficLights: (map['totalTrafficLights'] as num?)?.toInt(),
+      restriction: (map['restriction'] as num?)?.toInt(),
+      polyline:
+          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      steps: rawSteps
+          .map((item) =>
+              RouteStep.decodeFromMap(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
+class RouteStep {
+  RouteStep({
+    this.instruction,
+    this.orientation,
+    this.road,
+    this.action,
+    this.assistantAction,
+    this.distance,
+    this.duration,
+    this.tolls,
+    this.tollDistance,
+    this.polyline = const <Position>[],
+    this.tmcs = const <RouteTmc>[],
+    this.raw,
+  });
+
+  final String? instruction;
+  final String? orientation;
+  final String? road;
+  final String? action;
+  final String? assistantAction;
+  final double? distance;
+  final double? duration;
+  final double? tolls;
+  final double? tollDistance;
+  final List<Position> polyline;
+  final List<RouteTmc> tmcs;
+  final Map<String, dynamic>? raw;
+
+  static RouteStep decodeFromMap(Map<String, dynamic> map) {
+    final rawPolyline = map['polyline'] as List<dynamic>? ?? const <dynamic>[];
+    final rawTmcs = map['tmcs'] as List<dynamic>? ?? const <dynamic>[];
+    final raw = map['raw'];
+    return RouteStep(
+      instruction: map['instruction'] as String?,
+      orientation: map['orientation'] as String?,
+      road: map['road'] as String?,
+      action: map['action'] as String?,
+      assistantAction: map['assistantAction'] as String?,
+      distance: (map['distance'] as num?)?.toDouble(),
+      duration: (map['duration'] as num?)?.toDouble(),
+      tolls: (map['tolls'] as num?)?.toDouble(),
+      tollDistance: (map['tollDistance'] as num?)?.toDouble(),
+      polyline:
+          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      tmcs: rawTmcs
+          .map((item) =>
+              RouteTmc.decodeFromMap(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
+class RouteTmc {
+  RouteTmc({
+    this.status,
+    this.distance,
+    this.polyline = const <Position>[],
+    this.raw,
+  });
+
+  final String? status;
+  final double? distance;
+  final List<Position> polyline;
+  final Map<String, dynamic>? raw;
+
+  static RouteTmc decodeFromMap(Map<String, dynamic> map) {
+    final rawPolyline = map['polyline'] as List<dynamic>? ?? const <dynamic>[];
+    final raw = map['raw'];
+    return RouteTmc(
+      status: map['status'] as String?,
+      distance: (map['distance'] as num?)?.toDouble(),
+      polyline:
+          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
+    );
+  }
+}
+
+Position? _positionFromAny(Object? value) {
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    final lat = (map['latitude'] as num?)?.toDouble();
+    final lng = (map['longitude'] as num?)?.toDouble();
+    if (lat != null && lng != null) {
+      return Position(latitude: lat, longitude: lng);
+    }
+  }
+  return null;
+}
+
 /// POI 搜索结果项
 class PoiItem {
   PoiItem({

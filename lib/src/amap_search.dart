@@ -103,6 +103,21 @@ class AMapSearch {
     return AMapFlutterPlatformInterface.instance.searchReGeocode(query);
   }
 
+  /// 驾车路线规划。
+  static Future<RoutePlanResult> searchDriveRoute(DriveRouteQuery query) {
+    return AMapFlutterPlatformInterface.instance.searchDriveRoute(query);
+  }
+
+  /// 步行路线规划。
+  static Future<RoutePlanResult> searchWalkRoute(WalkRouteQuery query) {
+    return AMapFlutterPlatformInterface.instance.searchWalkRoute(query);
+  }
+
+  /// 骑行路线规划。
+  static Future<RoutePlanResult> searchRideRoute(RideRouteQuery query) {
+    return AMapFlutterPlatformInterface.instance.searchRideRoute(query);
+  }
+
   /// 查询实时天气
   ///
   /// [city] 城市名称或区域编码（adcode），如"北京市"或"110000"

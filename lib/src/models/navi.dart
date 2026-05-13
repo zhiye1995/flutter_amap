@@ -27,6 +27,8 @@ class NaviPoint {
   NaviPoint({
     required this.position,
     this.name,
+    this.poiId,
+    this.startAngle,
   });
 
   /// 坐标位置
@@ -35,10 +37,18 @@ class NaviPoint {
   /// 地点名称
   final String? name;
 
+  /// 高德 POI ID。导航 SDK 推荐优先使用 POIInfo 算路。
+  final String? poiId;
+
+  /// 起点方向角，0 为正北顺时针增加；仅部分官方 POIInfo 算路接口生效。
+  final double? startAngle;
+
   Object encode() {
     return <Object?>[
       position.encode(),
       name,
+      poiId,
+      startAngle,
     ];
   }
 
@@ -46,16 +56,105 @@ class NaviPoint {
     return NaviPoint(
       position: Position.decode(result[0]! as List<Object?>),
       name: result[1] as String?,
+      poiId: result.length > 2 ? result[2] as String? : null,
+      startAngle: result.length > 3 ? result[3] as double? : null,
     );
   }
 
   NaviPoint copyWith({
     Position? position,
     String? name,
+    String? poiId,
+    double? startAngle,
   }) {
     return NaviPoint(
       position: position ?? this.position,
       name: name ?? this.name,
+      poiId: poiId ?? this.poiId,
+      startAngle: startAngle ?? this.startAngle,
+    );
+  }
+}
+
+/// 导航车辆信息。
+class NaviVehicleInfo {
+  NaviVehicleInfo({
+    this.vehicleId,
+    this.type,
+    this.size,
+    this.height,
+    this.width,
+    this.length,
+    this.load,
+    this.weight,
+    this.axisNums,
+    this.vehicleLoadSwitch,
+    this.isRestriction,
+    this.motorcycleCC,
+  });
+
+  final String? vehicleId;
+  final int? type;
+  final int? size;
+  final double? height;
+  final double? width;
+  final double? length;
+  final double? load;
+  final double? weight;
+  final int? axisNums;
+  final bool? vehicleLoadSwitch;
+  final bool? isRestriction;
+  final int? motorcycleCC;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'vehicleId': vehicleId ?? '',
+      'type': type,
+      'size': size,
+      'height': height,
+      'width': width,
+      'length': length,
+      'load': load,
+      'weight': weight,
+      'axisNums': axisNums,
+      'vehicleLoadSwitch': vehicleLoadSwitch,
+      'isRestriction': isRestriction,
+      'motorcycleCC': motorcycleCC,
+    };
+  }
+
+  Object encode() {
+    return <Object?>[
+      vehicleId,
+      type,
+      size,
+      height,
+      width,
+      length,
+      load,
+      weight,
+      axisNums,
+      vehicleLoadSwitch,
+      isRestriction,
+      motorcycleCC,
+    ];
+  }
+
+  static NaviVehicleInfo decode(List<Object?> result) {
+    Object? at(int index) => index < result.length ? result[index] : null;
+    return NaviVehicleInfo(
+      vehicleId: at(0) as String?,
+      type: at(1) as int?,
+      size: at(2) as int?,
+      height: at(3) as double?,
+      width: at(4) as double?,
+      length: at(5) as double?,
+      load: at(6) as double?,
+      weight: at(7) as double?,
+      axisNums: at(8) as int?,
+      vehicleLoadSwitch: at(9) as bool?,
+      isRestriction: at(10) as bool?,
+      motorcycleCC: at(11) as int?,
     );
   }
 }
@@ -70,6 +169,11 @@ class NaviConfig {
     this.start,
     this.end,
     this.wayPoints,
+    this.drivingStrategy = 10,
+    this.travelStrategy,
+    this.multipleRoute = true,
+    this.startNaviDirectly,
+    this.vehicleInfo,
   });
 
   /// 车牌号（用于限行规避）
@@ -93,6 +197,21 @@ class NaviConfig {
   /// 途经点列表
   final List<NaviPoint>? wayPoints;
 
+  /// 驾车策略。导航 SDK 官方支持 0-20。
+  final int drivingStrategy;
+
+  /// 步行/骑行策略，具体枚举值以当前导航 SDK 为准。
+  final int? travelStrategy;
+
+  /// 是否启用多路线模式。
+  final bool multipleRoute;
+
+  /// 是否直接开始导航。为空时按 [pageType] 自动推导。
+  final bool? startNaviDirectly;
+
+  /// 完整车辆信息；传入后优先于 [carNumber]/[motorcycleCC]。
+  final NaviVehicleInfo? vehicleInfo;
+
   Object encode() {
     return <Object?>[
       carNumber,
@@ -102,25 +221,34 @@ class NaviConfig {
       start?.encode(),
       end?.encode(),
       wayPoints?.map((e) => e.encode()).toList(),
+      drivingStrategy,
+      travelStrategy,
+      multipleRoute,
+      startNaviDirectly,
+      vehicleInfo?.encode(),
     ];
   }
 
   static NaviConfig decode(List<Object?> result) {
+    Object? at(int index) => index < result.length ? result[index] : null;
     return NaviConfig(
-      carNumber: result[0] as String?,
-      motorcycleCC: result[1] as int?,
-      naviType: NaviType.values[result[2] as int],
-      pageType: NaviPageType.values[result[3] as int],
-      start: result[4] != null
-          ? NaviPoint.decode(result[4]! as List<Object?>)
-          : null,
-      end: result[5] != null
-          ? NaviPoint.decode(result[5]! as List<Object?>)
-          : null,
-      wayPoints: result[6] != null
-          ? (result[6] as List)
+      carNumber: at(0) as String?,
+      motorcycleCC: at(1) as int?,
+      naviType: NaviType.values[at(2) as int? ?? 0],
+      pageType: NaviPageType.values[at(3) as int? ?? 0],
+      start: at(4) != null ? NaviPoint.decode(at(4)! as List<Object?>) : null,
+      end: at(5) != null ? NaviPoint.decode(at(5)! as List<Object?>) : null,
+      wayPoints: at(6) != null
+          ? (at(6) as List)
               .map((e) => NaviPoint.decode(e as List<Object?>))
               .toList()
+          : null,
+      drivingStrategy: at(7) as int? ?? 10,
+      travelStrategy: at(8) as int?,
+      multipleRoute: at(9) as bool? ?? true,
+      startNaviDirectly: at(10) as bool?,
+      vehicleInfo: at(11) != null
+          ? NaviVehicleInfo.decode(at(11)! as List<Object?>)
           : null,
     );
   }
@@ -133,6 +261,11 @@ class NaviConfig {
     NaviPoint? start,
     NaviPoint? end,
     List<NaviPoint>? wayPoints,
+    int? drivingStrategy,
+    int? travelStrategy,
+    bool? multipleRoute,
+    bool? startNaviDirectly,
+    NaviVehicleInfo? vehicleInfo,
   }) {
     return NaviConfig(
       carNumber: carNumber ?? this.carNumber,
@@ -142,6 +275,11 @@ class NaviConfig {
       start: start ?? this.start,
       end: end ?? this.end,
       wayPoints: wayPoints ?? this.wayPoints,
+      drivingStrategy: drivingStrategy ?? this.drivingStrategy,
+      travelStrategy: travelStrategy ?? this.travelStrategy,
+      multipleRoute: multipleRoute ?? this.multipleRoute,
+      startNaviDirectly: startNaviDirectly ?? this.startNaviDirectly,
+      vehicleInfo: vehicleInfo ?? this.vehicleInfo,
     );
   }
 }

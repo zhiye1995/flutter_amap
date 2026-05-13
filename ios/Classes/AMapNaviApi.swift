@@ -86,16 +86,25 @@ class AMapNaviApi: NSObject {
         
         // 解析参数
         let carNumber = arguments["carNumber"] as? String
+        let vehicleInfo = arguments["vehicleInfo"] as? [String: Any]
+        let drivingStrategy = arguments["drivingStrategy"] as? Int ?? 10
+        let travelStrategy = arguments["travelStrategy"] as? Int
+        let multipleRoute = arguments["multipleRoute"] as? Bool ?? true
+        let startNaviDirectly = arguments["startNaviDirectly"] as? Bool
         let naviTypeIndex = arguments["naviType"] as? Int ?? 0
         let pageTypeIndex = arguments["pageType"] as? Int ?? 0
         
         let startLat = arguments["startLat"] as? Double
         let startLng = arguments["startLng"] as? Double
         let startName = arguments["startName"] as? String ?? "起点"
+        let startPoiId = arguments["startPoiId"] as? String
+        let startAngle = arguments["startAngle"] as? Double
         
         let endLat = arguments["endLat"] as? Double
         let endLng = arguments["endLng"] as? Double
         let endName = arguments["endName"] as? String ?? "终点"
+        let endPoiId = arguments["endPoiId"] as? String
+        let endAngle = arguments["endAngle"] as? Double
         
         let wayPointsList = arguments["wayPoints"] as? [[String: Any]]
         
@@ -150,6 +159,14 @@ class AMapNaviApi: NSObject {
                 endName: endName,
                 wayPoints: wayPoints,
                 carNumber: carNumber,
+                vehicleInfo: vehicleInfo,
+                startPoiId: startPoiId,
+                endPoiId: endPoiId,
+                startAngle: startAngle,
+                endAngle: endAngle,
+                drivingStrategy: drivingStrategy,
+                multipleRoute: multipleRoute,
+                startNaviDirectly: startNaviDirectly,
                 pageType: pageType,
                 result: result
             )
@@ -163,6 +180,11 @@ class AMapNaviApi: NSObject {
                 startPoint: startPoint,
                 endPoint: endPoint,
                 endName: endName,
+                startPoiId: startPoiId,
+                endPoiId: endPoiId,
+                startAngle: startAngle,
+                endAngle: endAngle,
+                travelStrategy: travelStrategy,
                 pageType: pageType,
                 result: result
             )
@@ -176,6 +198,11 @@ class AMapNaviApi: NSObject {
                 startPoint: startPoint,
                 endPoint: endPoint,
                 endName: endName,
+                startPoiId: startPoiId,
+                endPoiId: endPoiId,
+                startAngle: startAngle,
+                endAngle: endAngle,
+                travelStrategy: travelStrategy,
                 pageType: pageType,
                 result: result
             )
@@ -191,6 +218,14 @@ class AMapNaviApi: NSObject {
         endName: String,
         wayPoints: [AMapNaviPoint],
         carNumber: String?,
+        vehicleInfo: [String: Any]?,
+        startPoiId: String?,
+        endPoiId: String?,
+        startAngle: Double?,
+        endAngle: Double?,
+        drivingStrategy: Int,
+        multipleRoute: Bool,
+        startNaviDirectly: Bool?,
         pageType: AMapNaviPageType,
         result: @escaping FlutterResult
     ) {
@@ -230,7 +265,7 @@ class AMapNaviApi: NSObject {
                     .start,
                     location: start,
                     name: startName,
-                    poiId: nil
+                    poiId: startPoiId
                 )
             }
             
@@ -240,7 +275,7 @@ class AMapNaviApi: NSObject {
                     .end,
                     location: endPoint,
                     name: endName,
-                    poiId: nil
+                    poiId: endPoiId
                 )
             }
             
@@ -260,9 +295,15 @@ class AMapNaviApi: NSObject {
                 vehicleInfo.vehicleId = carNumber
                 config.setVehicleInfo(vehicleInfo)
             }
+            if let vehicleInfo = vehicleInfo {
+                config.setVehicleInfo(self.makeVehicleInfo(vehicleInfo, fallbackCarNumber: carNumber))
+            }
+            config.setDriveStrategy(
+                AMapNaviDrivingStrategy(rawValue: drivingStrategy) ?? AMapNaviDrivingStrategy.multipleDefault
+            )
             
             // 根据页面类型设置是否直接开始导航
-            if pageType == .navi && endPoint != nil {
+            if (startNaviDirectly ?? (pageType == .navi)) && endPoint != nil {
                 // 直接导航模式：跳过路线规划页面，直接开始导航
                 config.setStartNaviDirectly(true)
             } else {
@@ -271,7 +312,7 @@ class AMapNaviApi: NSObject {
             }
             
             // 设置多路线模式（推荐多条路线）
-            config.setMultipleRouteNaviMode(true)
+            config.setMultipleRouteNaviMode(multipleRoute)
             
             // 发送初始化成功事件
             self.naviDelegate?.sendEvent(["type": "initSuccess"])
@@ -289,6 +330,11 @@ class AMapNaviApi: NSObject {
         startPoint: AMapNaviPoint?,
         endPoint: AMapNaviPoint,
         endName: String,
+        startPoiId: String?,
+        endPoiId: String?,
+        startAngle: Double?,
+        endAngle: Double?,
+        travelStrategy: Int?,
         pageType: AMapNaviPageType,
         result: @escaping FlutterResult
     ) {
@@ -313,7 +359,12 @@ class AMapNaviApi: NSObject {
             
             // 计算步行路线（步行导航只支持单起点单终点）
             print("[AMapNaviApi] 计算步行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
-            if let start = startPoint {
+            if startPoiId != nil || endPoiId != nil || travelStrategy != nil {
+                let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle)
+                let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle)
+                let strategy = AMapNaviTravelStrategy(rawValue: travelStrategy ?? 1000) ?? AMapNaviTravelStrategy.singleDefault
+                walkManager.calculateWalkRoute(withStart: startInfo, end: endInfo, strategy: strategy)
+            } else if let start = startPoint {
                 walkManager.calculateWalkRoute(withStart: [start], end: [endPoint])
             } else {
                 // 无起点时使用当前位置
@@ -330,6 +381,11 @@ class AMapNaviApi: NSObject {
         startPoint: AMapNaviPoint?,
         endPoint: AMapNaviPoint,
         endName: String,
+        startPoiId: String?,
+        endPoiId: String?,
+        startAngle: Double?,
+        endAngle: Double?,
+        travelStrategy: Int?,
         pageType: AMapNaviPageType,
         result: @escaping FlutterResult
     ) {
@@ -354,7 +410,12 @@ class AMapNaviApi: NSObject {
             
             // 计算骑行路线（骑行导航只支持单起点单终点）
             print("[AMapNaviApi] 计算骑行路线: start=\(String(describing: startPoint)), end=\(endPoint)")
-            if let start = startPoint {
+            if startPoiId != nil || endPoiId != nil || travelStrategy != nil {
+                let startInfo = self.makePOIInfo(point: startPoint, poiId: startPoiId, angle: startAngle)
+                let endInfo = self.makePOIInfo(point: endPoint, poiId: endPoiId, angle: endAngle)
+                let strategy = AMapNaviTravelStrategy(rawValue: travelStrategy ?? 1000) ?? AMapNaviTravelStrategy.singleDefault
+                rideManager.calculateRideRoute(withStart: startInfo, end: endInfo, strategy: strategy)
+            } else if let start = startPoint {
                 rideManager.calculateRideRoute(withStart: start, end: endPoint)
             } else {
                 // 无起点时使用当前位置
@@ -405,6 +466,33 @@ class AMapNaviApi: NSObject {
             // 展示导航视图
             topVC.present(naviVC, animated: true)
         }
+    }
+
+    private func makePOIInfo(point: AMapNaviPoint?, poiId: String?, angle: Double?) -> AMapNaviPOIInfo? {
+        guard point != nil || (poiId != nil && !poiId!.isEmpty) else { return nil }
+        let info = AMapNaviPOIInfo()
+        info.locPoint = point
+        if let poiId = poiId, !poiId.isEmpty {
+            info.mid = poiId
+        }
+        if let angle = angle {
+            info.startAngle = angle
+        }
+        return info
+    }
+
+    private func makeVehicleInfo(_ map: [String: Any], fallbackCarNumber: String?) -> AMapNaviVehicleInfo {
+        let info = AMapNaviVehicleInfo()
+        info.vehicleId = (map["vehicleId"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? fallbackCarNumber
+        if let value = map["type"] as? Int { info.type = value }
+        if let value = map["size"] as? Int { info.size = value }
+        if let value = map["height"] as? Double { info.height = value }
+        if let value = map["width"] as? Double { info.width = value }
+        if let value = map["length"] as? Double { info.length = value }
+        if let value = map["load"] as? Double { info.load = value }
+        if let value = map["weight"] as? Double { info.weight = value }
+        if let value = map["axisNums"] as? Int { info.axisNums = value }
+        return info
     }
     
     // MARK: - 智能巡航

@@ -30,6 +30,7 @@ class AMapSearchApi: NSObject {
     private var reGeocodeLatitude: Double?
     private var reGeocodeLongitude: Double?
     private var reGeocodeRequest: AMapReGeocodeSearchRequest?
+    private var routeResult: FlutterResult?
     private var weatherLiveResult: FlutterResult?
     private var weatherForecastResult: FlutterResult?
     private var weatherLiveByLocationResult: FlutterResult?
@@ -79,6 +80,12 @@ class AMapSearchApi: NSObject {
             searchGeocode(call: call, result: result)
         case "searchReGeocode":
             searchReGeocode(call: call, result: result)
+        case "searchDriveRoute":
+            searchDriveRoute(call: call, result: result)
+        case "searchWalkRoute":
+            searchWalkRoute(call: call, result: result)
+        case "searchRideRoute":
+            searchRideRoute(call: call, result: result)
         case "searchWeatherLive":
             searchWeatherLive(call: call, result: result)
         case "searchWeatherForecast":
@@ -392,6 +399,95 @@ class AMapSearchApi: NSObject {
         reGeocodeLongitude = nil
         reGeocodeRequest = nil
     }
+
+    private func searchDriveRoute(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let origin = geoPoint(arguments["origin"]),
+              let destination = geoPoint(arguments["destination"]) else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "origin and destination are required", details: nil))
+            return
+        }
+
+        let request = AMapDrivingRouteSearchRequest()
+        request.origin = origin
+        request.destination = destination
+        request.strategy = arguments["strategy"] as? Int ?? 10
+        request.requireExtension = (arguments["extensions"] as? String) == "all"
+        if let waypoints = routeGeoPoints(arguments["wayPoints"]), !waypoints.isEmpty {
+            request.waypoints = waypoints
+        }
+        if let avoidPolygons = avoidPolygons(arguments["avoidPolygons"]), !avoidPolygons.isEmpty {
+            request.avoidpolygons = avoidPolygons
+        }
+        if let avoidRoad = arguments["avoidRoad"] as? String, !avoidRoad.isEmpty {
+            request.avoidroad = avoidRoad
+        }
+        request.setOptionalValue(arguments["carType"], forKey: "cartype")
+        request.setOptionalValue(arguments["carNumber"], forKey: "plateNumber")
+        request.setOptionalValue(arguments["plateProvince"], forKey: "plateProvince")
+        request.setOptionalValue(arguments["excludeRoadType"], forKey: "exclude")
+        request.setOptionalValue(arguments["ferry"], forKey: "ferry")
+
+        routeResult = result
+        searchAPI?.aMapDrivingRouteSearch(request)
+    }
+
+    private func searchWalkRoute(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let origin = geoPoint(arguments["origin"]),
+              let destination = geoPoint(arguments["destination"]) else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "origin and destination are required", details: nil))
+            return
+        }
+
+        let request = AMapWalkingRouteSearchRequest()
+        request.origin = origin
+        request.destination = destination
+        request.setOptionalValue(arguments["alternativeRoute"], forKey: "alternativeRoute")
+        request.setOptionalValue(arguments["indoor"], forKey: "isindoor")
+        request.setOptionalValue(arguments["multiPath"], forKey: "multipath")
+        routeResult = result
+        searchAPI?.aMapWalkingRouteSearch(request)
+    }
+
+    private func searchRideRoute(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let origin = geoPoint(arguments["origin"]),
+              let destination = geoPoint(arguments["destination"]) else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "origin and destination are required", details: nil))
+            return
+        }
+
+        let request = AMapRidingRouteSearchRequest()
+        request.origin = origin
+        request.destination = destination
+        request.setOptionalValue(arguments["strategy"], forKey: "strategy")
+        routeResult = result
+        searchAPI?.aMapRidingRouteSearch(request)
+    }
+
+    private func geoPoint(_ value: Any?) -> AMapGeoPoint? {
+        guard let map = value as? [String: Any],
+              let latitude = map["latitude"] as? Double,
+              let longitude = map["longitude"] as? Double else {
+            return nil
+        }
+        return AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+    }
+
+    private func routeGeoPoints(_ value: Any?) -> [AMapGeoPoint]? {
+        guard let list = value as? [[String: Any]] else { return nil }
+        return list.compactMap { geoPoint($0) }
+    }
+
+    private func avoidPolygons(_ value: Any?) -> [[AMapGeoPoint]]? {
+        guard let list = value as? [[String: Any]] else { return nil }
+        return list.compactMap { polygon in
+            guard let points = polygon["points"] as? [[String: Any]] else { return nil }
+            let geoPoints = points.compactMap { geoPoint($0) }
+            return geoPoints.count >= 3 ? geoPoints : nil
+        }
+    }
     
     // MARK: - Weather Live Search
     
@@ -603,7 +699,7 @@ extension AMapSearchApi: AMapSearchDelegate {
         
         let nsError = error as NSError
         let flutterError = FlutterError(
-            code: request is AMapReGeocodeSearchRequest ? "GEOCODE_ERROR" : "SEARCH_ERROR",
+            code: request is AMapReGeocodeSearchRequest ? "GEOCODE_ERROR" : (request is AMapRouteSearchBaseRequest ? "ROUTE_ERROR" : "SEARCH_ERROR"),
             message: error?.localizedDescription ?? "Search failed",
             details: nsError.code
         )
@@ -636,6 +732,11 @@ extension AMapSearchApi: AMapSearchDelegate {
         if request is AMapReGeocodeSearchRequest, let result = reGeocodeResult {
             reGeocodeResult = nil
             clearReGeocodeState()
+            result(flutterError)
+        }
+
+        if request is AMapRouteSearchBaseRequest, let result = routeResult {
+            routeResult = nil
             result(flutterError)
         }
         
@@ -782,6 +883,48 @@ extension AMapSearchApi: AMapSearchDelegate {
             ]
         ])
     }
+
+    func onRouteSearchDone(_ request: AMapRouteSearchBaseRequest!, response: AMapRouteSearchResponse!) {
+        guard let result = routeResult else { return }
+        routeResult = nil
+        guard let route = response?.route else {
+            result(FlutterError(code: "ROUTE_ERROR", message: "No route data returned", details: nil))
+            return
+        }
+        let routeType: String
+        if request is AMapWalkingRouteSearchRequest {
+            routeType = "walk"
+        } else if request is AMapRidingRouteSearchRequest {
+            routeType = "ride"
+        } else {
+            routeType = "drive"
+        }
+        result([
+            "type": routeType,
+            "origin": request?.origin?.routePointMap(),
+            "destination": request?.destination?.routePointMap(),
+            "taxiCost": route.taxiCost,
+            "paths": (route.paths ?? []).map { $0.routePathMap() },
+            "raw": [
+                "platform": "ios",
+                "count": response?.count ?? 0,
+                "sdkString": "\(route)"
+            ]
+        ])
+    }
+
+    private func parsePolyline(_ polyline: String?) -> [[String: Any?]] {
+        guard let polyline = polyline, !polyline.isEmpty else { return [] }
+        return polyline.split(separator: ";").compactMap { pair in
+            let parts = pair.split(separator: ",")
+            guard parts.count == 2,
+                  let lng = Double(parts[0]),
+                  let lat = Double(parts[1]) else {
+                return nil
+            }
+            return ["latitude": lat, "longitude": lng]
+        }
+    }
     
     /// 天气查询回调
     func onWeatherSearchDone(_ request: AMapWeatherSearchRequest!, response: AMapWeatherSearchResponse!) {
@@ -851,6 +994,95 @@ extension AMapSearchApi: AMapSearchDelegate {
             print("[AMapSearchApi] onWeatherSearchDone (forecast): \(forecast.city ?? ""), \(casts.count) days")
             result(forecastData)
         }
+    }
+}
+
+private extension NSObject {
+    func setOptionalValue(_ value: Any?, forKey key: String) {
+        guard let value = value else { return }
+        if let text = value as? String, text.isEmpty { return }
+        guard responds(to: NSSelectorFromString(key)) else { return }
+        setValue(value, forKey: key)
+    }
+}
+
+private extension AMapGeoPoint {
+    func routePointMap() -> [String: Any?] {
+        return [
+            "latitude": Double(latitude),
+            "longitude": Double(longitude)
+        ]
+    }
+}
+
+private extension AMapPath {
+    func routePathMap() -> [String: Any?] {
+        let stepMaps = (steps ?? []).map { $0.routeStepMap() }
+        let pathPolyline = parseRoutePolyline(polyline)
+        let mergedPolyline = pathPolyline.isEmpty
+            ? stepMaps.flatMap { $0["polyline"] as? [[String: Any?]] ?? [] }
+            : pathPolyline
+        return [
+            "distance": distance,
+            "duration": duration,
+            "strategy": strategy,
+            "tolls": tolls,
+            "tollDistance": tollDistance,
+            "totalTrafficLights": totalTrafficLights,
+            "restriction": restriction,
+            "polyline": mergedPolyline,
+            "steps": stepMaps,
+            "raw": [
+                "sdkString": "\(self)"
+            ]
+        ]
+    }
+}
+
+private extension AMapStep {
+    func routeStepMap() -> [String: Any?] {
+        return [
+            "instruction": instruction,
+            "orientation": orientation,
+            "road": road,
+            "action": action,
+            "assistantAction": assistantAction,
+            "distance": distance,
+            "duration": duration,
+            "tolls": tolls,
+            "tollDistance": tollDistance,
+            "polyline": parseRoutePolyline(polyline),
+            "tmcs": (tmcs ?? []).map { $0.routeTmcMap() },
+            "raw": [
+                "sdkString": "\(self)"
+            ]
+        ]
+    }
+}
+
+private extension AMapTMC {
+    func routeTmcMap() -> [String: Any?] {
+        return [
+            "status": status,
+            "distance": distance,
+            "polyline": parseRoutePolyline(polyline),
+            "raw": [
+                "sdkString": "\(self)"
+            ]
+        ]
+    }
+}
+
+private func parseRoutePolyline(_ polyline: String?) -> [[String: Any?]] {
+    guard let polyline = polyline, !polyline.isEmpty else { return [] }
+    return polyline.split(separator: ";").compactMap { pair in
+        let parts = pair.split(separator: ",")
+        guard parts.count == 2,
+              let lng = Double(parts[0]),
+              let lat = Double(parts[1]) else {
+            return nil
+        }
+        return ["latitude": lat, "longitude": lng]
     }
 }
 

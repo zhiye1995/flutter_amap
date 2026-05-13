@@ -175,6 +175,106 @@ void main() {
     expect(query.poiTypes, '050000|060000');
   });
 
+  test('DriveRouteQuery serializes official route options', () {
+    final query = DriveRouteQuery(
+      origin: RoutePoint(
+        position: Position(latitude: 39.9, longitude: 116.3),
+        name: '起点',
+        poiId: 'origin-poi',
+      ),
+      destination: RoutePoint(
+        position: Position(latitude: 39.99, longitude: 116.48),
+        name: '终点',
+      ),
+      strategy: 10,
+      wayPoints: <RoutePoint>[
+        RoutePoint(position: Position(latitude: 39.95, longitude: 116.4)),
+      ],
+      avoidRoad: '东三环',
+      extensions: RoutePlanExtensions.all,
+      carType: 0,
+      carNumber: '京A12345',
+    );
+
+    final map = query.toMap();
+
+    expect(map['type'], 'drive');
+    expect(map['strategy'], 10);
+    expect(map['avoidRoad'], '东三环');
+    expect(map['extensions'], 'all');
+    expect(map['carNumber'], '京A12345');
+    expect((map['wayPoints'] as List), hasLength(1));
+  });
+
+  test('RoutePlanResult decodes route paths and steps', () {
+    final result = RoutePlanResult.decodeFromMap(<String, dynamic>{
+      'type': 'drive',
+      'taxiCost': 88.5,
+      'paths': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'distance': 12000,
+          'duration': 1800,
+          'strategy': '速度优先',
+          'tolls': 10,
+          'totalTrafficLights': 8,
+          'polyline': <Map<String, dynamic>>[
+            <String, dynamic>{'latitude': 39.9, 'longitude': 116.3},
+            <String, dynamic>{'latitude': 39.99, 'longitude': 116.48},
+          ],
+          'steps': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'instruction': '沿东长安街向东行驶',
+              'road': '东长安街',
+              'distance': 800,
+              'duration': 120,
+              'tmcs': <Map<String, dynamic>>[
+                <String, dynamic>{'status': '畅通', 'distance': 800},
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.type, RoutePlanType.drive);
+    expect(result.taxiCost, 88.5);
+    expect(result.paths.single.distance, 12000);
+    expect(result.paths.single.polyline, hasLength(2));
+    expect(result.paths.single.steps.single.road, '东长安街');
+    expect(result.paths.single.steps.single.tmcs.single.status, '畅通');
+  });
+
+  test('NaviConfig encodes extended route options', () {
+    final config = NaviConfig(
+      carNumber: '京A12345',
+      naviType: NaviType.driver,
+      start: NaviPoint(
+        position: Position(latitude: 39.9, longitude: 116.3),
+        poiId: 'start-poi',
+        startAngle: 90,
+      ),
+      end: NaviPoint(position: Position(latitude: 39.99, longitude: 116.48)),
+      drivingStrategy: 10,
+      travelStrategy: 1,
+      multipleRoute: false,
+      startNaviDirectly: true,
+      vehicleInfo: NaviVehicleInfo(type: 1, height: 3.9, axisNums: 6),
+    );
+
+    final decoded = NaviConfig.decode(config.encode() as List<Object?>);
+
+    expect(decoded.carNumber, '京A12345');
+    expect(decoded.start?.poiId, 'start-poi');
+    expect(decoded.start?.startAngle, 90);
+    expect(decoded.drivingStrategy, 10);
+    expect(decoded.travelStrategy, 1);
+    expect(decoded.multipleRoute, false);
+    expect(decoded.startNaviDirectly, true);
+    expect(decoded.vehicleInfo?.type, 1);
+    expect(decoded.vehicleInfo?.height, 3.9);
+    expect(decoded.vehicleInfo?.axisNums, 6);
+  });
+
   test('CruiseConfig encodes and decodes all fields', () {
     final config = CruiseConfig(
       mode: CruiseBroadcastMode.specialRoadOnly,

@@ -140,14 +140,22 @@ class AMapNaviApi {
             val motorcycleCC = call.argument<Int>("motorcycleCC")
             val naviTypeIndex = call.argument<Int>("naviType") ?: 0
             val pageTypeIndex = call.argument<Int>("pageType") ?: 0
+            val drivingStrategy = call.argument<Int>("drivingStrategy") ?: 10
+            val travelStrategy = call.argument<Int>("travelStrategy")
+            val multipleRoute = call.argument<Boolean>("multipleRoute") ?: true
+            val startNaviDirectly = call.argument<Boolean>("startNaviDirectly")
+            @Suppress("UNCHECKED_CAST")
+            val vehicleInfo = call.argument<Map<String, Any?>>("vehicleInfo")
 
             val startLat = call.argument<Double>("startLat")
             val startLng = call.argument<Double>("startLng")
             val startName = call.argument<String>("startName")
+            val startPoiId = call.argument<String>("startPoiId")
 
             val endLat = call.argument<Double>("endLat")
             val endLng = call.argument<Double>("endLng")
             val endName = call.argument<String>("endName")
+            val endPoiId = call.argument<String>("endPoiId")
 
             @Suppress("UNCHECKED_CAST")
             val wayPointsList = call.argument<List<Map<String, Any?>>>("wayPoints")
@@ -171,6 +179,8 @@ class AMapNaviApi {
             //    mVehicleSize:         车辆大小类型，0-微型车，1-轻型车，2-中型车，3-重型车
             //    mVehicleAxis:         车辆轴数，用于计算货车通行费和限行规则
             //    mMotorcycleCC:        摩托车排量（单位：CC），如125、250，用于摩托车限行判断
+            applyCarInfo(carInfo, vehicleInfo)
+            vehicleInfo?.get("vehicleId")?.toString()?.takeIf { it.isNotEmpty() }?.let { carInfo.carNumber = it }
             carNumber?.let { carInfo.carNumber = it }
             motorcycleCC?.let { carInfo.motorcycleCC = it }
             aMapNavi?.setCarInfo(carInfo)
@@ -180,14 +190,14 @@ class AMapNaviApi {
 
             // 构建起点
             val start: Poi? = if (startLat != null && startLng != null) {
-                Poi(startName ?: "起点", LatLng(startLat, startLng), "")
+                Poi(startName ?: "起点", LatLng(startLat, startLng), startPoiId ?: "")
             } else {
                 null
             }
 
             // 构建终点
             val end: Poi? = if (endLat != null && endLng != null) {
-                Poi(endName ?: "终点", LatLng(endLat, endLng), "")
+                Poi(endName ?: "终点", LatLng(endLat, endLng), endPoiId ?: "")
             } else {
                 null
             }
@@ -198,8 +208,9 @@ class AMapNaviApi {
                 val lat = (wayPoint["lat"] as? Number)?.toDouble()
                 val lng = (wayPoint["lng"] as? Number)?.toDouble()
                 val name = wayPoint["name"] as? String ?: "途经点"
+                val poiId = wayPoint["poiId"] as? String ?: ""
                 if (lat != null && lng != null) {
-                    wayPoints.add(Poi(name, LatLng(lat, lng), ""))
+                    wayPoints.add(Poi(name, LatLng(lat, lng), poiId))
                 }
             }
 
@@ -232,6 +243,14 @@ class AMapNaviApi {
                 naviType,
                 pageType
             ).setUseInnerVoice(true)
+            params.tryCall("setMultipleRouteNaviMode", multipleRoute)
+            params.tryCall("setRouteStrategy", drivingStrategy)
+            if (travelStrategy != null) {
+                params.tryCall("setRouteStrategy", travelStrategy)
+            }
+            if (startNaviDirectly != null) {
+                params.tryCall("setNeedCalculateRouteWhenPresent", !startNaviDirectly)
+            }
 
             // 启动导航页面
             val launchContext: Context = activityRef ?: context
@@ -241,6 +260,49 @@ class AMapNaviApi {
                 NaviInfoCallbackImpl(),
                 AMapFlutterRouteActivity::class.java
             )
+        }
+
+        private fun applyCarInfo(carInfo: AMapCarInfo, info: Map<String, Any?>?) {
+            if (info == null) return
+            fun doubleValue(key: String) = (info[key] as? Number)?.toDouble()
+            fun intValue(key: String) = (info[key] as? Number)?.toInt()
+            fun boolValue(key: String) = info[key] as? Boolean
+            info["vehicleId"]?.toString()?.takeIf { it.isNotEmpty() }?.let { carInfo.carNumber = it }
+            intValue("motorcycleCC")?.let { carInfo.motorcycleCC = it }
+            carInfo.trySet("setRestriction", boolValue("isRestriction"))
+            carInfo.trySet("setCarType", intValue("type"))
+            carInfo.trySet("setVehicleHeight", doubleValue("height"))
+            carInfo.trySet("setVehicleWeight", doubleValue("load"))
+            carInfo.trySet("setVehicleLoad", doubleValue("weight"))
+            carInfo.trySet("setVehicleLoadSwitch", boolValue("vehicleLoadSwitch"))
+            carInfo.trySet("setVehicleWidth", doubleValue("width"))
+            carInfo.trySet("setVehicleLength", doubleValue("length"))
+            carInfo.trySet("setVehicleSize", intValue("size"))
+            carInfo.trySet("setVehicleAxis", intValue("axisNums"))
+        }
+
+        private fun Any.trySet(methodName: String, value: Any?) {
+            if (value == null) return
+            runCatching {
+                val method = javaClass.methods.firstOrNull {
+                    it.name == methodName && it.parameterCount == 1
+                }
+                method?.invoke(this, value)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.$methodName is unavailable")
+            }
+        }
+
+        private fun Any.tryCall(methodName: String, value: Any?) {
+            if (value == null) return
+            runCatching {
+                val method = javaClass.methods.firstOrNull {
+                    it.name == methodName && it.parameterCount == 1
+                }
+                method?.invoke(this, value)
+            }.onFailure {
+                Log.i(TAG, "${javaClass.simpleName}.$methodName is unavailable")
+            }
         }
 
         private fun stopNavigation() {
