@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:flutter/cupertino.dart";
@@ -22,6 +23,10 @@ part "src/amap_navi.dart";
 part 'src/types_extension.dart';
 part 'src/amap_search.dart';
 part 'src/place_picker.dart';
+part 'src/pages/map_place_picker_config.dart';
+part 'src/pages/map_place_picker_utils.dart';
+part 'src/pages/widgets/map_place_picker_poi_list_item.dart';
+part 'src/pages/widgets/map_place_picker_search_field.dart';
 part 'src/pages/map_place_picker_page.dart';
 part 'src/models/geo.dart';
 part 'src/models/ui.dart';

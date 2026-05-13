@@ -1,39 +1,5 @@
 part of '../../../flutter_amap.dart';
 
-/// 地图地点选择器配置
-class MapPlacePickerConfig {
-  const MapPlacePickerConfig({
-    this.title,
-    this.hintText,
-    this.city,
-    this.types,
-    this.initialPosition,
-    this.searchRadius = 1000,
-    this.debounceDelay = const Duration(milliseconds: 500),
-  });
-
-  /// 标题
-  final String? title;
-
-  /// 搜索框提示文字
-  final String? hintText;
-
-  /// 搜索城市
-  final String? city;
-
-  /// POI 类型限制
-  final String? types;
-
-  /// 初始位置（如果不设置则使用当前定位）
-  final Position? initialPosition;
-
-  /// 周边搜索半径（米）
-  final int searchRadius;
-
-  /// 搜索防抖延迟
-  final Duration debounceDelay;
-}
-
 /// 地图地点选择器页面（仿微信发送位置）
 ///
 /// 全屏页面，包含地图和 POI 列表
@@ -67,45 +33,56 @@ class AMapMapPlacePicker extends StatefulWidget {
   State<AMapMapPlacePicker> createState() => _AMapMapPlacePickerState();
 }
 
-class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
-    with WidgetsBindingObserver {
+class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  final UserLocationStyle _userLocationStyleForPicker = UserLocationStyle(
+    userLocationType: UserLocationType.locationTypeLocate,
+  );
+
   AMapController? _mapController;
-  Position? _currentPosition; // 当前定位位置
-  Position? _mapCenterPosition; // 地图中心位置
+  Position? _currentPosition;
+  Position? _mapCenterPosition;
   List<PoiItem> _poiList = [];
   bool _isLoading = true;
   String? _errorMessage;
-  Timer? _debounceTimer;
+  Timer? _keywordDebounceTimer;
+  Timer? _cameraDebounceTimer;
 
-  // 当前选中的 POI 索引
   int _selectedIndex = 0;
-
-  // 是否正在搜索关键词（区分周边搜索和关键词搜索）
   bool _isKeywordSearch = false;
-
-  // 是否是代码触发的地图移动（区分用户手动拖动和代码调用 moveCamera）
   bool _isProgrammaticMove = false;
+  bool _isSearchExpanded = false;
+  bool _showSearchTextField = false;
 
-  // 键盘相关状态
-  bool _isKeyboardVisible = false;
-  double _keyboardHeight = 0;
+  /// 并发搜索代数：仅最新一次搜索允许写回 UI。
+  int _searchGeneration = 0;
+
+  /// 上次周边搜索实际使用的中心（用于最小位移阈值）。
+  Position? _lastNearbySearchCenter;
 
   MapPlacePickerConfig get config => widget.config;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
+
+    final initial = config.initialPosition;
+    if (initial != null) {
+      _mapCenterPosition = initial;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _searchNearby(initial);
+      });
+    }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _debounceTimer?.cancel();
+    _keywordDebounceTimer?.cancel();
+    _cameraDebounceTimer?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -113,186 +90,195 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     super.dispose();
   }
 
-  @override
-  void didChangeMetrics() {
-    super.didChangeMetrics();
-    // 获取键盘高度
-    final bottomInset = WidgetsBinding
-        .instance.platformDispatcher.views.first.viewInsets.bottom;
-    final devicePixelRatio =
-        WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
-    final keyboardHeight = bottomInset / devicePixelRatio;
-
-    if (keyboardHeight != _keyboardHeight) {
-      setState(() {
-        _keyboardHeight = keyboardHeight;
-        _isKeyboardVisible = keyboardHeight > 0;
-      });
-    }
-  }
-
   void _onSearchChanged() {
-    _debounceTimer?.cancel();
-
     final keywords = _searchController.text.trim();
 
     if (keywords.isEmpty) {
-      // 关键词为空时，切回周边搜索模式
+      _keywordDebounceTimer?.cancel();
       setState(() {
         _isKeywordSearch = false;
       });
-      if (_mapCenterPosition != null) {
-        _searchNearby(_mapCenterPosition!);
+      final center = _mapCenterPosition;
+      if (center != null) {
+        _searchNearby(
+          center,
+          showLoading: _poiList.isEmpty,
+        );
       }
       return;
     }
 
+    _keywordDebounceTimer?.cancel();
     setState(() {
       _isLoading = true;
       _isKeywordSearch = true;
       _errorMessage = null;
     });
 
-    _debounceTimer = Timer(config.debounceDelay, () {
+    _keywordDebounceTimer = Timer(config.debounceDelay, () {
       _searchByKeywords(keywords);
     });
   }
 
   /// 用户位置变化回调
   void _onUserLocationChange(Location location) {
-    if (_currentPosition == null) {
-      _currentPosition = location.position;
-      print(
-          '用户位置变化回调: ${_currentPosition?.latitude}, ${_currentPosition!.longitude},'
-          '地图是否已创建: ${_mapController != null}');
-      _mapCenterPosition = location.position;
+    final firstFix = _currentPosition == null;
+    _currentPosition = location.position;
 
-      // 搜索当前位置周边 POI
-      // _searchNearby(location.position);
+    if (firstFix && config.initialPosition == null) {
+      _mapCenterPosition = location.position;
+      _searchNearby(location.position);
     }
   }
 
   /// 地图移动结束回调
   void _onCameraChangeFinish(CameraPosition cameraPosition) {
-    // 如果是代码触发的移动，重置标志位并跳过搜索
     if (_isProgrammaticMove) {
       _isProgrammaticMove = false;
       return;
     }
-    if (_currentPosition == null) return;
 
-    // 如果正在搜索关键词，不响应地图移动
-    if (_isKeywordSearch) return;
+    final position = cameraPosition.position;
+    if (position == null) return;
 
-    _mapCenterPosition = cameraPosition.position;
+    _mapCenterPosition = position;
 
-    // 防抖搜索
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(config.debounceDelay, () {
-      _searchNearby(cameraPosition.position!);
+    if (_isKeywordSearch || _searchController.text.trim().isNotEmpty) {
+      _keywordDebounceTimer?.cancel();
+      _searchController.clear();
+      return;
+    }
+
+    _cameraDebounceTimer?.cancel();
+    _cameraDebounceTimer = Timer(config.debounceDelay, () {
+      if (!mounted || _isKeywordSearch) return;
+      final center = _mapCenterPosition;
+      if (center == null) return;
+      if (_lastNearbySearchCenter != null &&
+          _mapPlacePickerDistanceMeters(_lastNearbySearchCenter!, center) <
+              _kMinNearbySearchMoveMeters) {
+        return;
+      }
+      _searchNearby(center);
     });
   }
 
   /// 搜索中心点周边 POI
-  Future<void> _searchNearby(Position position) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _searchNearby(
+    Position position, {
+    bool showLoading = true,
+  }) async {
+    final gen = ++_searchGeneration;
+
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _errorMessage = null;
+      });
+    }
 
     try {
       final pois = await AMapSearch.searchPOIAround(
         center: position,
-        // keywords: '公司|小区|学校|公交|商场|写字楼|酒店|医院|景点|地铁',
         keywords: '',
-        // 120000	商务住宅
-        // 130000	政府机构及社会团体
-        // 140000	科教文化服务
-        // 170000	公司企业
-        // 190000	地名地址信息
-        // 050000	餐饮服务
-        // 070000	生活服务
-        types: config.types ?? '120000|130000|170000|190000',
+        // types: config.types ?? '120000|130000|170000|190000',
+        types: config.types,
         radius: config.searchRadius,
         city: config.city,
       );
 
-      print('搜索中心点周边 POI : types${config.types}, '
-          'radius:${config.searchRadius}, city:${config.city}, '
-          '结果数量: ${pois.length},'
-          'position: ${position.latitude}, ${position.longitude}');
+      if (!mounted || gen != _searchGeneration) return;
+      if (_isKeywordSearch) return;
 
-      if (mounted && !_isKeywordSearch) {
-        setState(() {
-          _poiList = pois;
-          _selectedIndex = 0; // 自动选中第一个
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _poiList = pois;
+        _selectedIndex = 0;
+        _isLoading = false;
+        _lastNearbySearchCenter = position;
+      });
     } catch (e) {
-      if (mounted && !_isKeywordSearch) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString();
-        });
-      }
+      if (!mounted || gen != _searchGeneration) return;
+      if (_isKeywordSearch) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
     }
   }
 
   /// 根据关键词搜索
   Future<void> _searchByKeywords(String keywords) async {
+    final gen = ++_searchGeneration;
     final searchPosition = _mapCenterPosition ?? _currentPosition;
-    if (searchPosition == null) return;
 
     try {
-      final pois = await AMapSearch.searchPOIAround(
-        center: searchPosition,
-        keywords: keywords,
-        // types: config.types,
-        // radius: config.searchRadius,
-        // city: config.city,
+      final result = await AMapSearch.searchPOIKeywords(
+        PoiKeywordSearchQuery(
+          keywords: keywords,
+          types: config.types,
+          city: config.city,
+          location: searchPosition,
+          sortByDistance: searchPosition != null,
+        ),
       );
 
-      if (mounted && _searchController.text.trim() == keywords) {
-        setState(() {
-          _poiList = pois;
-          _selectedIndex = 0;
-          _isLoading = false;
-        });
-      }
+      if (!mounted || gen != _searchGeneration) return;
+      if (_searchController.text.trim() != keywords) return;
+
+      setState(() {
+        _poiList = result.items;
+        _selectedIndex = 0;
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted && _searchController.text.trim() == keywords) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString();
-        });
-      }
+      if (!mounted || gen != _searchGeneration) return;
+      if (_searchController.text.trim() != keywords) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
     }
   }
 
   /// 选中 POI
-  void _onPoiSelected(int index) {
+  Future<void> _onPoiSelected(int index) async {
     if (index < 0 || index >= _poiList.length) return;
 
     final poi = _poiList[index];
+    final center = _mapCenterPosition;
+    final closeEnough = center != null &&
+        _mapPlacePickerDistanceMeters(center, poi.position) <
+            _kSkipMoveCameraMeters;
+    final sameItem = index == _selectedIndex;
+
+    if (sameItem && closeEnough) {
+      return;
+    }
 
     setState(() {
       _selectedIndex = index;
     });
 
-    // 标记为代码触发的移动，避免触发周边搜索
-    _isProgrammaticMove = true;
+    if (closeEnough) {
+      _mapCenterPosition = poi.position;
+      return;
+    }
 
-    // 移动地图到选中位置
-    _mapController?.moveCamera(
+    _isProgrammaticMove = true;
+    await _mapController?.moveCamera(
       CameraPosition(
         position: poi.position,
         zoom: 16,
       ),
       const Duration(milliseconds: 300),
     );
-
-    // 更新地图中心位置
+    if (!mounted) return;
     _mapCenterPosition = poi.position;
   }
 
@@ -309,202 +295,214 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
   }
 
   /// 回到当前位置
-  void _onBackToCurrentLocation() {
-    if (_currentPosition != null) {
-      // 标记为代码触发的移动，避免触发周边搜索
-      _isProgrammaticMove = true;
+  Future<void> _onBackToCurrentLocation() async {
+    final pos = _currentPosition;
+    if (pos == null) return;
 
-      _mapController?.moveCamera(
-        CameraPosition(
-          position: _currentPosition!,
-          zoom: 16,
-        ),
-        const Duration(milliseconds: 300),
-      );
+    _isProgrammaticMove = true;
+    _mapCenterPosition = pos;
+
+    await _mapController?.moveCamera(
+      CameraPosition(
+        position: pos,
+        zoom: 16,
+      ),
+      const Duration(milliseconds: 300),
+    );
+    if (!mounted) return;
+    _searchNearby(pos);
+  }
+
+  void _onRetrySearch() {
+    if (_isKeywordSearch) {
+      final kw = _searchController.text.trim();
+      if (kw.isNotEmpty) {
+        _searchByKeywords(kw);
+      }
+      return;
+    }
+    final center = _mapCenterPosition;
+    if (center != null) {
+      _searchNearby(center);
+    }
+  }
+
+  void _expandSearchPanel() {
+    if (_isSearchExpanded) return;
+    setState(() {
+      _isSearchExpanded = true;
+      _showSearchTextField = false;
+    });
+  }
+
+  void _collapseSearchPanel() {
+    if (!_isSearchExpanded && !_showSearchTextField) return;
+    _searchFocusNode.unfocus();
+    setState(() {
+      _isSearchExpanded = false;
+      _showSearchTextField = false;
+    });
+  }
+
+  void _onSearchPanelAnimationEnd() {
+    if (!_isSearchExpanded || _showSearchTextField || !mounted) return;
+    setState(() {
+      _showSearchTextField = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_isSearchExpanded) return;
+      _searchFocusNode.requestFocus();
+    });
+  }
+
+  // 根据屏幕高度估算键盘高度（用于动画时机判断）
+  double getEstimatedKeyboardHeight(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    if (height < 700) {
+      return height * 0.42;
+    } else if (height < 900) {
+      return height * 0.38;
+    } else {
+      return height * 0.34;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final platform = defaultTargetPlatform;
-
-    const double borderRadius = 16.0;
-    const double keyboardVisiblePanelHeight = 200.0;
-
-    // 根据平台设置键盘动画时长和曲线
-    // iOS: 250ms，使用 easeOut 曲线（接近系统 spring 动画）
-    // Android: 280ms，使用 easeInOut 曲线
-    final Duration animationDuration = platform == TargetPlatform.iOS
-        ? const Duration(milliseconds: 250)
-        : const Duration(milliseconds: 150);
-    final Curve animationCurve =
-        platform == TargetPlatform.iOS ? Curves.easeOut : Curves.easeInOut;
-
-    // 底部面板高度：键盘弹出时固定为 200，否则为屏幕高度的 4/9
-    final double defaultPanelHeight = mediaQuery.size.height * 4 / 9;
-    final double bottomPanelHeight =
-        _isKeyboardVisible ? keyboardVisiblePanelHeight : defaultPanelHeight;
-
-    // 地图区域底部位置：
-    // 键盘弹出时：总高度 - 键盘高度 - 200 + borderRadius
-    // 键盘隐藏时：bottomPanelHeight - borderRadius
-    final double mapBottomOffset = _isKeyboardVisible
-        ? _keyboardHeight + keyboardVisiblePanelHeight - borderRadius
-        : bottomPanelHeight - borderRadius;
-
-    // print(
-    //     '构建地图地点选择器页面, 键盘可见: $_isKeyboardVisible, 键盘高度: $_keyboardHeight, 底部面板高度: $bottomPanelHeight, 地图底部偏移: $mapBottomOffset');
+    // 获取状态栏高度
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // 禁止 Scaffold 自动调整大小
-      body: Stack(
-        children: [
-          // 地图区域（使用 AnimatedPositioned 实现动画过渡）
-          AnimatedPositioned(
-            duration: animationDuration,
-            curve: animationCurve,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: mapBottomOffset,
-            child: Stack(
-              children: [
-                // 地图
-                AMapWidget(
-                  showUserLocation: true,
-                  // 连续定位，蓝点跟随设备移动，但不自动移动地图中心
-                  userLocationStyle: UserLocationStyle(
-                    userLocationType: UserLocationType.locationTypeLocate,
-                  ),
-                  initCameraPosition: CameraPosition(
-                    position: config.initialPosition,
-                    zoom: 16,
-                  ),
-                  zoomControlEnabled: false,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
-                  onMapCompleted: () {},
-                  onUserLocationChange: _onUserLocationChange,
+      resizeToAvoidBottomInset: false,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalHeight = constraints.maxHeight;
+          final pickerHeight = (_isSearchExpanded
+                  ? getEstimatedKeyboardHeight(context) + 240
+                  : totalHeight * 0.4)
+              .clamp(0.0, totalHeight);
+          final mapHeight = totalHeight - pickerHeight;
 
-                  /// 当地图视野变化结束时触发该回调(Support iOS/Android)
-                  onCameraChangeStart: (cameraPosition) {
-                    print("地图开始移动: $cameraPosition");
-                  },
-                  onCameraChangeFinish: _onCameraChangeFinish,
+          return Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOutCubic,
+                height: mapHeight,
+                child: Stack(
+                  children: [
+                    AMapWidget(
+                      showUserLocation: true,
+                      userLocationStyle: _userLocationStyleForPicker,
+                      initCameraPosition: CameraPosition(
+                        position: config.initialPosition,
+                        zoom: 16,
+                      ),
+                      zoomControlEnabled: false,
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                      },
+                      onMapCompleted: () {},
+                      onUserLocationChange: _onUserLocationChange,
+                      onCameraChangeFinish: _onCameraChangeFinish,
+                    ),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: _buildCenterMarker(),
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: statusBarHeight,
+                      child: _buildTopBar(),
+                    ),
+                    Positioned(
+                      left: 16,
+                      bottom: 16,
+                      child: _buildLocationButton(),
+                    ),
+                  ],
                 ),
-
-                // 中心标记点（固定在地图中央）
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 40),
-                    child: _buildCenterMarker(),
-                  ),
-                ),
-
-                // 顶部操作栏
-                Positioned(
-                  top: mediaQuery.padding.top,
-                  left: 0,
-                  right: 0,
-                  child: _buildTopBar(),
-                ),
-
-                // 当前位置按钮
-                Positioned(
-                  left: 16,
-                  bottom: 16 + borderRadius, // 调整位置，避免被底部面板遮挡
-                  child: _buildLocationButton(),
-                ),
-              ],
-            ),
-          ),
-
-          // 底部面板（使用 AnimatedPositioned 实现动画过渡）
-          AnimatedPositioned(
-            duration: animationDuration,
-            curve: animationCurve,
-            left: 0,
-            right: 0,
-            bottom: _isKeyboardVisible ? _keyboardHeight : 0,
-            height: bottomPanelHeight,
-            child: AnimatedContainer(
-              duration: animationDuration,
-              curve: animationCurve,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(borderRadius),
-                  topRight: Radius.circular(borderRadius),
-                ),
-                // 阴影
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
               ),
-              child: Column(
-                children: [
-                  // 搜索框
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: _buildSearchField(),
-                  ),
-
-                  // 分割线
-                  const Divider(
-                    height: 1,
-                    color: Color(0xFFE0E0E0),
-                  ),
-
-                  // POI 列表
-                  Expanded(
-                    child: _buildPoiList(),
-                  ),
-                ],
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOutCubic,
+                height: pickerHeight,
+                onEnd: _onSearchPanelAnimationEnd,
+                child: Column(
+                  children: [
+                    if (_isSearchExpanded) _buildCollapseSearchButton(),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        _isSearchExpanded ? 6 : 12,
+                        16,
+                        8,
+                      ),
+                      child: _MapPlacePickerSearchField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        hintText: config.hintText ?? '搜索地点',
+                        active: _showSearchTextField,
+                        onTapPlaceholder: _expandSearchPanel,
+                      ),
+                    ),
+                    const Divider(
+                      height: 1,
+                      color: Color(0xFFE0E0E0),
+                    ),
+                    Expanded(
+                      child: _buildPoiList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
   /// 构建顶部操作栏
   Widget _buildTopBar() {
+    final title = config.title;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 取消按钮
-          FilledButton(
-            onPressed: _onBack,
-            style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          SizedBox(
+            height: 37,
+            width: 64,
+            child: FilledButton(
+              onPressed: _onBack,
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                backgroundColor: Colors.grey.withValues(alpha: 0.7)),
-            child: const Text('取消'),
+                backgroundColor: Colors.grey.withValues(alpha: 0.7),
+              ),
+              child: const Text('取消'),
+            ),
           ),
-
-          // 发送/确认按钮
-          FilledButton(
-            onPressed: _poiList.isNotEmpty ? _onConfirm : null,
-            style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          Spacer(),
+          SizedBox(
+            height: 37,
+            width: 64,
+            child: FilledButton(
+              onPressed: _poiList.isNotEmpty ? _onConfirm : null,
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
-                backgroundColor: Colors.green),
-            child: const Text('发送'),
+                backgroundColor: Colors.green,
+              ),
+              child: const Text('发送'),
+            ),
           ),
         ],
       ),
@@ -516,7 +514,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 标记点图标
         Container(
           width: 20,
           height: 20,
@@ -524,16 +521,15 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             color: const Color(0xFF07C160),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Color(0x33000000),
                 blurRadius: 8,
-                offset: const Offset(0, 2),
+                offset: Offset(0, 2),
               ),
             ],
           ),
         ),
-        // 标记点下方的小尖角
         CustomPaint(
           size: const ui.Size(12, 8),
           painter: MarkerPointerPainter(
@@ -551,7 +547,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
       elevation: 2,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
-        onTap: _onBackToCurrentLocation,
+        onTap: () => _onBackToCurrentLocation(),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: 40,
@@ -567,41 +563,31 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
     );
   }
 
-  /// 构建搜索框
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _searchController,
-      focusNode: _searchFocusNode,
-      decoration: InputDecoration(
-        hintText: config.hintText ?? '搜索地点',
-        prefixIcon: const Icon(
-          Icons.search,
-          color: Color(0xFF999999),
-        ),
-        suffixIcon: _searchController.text.isNotEmpty
-            ? IconButton(
-                onPressed: () {
-                  _searchController.clear();
-                },
-                icon: const Icon(
-                  Icons.clear,
-                  color: Color(0xFF999999),
-                  size: 20,
-                ),
-              )
-            : null,
-        filled: true,
-        fillColor: const Color(0xFFEAE8E8),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+  // 构建收起搜索按钮
+  Widget _buildCollapseSearchButton() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Center(
+        child: Material(
+          color: const Color(0xFFF2F3F5),
+          elevation: 1,
+          shadowColor: const Color(0x1A000000),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: _collapseSearchPanel,
+            borderRadius: BorderRadius.circular(12),
+            child: const SizedBox(
+              width: 36,
+              height: 22,
+              child: Icon(
+                Icons.keyboard_arrow_down,
+                color: Color(0xFF666666),
+                size: 22,
+              ),
+            ),
+          ),
         ),
       ),
-      textInputAction: TextInputAction.search,
     );
   }
 
@@ -621,7 +607,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             Icon(
               Icons.error_outline,
               size: 48,
-              color: Colors.red.withOpacity(0.6),
+              color: Colors.red.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 16),
             Text(
@@ -629,7 +615,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 8),
@@ -639,18 +625,14 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
                 _errorMessage!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () {
-                if (_mapCenterPosition != null) {
-                  _searchNearby(_mapCenterPosition!);
-                }
-              },
+              onPressed: _onRetrySearch,
               child: const Text('重试'),
             ),
           ],
@@ -666,162 +648,44 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker>
             Icon(
               Icons.location_off,
               size: 48,
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               '未找到附近地点',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
               ),
             ),
           ],
         ),
       );
     }
+
+    final keyword = _searchController.text.trim();
+    final highlights = _isKeywordSearch && keyword.isNotEmpty
+        ? _mapPlacePickerKeywordHighlights(
+            keyword,
+            _MapPlacePickerPoiListItem.highlightStyle,
+          )
+        : null;
 
     return ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: _poiList.length,
       itemBuilder: (context, index) {
         final poi = _poiList[index];
-        final isSelected = index == _selectedIndex;
-        return _buildPoiItem(poi, index, isSelected);
+        final subtitle = _mapPlacePickerFormatSubtitle(poi);
+        return _MapPlacePickerPoiListItem(
+          poi: poi,
+          index: index,
+          isSelected: index == _selectedIndex,
+          subtitle: subtitle,
+          highlightWords: highlights,
+          onTap: (i) => _onPoiSelected(i),
+        );
       },
-    );
-  }
-
-  /// 构建 POI 列表项
-  Widget _buildPoiItem(
-    PoiItem poi,
-    int index,
-    bool isSelected,
-  ) {
-    // 距离显示
-    String distanceText = '';
-    if (poi.distance != null && poi.distance! > 0) {
-      if (poi.distance! < 1000) {
-        distanceText = '${poi.distance}m内';
-      } else {
-        distanceText = '${(poi.distance! / 1000).toStringAsFixed(1)}km内';
-      }
-    }
-
-    // 构建地址显示
-    String addressText = '';
-    final parts = <String>[];
-    if (poi.adName != null && poi.adName!.isNotEmpty) {
-      parts.add(poi.adName!);
-    }
-    if (poi.address != null && poi.address!.isNotEmpty) {
-      parts.add(poi.address!);
-    }
-    if (parts.isNotEmpty) {
-      addressText = parts.join('');
-    }
-
-    // 副标题：距离 | 地址
-    String subtitle = '';
-    if (distanceText.isNotEmpty && addressText.isNotEmpty) {
-      subtitle = '$distanceText | $addressText';
-    } else if (distanceText.isNotEmpty) {
-      subtitle = distanceText;
-    } else if (addressText.isNotEmpty) {
-      subtitle = addressText;
-    }
-
-    // 文字样式
-    const titleStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: Color(0xFF333333),
-    );
-    const subtitleStyle = TextStyle(
-      fontSize: 12,
-      color: Color(0xFF999999),
-    );
-    const highlightStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: Color(0xFF07C160),
-    );
-
-    // 搜索关键词高亮
-    final searchKeyword = _searchController.text.trim();
-    final highlightWords = <String, HighlightedWord>{};
-    if (searchKeyword.isNotEmpty && _isKeywordSearch) {
-      highlightWords[searchKeyword] = HighlightedWord(
-        textStyle: highlightStyle,
-      );
-    }
-
-    return InkWell(
-      onTap: () => _onPoiSelected(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: Color(0xFFE0E0E0),
-              width: 0.5,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            // POI 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (highlightWords.isNotEmpty)
-                    TextHighlight(
-                      text: poi.name,
-                      words: highlightWords,
-                      textStyle: titleStyle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
-                    Text(
-                      poi.name,
-                      style: titleStyle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    if (highlightWords.isNotEmpty)
-                      TextHighlight(
-                        text: subtitle,
-                        words: highlightWords,
-                        textStyle: subtitleStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else
-                      Text(
-                        subtitle,
-                        style: subtitleStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ],
-              ),
-            ),
-
-            // 选中标记
-            if (isSelected)
-              const Icon(
-                Icons.check,
-                color: Color(0xFF07C160),
-                size: 24,
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
