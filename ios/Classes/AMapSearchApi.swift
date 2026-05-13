@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import CoreLocation
 import AMapSearchKit
 import AMapFoundationKit
 import AMapLocationKit
@@ -28,6 +29,7 @@ class AMapSearchApi: NSObject {
     private var reGeocodeResult: FlutterResult?
     private var reGeocodeLatitude: Double?
     private var reGeocodeLongitude: Double?
+    private var reGeocodeRequest: AMapReGeocodeSearchRequest?
     private var weatherLiveResult: FlutterResult?
     private var weatherForecastResult: FlutterResult?
     private var weatherLiveByLocationResult: FlutterResult?
@@ -359,8 +361,20 @@ class AMapSearchApi: NSObject {
             result(FlutterError(code: "INVALID_ARGUMENTS", message: "latitude and longitude are required", details: nil))
             return
         }
+        let coordinateType = arguments["coordinateType"] as? String ?? "amap"
+        let requestCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let searchCoordinate: CLLocationCoordinate2D
+        if coordinateType == "gps" {
+            searchCoordinate = AMapCoordinateConvert(requestCoordinate, AMapCoordinateTypeGPS)
+        } else {
+            searchCoordinate = requestCoordinate
+        }
+
         let request = AMapReGeocodeSearchRequest()
-        request.location = AMapGeoPoint.location(withLatitude: CGFloat(latitude), longitude: CGFloat(longitude))
+        request.location = AMapGeoPoint.location(
+            withLatitude: CGFloat(searchCoordinate.latitude),
+            longitude: CGFloat(searchCoordinate.longitude)
+        )
         request.radius = arguments["radius"] as? Int ?? 1000
         request.requireExtension = (arguments["extensions"] as? String) == "all"
         if let poiTypes = arguments["poiTypes"] as? String, !poiTypes.isEmpty {
@@ -369,7 +383,14 @@ class AMapSearchApi: NSObject {
         self.reGeocodeResult = result
         self.reGeocodeLatitude = latitude
         self.reGeocodeLongitude = longitude
+        self.reGeocodeRequest = request
         searchAPI?.aMapReGoecodeSearch(request)
+    }
+
+    private func clearReGeocodeState() {
+        reGeocodeLatitude = nil
+        reGeocodeLongitude = nil
+        reGeocodeRequest = nil
     }
     
     // MARK: - Weather Live Search
@@ -582,47 +603,48 @@ extension AMapSearchApi: AMapSearchDelegate {
         
         let nsError = error as NSError
         let flutterError = FlutterError(
-            code: "SEARCH_ERROR",
+            code: request is AMapReGeocodeSearchRequest ? "GEOCODE_ERROR" : "SEARCH_ERROR",
             message: error?.localizedDescription ?? "Search failed",
             details: nsError.code
         )
         
-        if let result = inputTipsResult {
+        if request is AMapInputTipsSearchRequest, let result = inputTipsResult {
             inputTipsResult = nil
             result(flutterError)
         }
         
-        if let result = poiAroundResult {
+        if request is AMapPOISearchBaseRequest, let result = poiAroundResult {
             poiAroundResult = nil
             result(flutterError)
         }
         
-        if let result = poiAroundQueryResult {
+        if request is AMapPOIAroundSearchRequest, let result = poiAroundQueryResult {
             poiAroundQueryResult = nil
             result(flutterError)
         }
         
-        if let result = poiKeywordResult {
+        if request is AMapPOIKeywordsSearchRequest, let result = poiKeywordResult {
             poiKeywordResult = nil
             result(flutterError)
         }
         
-        if let result = geocodeResult {
+        if request is AMapGeocodeSearchRequest, let result = geocodeResult {
             geocodeResult = nil
             result(flutterError)
         }
         
-        if let result = reGeocodeResult {
+        if request is AMapReGeocodeSearchRequest, let result = reGeocodeResult {
             reGeocodeResult = nil
+            clearReGeocodeState()
             result(flutterError)
         }
         
-        if let result = weatherLiveResult {
+        if request is AMapWeatherSearchRequest, let result = weatherLiveResult {
             weatherLiveResult = nil
             result(flutterError)
         }
         
-        if let result = weatherForecastResult {
+        if request is AMapWeatherSearchRequest, let result = weatherForecastResult {
             weatherForecastResult = nil
             result(flutterError)
         }
@@ -722,6 +744,9 @@ extension AMapSearchApi: AMapSearchDelegate {
     func onReGeocodeSearchDone(_ request: AMapReGeocodeSearchRequest!, response: AMapReGeocodeSearchResponse!) {
         guard let result = reGeocodeResult else { return }
         reGeocodeResult = nil
+        let requestLatitude = reGeocodeLatitude
+        let requestLongitude = reGeocodeLongitude
+        clearReGeocodeState()
         guard let geocode = response?.regeocode else {
             result(FlutterError(code: "GEOCODE_ERROR", message: "No re-geocode data returned", details: nil))
             return
@@ -729,8 +754,8 @@ extension AMapSearchApi: AMapSearchDelegate {
         let pois = makePoiList(geocode.pois)
         result([
             "formattedAddress": geocode.formattedAddress,
-            "latitude": reGeocodeLatitude ?? request?.location?.latitude,
-            "longitude": reGeocodeLongitude ?? request?.location?.longitude,
+            "latitude": requestLatitude ?? request?.location?.latitude,
+            "longitude": requestLongitude ?? request?.location?.longitude,
             "province": geocode.addressComponent?.province,
             "city": geocode.addressComponent?.city,
             "district": geocode.addressComponent?.district,
@@ -743,7 +768,12 @@ extension AMapSearchApi: AMapSearchDelegate {
             "countryCode": nil,
             "townCode": geocode.addressComponent?.towncode,
             "roads": (geocode.roads ?? []).compactMap { $0.name },
-            "crosses": (geocode.roadinters ?? []).compactMap { $0.firstName },
+            "crosses": (geocode.roadinters ?? []).compactMap { roadinter in
+                [roadinter.firstName, roadinter.secondName]
+                    .compactMap { $0 }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " / ")
+            },
             "pois": pois,
             "aois": (geocode.aois ?? []).compactMap { $0.name },
             "raw": [

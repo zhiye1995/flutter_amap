@@ -1,4 +1,3 @@
-import '../../navigation/place_picker.dart';
 import '../menu_models.dart';
 import 'geocode_page.dart';
 import 'poi_around_search.dart';
@@ -30,7 +29,11 @@ const mapQueryCategory = Map3dCategoryData('查询地图数据', [
     pageBuilder: GeocodePage.new,
     isCompleted: true,
   ),
-  Map3dItemData('逆地理编码功能'),
+  Map3dItemData(
+    '逆地理编码功能',
+    pageBuilder: GeocodePage.reGeocode,
+    isCompleted: true,
+  ),
   Map3dItemData('行政区划查询'),
   Map3dItemData('行政区划边界查询'),
   Map3dItemData('Busline公交查询'),

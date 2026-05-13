@@ -158,6 +158,23 @@ void main() {
     expect(decoded.sortByDistance, query.sortByDistance);
   });
 
+  test('ReGeocodeQuery stores official SDK options', () {
+    final query = ReGeocodeQuery(
+      position: Position(latitude: 39.908722, longitude: 116.397499),
+      radius: 200,
+      extensions: ReGeocodeExtensions.all,
+      coordinateType: ReGeocodeCoordinateType.gps,
+      poiTypes: '050000|060000',
+    );
+
+    expect(
+        query.position, Position(latitude: 39.908722, longitude: 116.397499));
+    expect(query.radius, 200);
+    expect(query.extensions, ReGeocodeExtensions.all);
+    expect(query.coordinateType, ReGeocodeCoordinateType.gps);
+    expect(query.poiTypes, '050000|060000');
+  });
+
   test('CruiseConfig encodes and decodes all fields', () {
     final config = CruiseConfig(
       mode: CruiseBroadcastMode.specialRoadOnly,
@@ -208,6 +225,7 @@ void main() {
       'district': '东城区',
       'adCode': '110101',
       'roads': <String>['东长安街'],
+      'crosses': <String>['东长安街 / 广场东侧路'],
       'aois': <String>['天安门广场'],
       'pois': <Map<String, dynamic>>[
         <String, dynamic>{
@@ -215,15 +233,22 @@ void main() {
           'name': '天安门',
           'latitude': 39.908722,
           'longitude': 116.397499,
+          'distance': 88,
+          'typeCode': '110000',
         },
       ],
+      'raw': <String, dynamic>{'platform': 'android'},
     });
 
     expect(result.formattedAddress, '北京市东城区东长安街');
     expect(
         result.position, Position(latitude: 39.908722, longitude: 116.397499));
     expect(result.roads, <String>['东长安街']);
+    expect(result.crosses, <String>['东长安街 / 广场东侧路']);
     expect(result.aois, <String>['天安门广场']);
     expect(result.pois.single.name, '天安门');
+    expect(result.pois.single.distance, 88);
+    expect(result.pois.single.typeCode, '110000');
+    expect(result.raw, <String, dynamic>{'platform': 'android'});
   });
 }

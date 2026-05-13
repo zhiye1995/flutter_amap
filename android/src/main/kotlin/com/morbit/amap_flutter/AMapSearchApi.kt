@@ -523,6 +523,7 @@ class AMapSearchApi {
             val radius = (call.argument<Int>("radius") ?: 1000).toFloat()
             val extensions = call.argument<String>("extensions") ?: "base"
             val coordinateType = call.argument<String>("coordinateType") ?: "amap"
+            val poiTypes = call.argument<String>("poiTypes") ?: ""
             val latLonType = if (coordinateType == "gps") GeocodeSearch.GPS else GeocodeSearch.AMAP
             val search = GeocodeSearch(context)
             search.setOnGeocodeSearchListener(object : GeocodeSearch.OnGeocodeSearchListener {
@@ -532,9 +533,15 @@ class AMapSearchApi {
 
                 override fun onRegeocodeSearched(regeocodeResult: RegeocodeResult?, rCode: Int) {
                     if (rCode == AMapException.CODE_AMAP_SUCCESS) {
-                        result.success(regeocodeResult?.regeocodeAddress?.toMap(latitude, longitude))
+                        val address = regeocodeResult?.regeocodeAddress
+                        if (address == null) {
+                            result.error("GEOCODE_ERROR", "No re-geocode data returned", null)
+                            return
+                        }
+                        val center = LatLonPoint(latitude, longitude)
+                        result.success(address.toMap(center))
                     } else {
-                        result.error("GEOCODE_ERROR", "ReGeocode failed with code: $rCode", null)
+                        result.error("GEOCODE_ERROR", "ReGeocode failed with code: $rCode", rCode)
                     }
                 }
             })
@@ -544,7 +551,18 @@ class AMapSearchApi {
             } else {
                 GeocodeSearch.EXTENSIONS_BASE
             }
+            query.trySetPoiType(poiTypes)
             search.getFromLocationAsyn(query)
+        }
+
+        private fun RegeocodeQuery.trySetPoiType(poiTypes: String) {
+            if (poiTypes.isEmpty()) return
+            runCatching {
+                javaClass.getMethod("setPoiType", String::class.java)
+                    .invoke(this, poiTypes)
+            }.onFailure {
+                Log.i(TAG, "RegeocodeQuery.setPoiType is unavailable in current SDK")
+            }
         }
 
         private fun GeocodeAddress.toMap(): Map<String, Any?> {
@@ -569,11 +587,11 @@ class AMapSearchApi {
             )
         }
 
-        private fun RegeocodeAddress.toMap(latitude: Double, longitude: Double): Map<String, Any?> {
+        private fun RegeocodeAddress.toMap(center: LatLonPoint): Map<String, Any?> {
             return mapOf(
                 "formattedAddress" to formatAddress,
-                "latitude" to latitude,
-                "longitude" to longitude,
+                "latitude" to center.latitude,
+                "longitude" to center.longitude,
                 "province" to province,
                 "city" to city,
                 "district" to district,
@@ -588,6 +606,9 @@ class AMapSearchApi {
                 "roads" to (roads?.mapNotNull { it.name } ?: emptyList()),
                 "crosses" to (crossroads?.mapNotNull { it.name } ?: emptyList()),
                 "pois" to (pois?.map { poi ->
+                    val distance = readIntMember(poi, "distance") ?: poi.latLonPoint?.let { point ->
+                        distanceBetween(center, point)
+                    }
                     mapOf(
                         "poiId" to (poi.poiId ?: ""),
                         "name" to (poi.title ?: ""),
@@ -600,7 +621,7 @@ class AMapSearchApi {
                         "cityCode" to poi.cityCode,
                         "adName" to poi.adName,
                         "adCode" to poi.adCode,
-                        "distance" to null,
+                        "distance" to distance,
                         "tel" to null,
                         "provinceName" to poi.provinceName,
                         "provinceCode" to poi.provinceCode
@@ -612,6 +633,26 @@ class AMapSearchApi {
                     "sdkString" to toString()
                 )
             )
+        }
+
+        private fun distanceBetween(start: LatLonPoint, end: LatLonPoint): Int {
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(
+                start.latitude,
+                start.longitude,
+                end.latitude,
+                end.longitude,
+                results,
+            )
+            return results[0].toInt()
+        }
+
+        private fun readIntMember(target: Any, vararg names: String): Int? {
+            for (name in names) {
+                val value = readStringMember(target, name)?.toIntOrNull()
+                if (value != null) return value
+            }
+            return null
         }
 
         private fun readStringMember(target: Any, vararg names: String): String? {

@@ -4,12 +4,29 @@ import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 地理编码 / 逆地理编码功能示例。
 class GeocodePage extends StatefulWidget {
-  const GeocodePage({super.key});
+  const GeocodePage({
+    super.key,
+    this.title = defaultTitle,
+    this.initialMode = GeocodePageMode.both,
+  });
 
-  static const title = '地理编码功能';
+  const GeocodePage.reGeocode({super.key})
+      : title = '逆地理编码功能',
+        initialMode = GeocodePageMode.reGeocode;
+
+  static const defaultTitle = '地理编码功能';
+
+  final String title;
+  final GeocodePageMode initialMode;
 
   @override
   State<GeocodePage> createState() => _GeocodePageState();
+}
+
+enum GeocodePageMode {
+  both,
+  geocode,
+  reGeocode,
 }
 
 class _GeocodePageState extends State<GeocodePage> {
@@ -46,8 +63,17 @@ class _GeocodePageState extends State<GeocodePage> {
 
   @override
   Widget build(BuildContext context) {
+    final showGeocode = widget.initialMode != GeocodePageMode.reGeocode;
+    final showReGeocode = widget.initialMode != GeocodePageMode.geocode;
+    final contentCards = widget.initialMode == GeocodePageMode.reGeocode
+        ? <Widget>[_buildReGeocodeCard()]
+        : <Widget>[
+            if (showGeocode) _buildGeocodeCard(),
+            if (showGeocode && showReGeocode) const SizedBox(height: 8),
+            if (showReGeocode) _buildReGeocodeCard(),
+          ];
     return Scaffold(
-      appBar: AppBar(title: const Text(GeocodePage.title)),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
           SizedBox(
@@ -67,9 +93,7 @@ class _GeocodePageState extends State<GeocodePage> {
             child: ListView(
               padding: const EdgeInsets.all(12),
               children: [
-                _buildGeocodeCard(),
-                const SizedBox(height: 8),
-                _buildReGeocodeCard(),
+                ...contentCards,
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 8),
                   _buildErrorCard(),

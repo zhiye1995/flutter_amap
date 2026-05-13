@@ -481,16 +481,19 @@ class ReGeocodeQuery {
   /// 查询坐标。
   final Position position;
 
-  /// 查询半径，单位米。Android 示例常用 200，iOS 默认 1000。
+  /// 查询半径，单位米。高德官方示例常用 200，iOS SDK 默认 1000。
   final int radius;
 
-  /// 是否返回扩展信息。
+  /// 是否返回扩展信息。[ReGeocodeExtensions.all] 会请求 POI、道路、
+  /// 交叉路口、AOI 等数据，具体字段取决于平台 SDK 版本。
   final ReGeocodeExtensions extensions;
 
-  /// 坐标类型。
+  /// 坐标类型。Android 直接传给原生逆地理编码查询，iOS 会在查询前把
+  /// GPS 坐标转换为高德坐标。
   final ReGeocodeCoordinateType coordinateType;
 
   /// 扩展 POI 类型过滤，多个 typecode 用“|”分割。
+  /// 通常配合 [ReGeocodeExtensions.all] 使用。
   final String? poiTypes;
 }
 
