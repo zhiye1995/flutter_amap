@@ -1,38 +1,29 @@
 PODS:
   - AMapFoundation (1.8.2)
+  - AMapLocation (2.11.0):
+    - AMapFoundation (>= 1.8.0)
   - AMapNavi (10.1.600):
     - AMapFoundation (>= 1.8.2)
   - AMapSearch (9.7.4):
     - AMapFoundation (>= 1.8.0)
   - Flutter (1.0.0)
   - flutter_amap (0.0.1):
+    - AMapLocation
     - AMapNavi
     - AMapSearch
     - Flutter
-  - flutter_keyboard_visibility (0.0.1):
-    - Flutter
-  - geolocator_apple (1.2.0):
-    - Flutter
-    - FlutterMacOS
-  - integration_test (0.0.1):
-    - Flutter
-  - package_info_plus (0.4.5):
-    - Flutter
-  - permission_handler_apple (9.3.0):
+  - saver_gallery (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_amap (from `.symlinks/plugins/flutter_amap/ios`)
-  - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
-  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
-  - integration_test (from `.symlinks/plugins/integration_test/ios`)
-  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
-  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - saver_gallery (from `.symlinks/plugins/saver_gallery/ios`)
 
 SPEC REPOS:
   trunk:
     - AMapFoundation
+    - AMapLocation
     - AMapNavi
     - AMapSearch
 
@@ -41,28 +32,17 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_amap:
     :path: ".symlinks/plugins/flutter_amap/ios"
-  flutter_keyboard_visibility:
-    :path: ".symlinks/plugins/flutter_keyboard_visibility/ios"
-  geolocator_apple:
-    :path: ".symlinks/plugins/geolocator_apple/darwin"
-  integration_test:
-    :path: ".symlinks/plugins/integration_test/ios"
-  package_info_plus:
-    :path: ".symlinks/plugins/package_info_plus/ios"
-  permission_handler_apple:
-    :path: ".symlinks/plugins/permission_handler_apple/ios"
+  saver_gallery:
+    :path: ".symlinks/plugins/saver_gallery/ios"
 
 SPEC CHECKSUMS:
   AMapFoundation: 9885c48fc3a78fdfb84a0299a2293e56ea3c9fec
+  AMapLocation: 8c46dbe995333ad6cae147d54a7307a577020be0
   AMapNavi: 86bc5bd0100d2fb6a705d608c06b7e1299bd4d56
   AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_amap: dc4d4bbd4820660c10bc6e7d18c17ef4adf80ac1
-  flutter_keyboard_visibility: 0339d06371254c3eb25eeb90ba8d17dca8f9c069
-  geolocator_apple: 66b711889fd333205763b83c9dcf0a57a28c7afd
-  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
-  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
+  flutter_amap: ab369f221ae8781ff1987765dc3b68dc0fcc2e39
+  saver_gallery: 76172dc4bf6b40e66d694948ada9ff402304dd87
 
 PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
 

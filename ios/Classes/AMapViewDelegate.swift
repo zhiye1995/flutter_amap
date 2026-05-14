@@ -238,7 +238,7 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         if let multiLine = line as? MAMultiPolyline, !style.colors.isEmpty {
           let renderer = MAMultiColoredPolylineRenderer(multiPolyline: multiLine)
           renderer?.strokeColors = style.colors
-          renderer?.gradient = style.gradient
+            renderer?.isGradient = style.gradient
           return renderer
         }
         return MAPolylineRenderer(polyline: line)
