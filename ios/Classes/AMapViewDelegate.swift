@@ -7,6 +7,7 @@
 
 import Foundation
 import Flutter
+import UIKit
 // `MAMapKit` 通常来自 `AMap3DMap`。
 // 但在一些集成方式下（例如仅引入 `AMapNavi`），`MAMapKit` 这个 Swift module 可能不存在，
 // 地图相关类型会通过 `AMapNaviKit` 暴露出来；因此这里做条件导入以兼容两种情况。
@@ -23,6 +24,10 @@ import AMapNaviKit
 fileprivate func amapAnnotationLineHasText(_ line: Any?) -> Bool {
   let ns = line as? NSString
   return (ns?.length ?? 0) > 0
+}
+
+fileprivate func amapOverlayLineWidth(_ width: Double) -> CGFloat {
+  return CGFloat(width / Double(UIScreen.main.scale))
 }
 
 class AMapViewDelegate: NSObject, MAMapViewDelegate {
@@ -225,7 +230,7 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
       renderer?.is3DArrowLine = true
       renderer?.strokeColor = style.color
       renderer?.sideColor = style.sideColor
-      renderer?.lineWidth = style.width
+      renderer?.lineWidth = amapOverlayLineWidth(style.width)
       return renderer
     }
     if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
@@ -239,20 +244,20 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         return MAPolylineRenderer(polyline: line)
       }()
       renderer?.strokeColor = style.color
-      renderer?.lineWidth = style.width
+      renderer?.lineWidth = amapOverlayLineWidth(style.width)
       return renderer
     }
     if let arc = overlay as? MAArc, let style = controller.api.arcStyle(for: arc) {
       let renderer = MAArcRenderer(arc: arc)
       renderer?.strokeColor = style.color
-      renderer?.lineWidth = style.width
+      renderer?.lineWidth = amapOverlayLineWidth(style.width)
       return renderer
     }
     if let polygon = overlay as? MAPolygon, let style = controller.api.polygonStyle(for: polygon) {
       let renderer = MAPolygonRenderer(polygon: polygon)
       renderer?.strokeColor = style.strokeColor
       renderer?.fillColor = style.fillColor
-      renderer?.lineWidth = style.strokeWidth
+      renderer?.lineWidth = amapOverlayLineWidth(style.strokeWidth)
       return renderer
     }
     return nil
