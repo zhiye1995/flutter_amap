@@ -372,7 +372,7 @@ class AMapSearchApi: NSObject {
         let requestCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         let searchCoordinate: CLLocationCoordinate2D
         if coordinateType == "gps" {
-            searchCoordinate = AMapCoordinateConvert(requestCoordinate, AMapCoordinateTypeGPS)
+            searchCoordinate = AMapCoordinateConvert(requestCoordinate, .GPS)
         } else {
             searchCoordinate = requestCoordinate
         }
@@ -408,11 +408,13 @@ class AMapSearchApi: NSObject {
             return
         }
 
-        let request = AMapDrivingRouteSearchRequest()
+        let request = AMapDrivingCalRouteSearchRequest()
         request.origin = origin
         request.destination = destination
-        request.strategy = arguments["strategy"] as? Int ?? 10
-        request.requireExtension = (arguments["extensions"] as? String) == "all"
+        request.strategy = drivingV2Strategy(arguments["strategy"] as? Int)
+        if (arguments["extensions"] as? String) == "all" {
+            request.showFieldType = drivingShowFieldType()
+        }
         if let waypoints = routeGeoPoints(arguments["wayPoints"]), !waypoints.isEmpty {
             request.waypoints = waypoints
         }
@@ -422,14 +424,17 @@ class AMapSearchApi: NSObject {
         if let avoidRoad = arguments["avoidRoad"] as? String, !avoidRoad.isEmpty {
             request.avoidroad = avoidRoad
         }
+        if let plate = drivingPlateNumber(arguments), !plate.isEmpty {
+            request.plate = plate
+        }
         request.setOptionalValue(arguments["carType"], forKey: "cartype")
-        request.setOptionalValue(arguments["carNumber"], forKey: "plateNumber")
-        request.setOptionalValue(arguments["plateProvince"], forKey: "plateProvince")
         request.setOptionalValue(arguments["excludeRoadType"], forKey: "exclude")
-        request.setOptionalValue(arguments["ferry"], forKey: "ferry")
+        if let ferry = arguments["ferry"] as? Bool {
+            request.ferry = ferry ? 0 : 1
+        }
 
         routeResult = result
-        searchAPI?.aMapDrivingRouteSearch(request)
+        searchAPI?.aMapDrivingV2RouteSearch(request)
     }
 
     private func searchWalkRoute(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -480,13 +485,63 @@ class AMapSearchApi: NSObject {
         return list.compactMap { geoPoint($0) }
     }
 
-    private func avoidPolygons(_ value: Any?) -> [[AMapGeoPoint]]? {
+    private func avoidPolygons(_ value: Any?) -> [AMapGeoPolygon]? {
         guard let list = value as? [[String: Any]] else { return nil }
         return list.compactMap { polygon in
             guard let points = polygon["points"] as? [[String: Any]] else { return nil }
             let geoPoints = points.compactMap { geoPoint($0) }
-            return geoPoints.count >= 3 ? geoPoints : nil
+            return geoPoints.count >= 3 ? AMapGeoPolygon.polygon(withPoints: geoPoints) : nil
         }
+    }
+
+    private func drivingShowFieldType() -> AMapDrivingRouteShowFieldType {
+        let rawValue = AMapDrivingRouteShowFieldType.cost.rawValue
+            | AMapDrivingRouteShowFieldType.tmcs.rawValue
+            | AMapDrivingRouteShowFieldType.navi.rawValue
+            | AMapDrivingRouteShowFieldType.cities.rawValue
+            | AMapDrivingRouteShowFieldType.polyline.rawValue
+        return AMapDrivingRouteShowFieldType(rawValue: rawValue)!
+    }
+
+    private func drivingV2Strategy(_ strategy: Int?) -> Int {
+        guard let strategy = strategy else { return 32 }
+        if (32...45).contains(strategy) {
+            return strategy
+        }
+        switch strategy {
+        case 0:
+            return 38
+        case 1, 14:
+            return 36
+        case 4, 12:
+            return 33
+        case 6, 13:
+            return 35
+        case 7, 16:
+            return 42
+        case 8, 17:
+            return 41
+        case 9, 18:
+            return 43
+        case 15:
+            return 40
+        case 19:
+            return 34
+        case 20:
+            return 39
+        default:
+            return 32
+        }
+    }
+
+    private func drivingPlateNumber(_ arguments: [String: Any]) -> String? {
+        guard let carNumber = arguments["carNumber"] as? String, !carNumber.isEmpty else {
+            return nil
+        }
+        guard let plateProvince = arguments["plateProvince"] as? String, !plateProvince.isEmpty else {
+            return carNumber
+        }
+        return carNumber.hasPrefix(plateProvince) ? carNumber : plateProvince + carNumber
     }
     
     // MARK: - Weather Live Search
@@ -853,10 +908,25 @@ extension AMapSearchApi: AMapSearchDelegate {
             return
         }
         let pois = makePoiList(geocode.pois)
-        result([
+        let requestLocation = request?.location
+        let latitude = requestLatitude ?? requestLocation.map { Double($0.latitude) }
+        let longitude = requestLongitude ?? requestLocation.map { Double($0.longitude) }
+        let roads = (geocode.roads ?? []).compactMap { $0.name }
+        let crosses = (geocode.roadinters ?? []).compactMap { roadinter -> String? in
+            let names = [roadinter.firstName, roadinter.secondName]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+            return names.isEmpty ? nil : names.joined(separator: " / ")
+        }
+        let aois = (geocode.aois ?? []).compactMap { $0.name }
+        let raw: [String: Any?] = [
+            "platform": "ios",
+            "sdkString": "\(geocode)"
+        ]
+        let geocodeData: [String: Any?] = [
             "formattedAddress": geocode.formattedAddress,
-            "latitude": requestLatitude ?? request?.location?.latitude,
-            "longitude": requestLongitude ?? request?.location?.longitude,
+            "latitude": latitude,
+            "longitude": longitude,
             "province": geocode.addressComponent?.province,
             "city": geocode.addressComponent?.city,
             "district": geocode.addressComponent?.district,
@@ -868,20 +938,13 @@ extension AMapSearchApi: AMapSearchDelegate {
             "country": geocode.addressComponent?.country,
             "countryCode": nil,
             "townCode": geocode.addressComponent?.towncode,
-            "roads": (geocode.roads ?? []).compactMap { $0.name },
-            "crosses": (geocode.roadinters ?? []).compactMap { roadinter in
-                [roadinter.firstName, roadinter.secondName]
-                    .compactMap { $0 }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " / ")
-            },
+            "roads": roads,
+            "crosses": crosses,
             "pois": pois,
-            "aois": (geocode.aois ?? []).compactMap { $0.name },
-            "raw": [
-                "platform": "ios",
-                "sdkString": "\(geocode)"
-            ]
-        ])
+            "aois": aois,
+            "raw": raw
+        ]
+        result(geocodeData)
     }
 
     func onRouteSearchDone(_ request: AMapRouteSearchBaseRequest!, response: AMapRouteSearchResponse!) {
