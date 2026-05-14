@@ -482,8 +482,10 @@ class _AMapApi: NSObject {
   func cancelMarkerAnimation(markerId: String) {
     guard let annotation = markers[markerId] else { return }
     markerAnimationTokens[markerId, default: 0] += 1
-    for item in annotation.allMoveAnimations() {
-      item.cancel()
+    if let moveAnimations = annotation.allMoveAnimations() {
+      for item in moveAnimations {
+        item.cancel()
+      }
     }
     annotation.coordinate = annotation.coordinate
     if let view = mapView.view(for: annotation) {
