@@ -491,7 +491,9 @@ class AMapSearchApi: NSObject {
             guard let points = polygon["points"] as? [[String: Any]] else { return nil }
             let geoPoints = points.compactMap { geoPoint($0) }
             guard geoPoints.count >= 3 else { return nil }
-            return AMapGeoPolygon.polygon(withPoints: geoPoints)
+            let geoPolygon = AMapGeoPolygon()
+            geoPolygon.points = geoPoints
+            return geoPolygon
         }
     }
 
