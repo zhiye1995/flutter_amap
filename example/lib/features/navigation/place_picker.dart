@@ -15,14 +15,12 @@ class PlacePickerPage extends StatefulWidget {
 class _PlacePickerPageState extends State<PlacePickerPage> {
   PoiItem? _homeAddress;
   PoiItem? _companyAddress;
+  LocationPickerResult? _routeLocation;
 
   Future<void> _selectHomeAddress() async {
     final result = await AMapMapPlacePicker.show(
       context,
-      config: const MapPlacePickerConfig(
-        title: '选择家庭地址',
-        hintText: '搜索小区、街道等',
-      ),
+      config: const MapPlacePickerConfig(title: '选择家庭地址', hintText: '搜索小区、街道等'),
     );
 
     if (result != null) {
@@ -63,15 +61,31 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
     }
   }
 
+  Future<void> _selectRouteLocation() async {
+    final result = await AMapLocationPicker.show(
+      context,
+      config: const LocationPickerConfig(
+        title: '选择路线位置',
+        hintText: '搜索地点、公交站、商圈',
+        initialKeyword: '北京',
+        includeCurrentLocation: true,
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() => _routeLocation = result);
+      final routePoint = result.toRoutePoint();
+      LoadingUtil.showToast('选中: ${routePoint.name ?? result.address ?? '坐标'}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(PlacePickerPage.title),
-      ),
+      appBar: AppBar(title: const Text(PlacePickerPage.title)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -156,6 +170,19 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
 
           const SizedBox(height: 16),
 
+          FilledButton.tonalIcon(
+            onPressed: _selectRouteLocation,
+            icon: const Icon(Icons.route, size: 18),
+            label: const Text('通用位置选择器（路线起终点）'),
+          ),
+
+          if (_routeLocation != null) ...[
+            const SizedBox(height: 8),
+            _LocationResultCard(result: _routeLocation!),
+          ],
+
+          const SizedBox(height: 16),
+
           // 直接调用 API 示例
           OutlinedButton(
             onPressed: _testSearchApi,
@@ -194,9 +221,7 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       // 直接调用搜索 API
@@ -252,15 +277,58 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   Future<void> _showOldPicker() async {
     final result = await AMapPlacePicker.show(
       context,
-      config: const PlacePickerConfig(
-        title: '选择地点',
-        hintText: '搜索地点',
-      ),
+      config: const PlacePickerConfig(title: '选择地点', hintText: '搜索地点'),
     );
 
     if (result != null && mounted) {
       LoadingUtil.showToast('选中: ${result.name}');
     }
+  }
+}
+
+class _LocationResultCard extends StatelessWidget {
+  const _LocationResultCard({required this.result});
+
+  final LocationPickerResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Card(
+      elevation: 0,
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              result.name ?? '已选择位置',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (result.address != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                result.address!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              '坐标: ${result.position.latitude.toStringAsFixed(6)}, ${result.position.longitude.toStringAsFixed(6)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.primary,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -289,9 +357,7 @@ class _AddressCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withOpacity(0.2),
-        ),
+        side: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -308,11 +374,7 @@ class _AddressCard extends StatelessWidget {
                   color: iconColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 24,
-                ),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
 
               const SizedBox(width: 16),

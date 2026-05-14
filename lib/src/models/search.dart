@@ -1137,7 +1137,6 @@ class RouteStep {
     this.road,
     this.action,
     this.assistantAction,
-    this.iconType,
     this.distance,
     this.duration,
     this.tolls,
@@ -1152,7 +1151,6 @@ class RouteStep {
   final String? road;
   final String? action;
   final String? assistantAction;
-  final int? iconType;
   final double? distance;
   final double? duration;
   final double? tolls;
@@ -1171,7 +1169,6 @@ class RouteStep {
       road: map['road'] as String?,
       action: map['action'] as String?,
       assistantAction: map['assistantAction'] as String?,
-      iconType: (map['iconType'] as num?)?.toInt(),
       distance: (map['distance'] as num?)?.toDouble(),
       duration: (map['duration'] as num?)?.toDouble(),
       tolls: (map['tolls'] as num?)?.toDouble(),

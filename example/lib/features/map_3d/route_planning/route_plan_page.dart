@@ -63,6 +63,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   final _avoidRoadController = TextEditingController();
 
   AMapController? _controller;
+  Location? _lastLocation;
+  LocationPickerResult? _startLocation;
+  LocationPickerResult? _endLocation;
   RoutePlanResult? _result;
   final _routePolylineIds = <String>{};
   var _driveStrategy = PathPlanningStrategy.drivingMultipleRoutesDefault;
@@ -98,8 +101,12 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       position: _defaultStart,
                       zoom: 11,
                     ),
+                    showUserLocation: true,
                     markers: _markers,
                     onMapPress: _selectNearestRoute,
+                    onUserLocationChange: (location) {
+                      _lastLocation = location;
+                    },
                     onMapCreated: (controller) {
                       _controller = controller;
                       final result = _result;
@@ -110,14 +117,14 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                   ),
                 ),
                 Positioned(
-                  left: 16,
-                  bottom: 30,
+                  left: 6,
+                  bottom: 25,
                   child: _buildMapShortcutButtons(),
                 ),
               ],
             ),
           ),
-          SizedBox(height: 200, child: _buildBottomPanel()),
+          SizedBox(height: 180, child: _buildBottomPanel()),
         ],
       ),
     );
@@ -158,16 +165,16 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     children: [
                       _buildRouteInputLine(
                         prefix: '从',
-                        title: '我的位置',
+                        title: _startTitle,
                         position: _startPosition,
-                        onTap: () => _editPosition(isStart: true),
+                        onTap: () => _pickPosition(isStart: true),
                       ),
                       const SizedBox(height: 10),
                       _buildRouteInputLine(
                         prefix: '到',
-                        title: '目的地',
+                        title: _endTitle,
                         position: _endPosition,
-                        onTap: () => _editPosition(isStart: false),
+                        onTap: () => _pickPosition(isStart: false),
                       ),
                     ],
                   ),
@@ -262,26 +269,22 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         const SizedBox(height: 12),
         _buildMapButton(Icons.tune, _showRouteOptions),
         const SizedBox(height: 12),
-        _buildMapButton(Icons.my_location, () {
-          final c = _controller;
-          if (c == null) return;
-          c.moveCamera(
-            CameraPosition(position: _startPosition, zoom: 12),
-            const Duration(milliseconds: 300),
-          );
-        }),
+        _buildMapButton(Icons.my_location, _moveToCurrentLocation),
       ],
     );
   }
 
   Widget _buildMapButton(IconData icon, VoidCallback onPressed) {
-    return Material(
-      color: Colors.white,
-      elevation: 2,
-      borderRadius: BorderRadius.circular(8),
-      child: IconButton(
-        onPressed: _loading ? null : onPressed,
-        icon: Icon(icon, color: Colors.black87),
+    return Transform.scale(
+      scale: 0.82,
+      child: Material(
+        color: Colors.white,
+        elevation: 2,
+        borderRadius: BorderRadius.circular(8),
+        child: IconButton(
+          onPressed: _loading ? null : onPressed,
+          icon: Icon(icon, color: Colors.black87),
+        ),
       ),
     );
   }
@@ -491,7 +494,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             ),
           ],
         ),
-
       ],
     );
   }
@@ -685,8 +687,12 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Future<void> _searchRoute() async {
-    final origin = RoutePoint(position: _startPosition, name: '起点');
-    final destination = RoutePoint(position: _endPosition, name: '终点');
+    final origin =
+        _startLocation?.toRoutePoint() ??
+        RoutePoint(position: _startPosition, name: '起点');
+    final destination =
+        _endLocation?.toRoutePoint() ??
+        RoutePoint(position: _endPosition, name: '终点');
     setState(() {
       _loading = true;
       _errorMessage = null;
@@ -825,8 +831,12 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           RoutePlanType.ride => NaviType.ride,
         },
         pageType: NaviPageType.route,
-        start: NaviPoint(position: _startPosition, name: '起点'),
-        end: NaviPoint(position: _endPosition, name: '终点'),
+        start:
+            _startLocation?.toNaviPoint() ??
+            NaviPoint(position: _startPosition, name: '起点'),
+        end:
+            _endLocation?.toNaviPoint() ??
+            NaviPoint(position: _endPosition, name: '终点'),
         drivingStrategy: _driveStrategy,
         startNaviDirectly: false,
       ),
@@ -892,59 +902,46 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     );
   }
 
-  Future<void> _editPosition({required bool isStart}) async {
-    final sourceLat = isStart ? _startLatController : _endLatController;
-    final sourceLng = isStart ? _startLngController : _endLngController;
-    final latController = TextEditingController(text: sourceLat.text);
-    final lngController = TextEditingController(text: sourceLng.text);
-    try {
-      final accepted = await showDialog<bool>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text(isStart ? '编辑起点' : '编辑终点'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: latController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: '纬度'),
-                ),
-                TextField(
-                  controller: lngController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: '经度'),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('确定'),
-              ),
-            ],
-          );
-        },
-      );
-      if (accepted != true || !mounted) return;
-      setState(() {
-        sourceLat.text = latController.text.trim();
-        sourceLng.text = lngController.text.trim();
-        _result = null;
-        _selectedPathIndex = 0;
-        _errorMessage = null;
-      });
-      final controller = _controller;
-      if (controller != null) await _clearRouteOverlays(controller);
-    } finally {
-      latController.dispose();
-      lngController.dispose();
-    }
+  Future<void> _pickPosition({required bool isStart}) async {
+    final result = await AMapLocationPicker.show(
+      context,
+      config: LocationPickerConfig(
+        title: isStart ? '选择起点' : '选择终点',
+        hintText: isStart ? '搜索起点' : '搜索终点',
+        initialKeyword: isStart ? _startSearchKeyword : _endSearchKeyword,
+        location: isStart ? _startPosition : _endPosition,
+        includeCurrentLocation: isStart,
+        currentLocationText: '我的位置',
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    await _applyPickedPosition(isStart: isStart, result: result);
+  }
+
+  Future<void> _applyPickedPosition({
+    required bool isStart,
+    required LocationPickerResult result,
+  }) async {
+    setState(() {
+      _setPositionText(isStart: isStart, position: result.position);
+      if (isStart) {
+        _startLocation = result;
+      } else {
+        _endLocation = result;
+      }
+      _result = null;
+      _selectedPathIndex = 0;
+      _errorMessage = null;
+    });
+
+    final controller = _controller;
+    if (controller == null) return;
+    await _clearRouteOverlays(controller);
+    await controller.moveCamera(
+      CameraPosition(position: result.position, zoom: 14),
+      const Duration(milliseconds: 300),
+    );
   }
 
   Future<void> _swapStartEnd() async {
@@ -955,12 +952,54 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       _startLngController.text = _endLngController.text;
       _endLatController.text = lat;
       _endLngController.text = lng;
+      final location = _startLocation;
+      _startLocation = _endLocation;
+      _endLocation = location;
       _result = null;
       _selectedPathIndex = 0;
       _errorMessage = null;
     });
     final controller = _controller;
     if (controller != null) await _clearRouteOverlays(controller);
+  }
+
+  Future<void> _moveToCurrentLocation() async {
+    final controller = _controller;
+    if (controller == null) return;
+
+    try {
+      final location = await controller.getUserLocation();
+      _lastLocation = location;
+      if (!mounted) return;
+
+      setState(() {
+        _setPositionText(isStart: true, position: location.position);
+        _startLocation = LocationPickerResult.fromCurrentLocation(
+          position: location.position,
+          name: '我的位置',
+        );
+        _result = null;
+        _selectedPathIndex = 0;
+        _errorMessage = null;
+      });
+      await _clearRouteOverlays(controller);
+      await controller.moveCamera(
+        CameraPosition(position: location.position, zoom: 16),
+        const Duration(milliseconds: 300),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final cachedLocation = _lastLocation;
+      if (cachedLocation != null) {
+        await controller.moveCamera(
+          CameraPosition(position: cachedLocation.position, zoom: 16),
+          const Duration(milliseconds: 300),
+        );
+        return;
+      }
+      setState(() => _errorMessage = e.toString());
+      LoadingUtil.showError('定位获取失败: $e');
+    }
   }
 
   List<RoutePoint> _parseWayPoints() {
@@ -981,6 +1020,24 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         .whereType<RoutePoint>()
         .toList();
   }
+
+  void _setPositionText({required bool isStart, required Position position}) {
+    final latController = isStart ? _startLatController : _endLatController;
+    final lngController = isStart ? _startLngController : _endLngController;
+    latController.text = _formatCoordinate(position.latitude);
+    lngController.text = _formatCoordinate(position.longitude);
+  }
+
+  String get _startTitle => _startLocation?.name ?? '我的位置';
+
+  String get _endTitle => _endLocation?.name ?? '目的地';
+
+  String? get _startSearchKeyword {
+    final name = _startLocation?.name;
+    return name == '我的位置' ? null : name;
+  }
+
+  String? get _endSearchKeyword => _endLocation?.name;
 
   Position get _startPosition {
     return Position(
@@ -1007,6 +1064,10 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   String? _emptyToNull(String value) {
     final text = value.trim();
     return text.isEmpty ? null : text;
+  }
+
+  String _formatCoordinate(double value) {
+    return value.toStringAsFixed(6);
   }
 
   int _selectedIndexFor(int length) {
@@ -1043,9 +1104,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Widget _buildRouteStepIcon(RouteStep step) {
-    final iconType = step.iconType ?? _routeStepIconType(step);
+    final iconName = _routeStepIconAssetName(step);
     return Image.asset(
-      'assets/navigation/$iconType.png',
+      'assets/navigation/$iconName.png',
       package: 'flutter_amap',
       width: 18,
       height: 18,
@@ -1054,24 +1115,31 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     );
   }
 
-  int _routeStepIconType(RouteStep step) {
+  String _routeStepIconAssetName(RouteStep step) {
     final actionName = step.action?.trim().isNotEmpty == true
         ? step.action!.trim()
         : step.assistantAction?.trim();
 
-    if (actionName == null || actionName.isEmpty) return 3;
-    if (actionName == '左转') return 2;
-    if (actionName == '右转') return 1;
-    if (actionName == '向左前方行驶' || actionName == '靠左') return 6;
-    if (actionName == '向右前方行驶' || actionName == '靠右') return 5;
-    if (actionName == '向左后方行驶' || actionName == '左转调头') return 7;
-    if (actionName == '向右后方行驶') return 8;
-    if (actionName == '直行') return 3;
-    if (actionName == '减速行驶') return 4;
-    return 3;
+    if (actionName == null || actionName.isEmpty) return '9';
+    if (actionName == '左转') return '2';
+    if (actionName == '右转') return '3';
+    if (actionName == '向左前方行驶') return '4';
+    if (actionName == '向右前方行驶') return '5';
+    if (actionName == '向左后方行驶') return '6';
+    if (actionName == '向右后方行驶') return '7';
+    if (actionName == '左转调头') return '8';
+    if (actionName == '直行') return '9';
+    if (actionName == '到达途经点') return '10';
+    if (actionName == '进入环岛') return '11';
+    if (actionName == '驶出环岛') return '12';
+    if (actionName == '到达服务区') return '13';
+    if (actionName == '到达收费站') return '14';
+    if (actionName == '到达目的地') return '15';
+    if (actionName == '到达隧道') return '16';
+    if (actionName == '靠左') return '65';
+    if (actionName == '靠右') return '66';
+    return '9';
   }
-
-
 
   double _distanceToPolylineMeters(Position point, List<Position> polyline) {
     var minDistance = double.infinity;
