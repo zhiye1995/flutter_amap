@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
@@ -301,18 +302,22 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             ),
           ],
         ),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-          children: [
-            if (_errorMessage != null) ...[
-              _buildErrorBanner(),
-              const SizedBox(height: 12),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_errorMessage != null) ...[
+                _buildErrorBanner(),
+                const SizedBox(height: 8),
+              ],
+              Expanded(
+                child: result == null || result.paths.isEmpty
+                    ? _buildPlanningPanel()
+                    : _buildRouteResultPanel(result),
+              ),
             ],
-            if (result == null || result.paths.isEmpty)
-              _buildPlanningPanel()
-            else
-              _buildRouteResultPanel(result),
-          ],
+          ),
         ),
       ),
     );
@@ -328,17 +333,28 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: _loading ? null : _searchRoute,
-          icon: _loading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.alt_route),
-          label: Text(_loading ? '查询中...' : '查询路线'),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Center(
+            child: SizedBox(
+              width: double.infinity,
+              height: 42,
+              child: FilledButton.icon(
+                onPressed: _loading ? null : _searchRoute,
+                icon: _loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.alt_route, size: 18),
+                label: Text(
+                  _loading ? '查询中...' : '查询路线',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -412,11 +428,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 102,
+          height: 74,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: paths.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               return _buildRoutePlanCard(
                 paths[index],
@@ -426,54 +442,56 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: Text(
                 _routeSummary(selectedPath),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  height: 1.15,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
+            TextButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const ui.Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                textStyle: const TextStyle(fontSize: 13),
+              ),
+              onPressed: selectedPath.steps.isEmpty
+                  ? null
+                  : () => _showRouteStepDetails(selectedPath),
+              icon: const Icon(Icons.list_alt, size: 18),
+              label: const Text(
+                '详情',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 10),
             SizedBox(
-              width: 150,
-              height: 48,
+              width: 118,
+              height: 38,
               child: FilledButton(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 onPressed: _openNativeNavi,
                 child: const Text('打开路线规划'),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: selectedPath.steps.isEmpty
-                    ? null
-                    : () => _showRouteStepDetails(selectedPath),
-                icon: const Icon(Icons.list_alt),
-                label: const Text(
-                  '路段详情',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _loading ? null : _searchRoute,
-                icon: const Icon(Icons.refresh),
-                label: const Text('重算'),
-              ),
-            ),
-          ],
-        ),
+
       ],
     );
   }
@@ -486,7 +504,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       onTap: () => _selectRoute(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        width: 136,
+        width: 118,
         decoration: BoxDecoration(
           border: Border.all(
             color: selected ? _brandBlue : const Color(0xFFDADDE2),
@@ -500,7 +518,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
               color: color,
               alignment: Alignment.center,
               child: Text(
@@ -509,7 +527,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: foreground,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -526,18 +544,18 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected ? _brandBlue : Colors.black,
-                        fontSize: 23,
+                        fontSize: 18,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       _formatDistance(path.distance),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected ? _brandBlue : Colors.black87,
-                        fontSize: 15,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -652,13 +670,15 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
   Widget _buildErrorBanner() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         _errorMessage!,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
       ),
     );
