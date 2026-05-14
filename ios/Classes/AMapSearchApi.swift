@@ -1066,6 +1066,7 @@ extension AMapSearchApi: AMapSearchDelegate {
 private extension NSObject {
     func setOptionalValue(_ value: Any?, forKey key: String) {
         guard let value = value else { return }
+        if value is NSNull { return }
         if let text = value as? String, text.isEmpty { return }
         guard responds(to: NSSelectorFromString(key)) else { return }
         setValue(value, forKey: key)
