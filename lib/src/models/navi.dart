@@ -169,12 +169,12 @@ class NaviConfig {
     this.start,
     this.end,
     this.wayPoints,
-    this.drivingStrategy = 10,
+    Object drivingStrategy = PathPlanningStrategy.drivingMultipleRoutesDefault,
     this.travelStrategy,
     this.multipleRoute = true,
     this.startNaviDirectly,
     this.vehicleInfo,
-  });
+  }) : drivingStrategy = PathPlanningStrategy.fromValue(drivingStrategy);
 
   /// 车牌号（用于限行规避）
   final String? carNumber;
@@ -198,7 +198,7 @@ class NaviConfig {
   final List<NaviPoint>? wayPoints;
 
   /// 驾车策略。导航 SDK 官方支持 0-20。
-  final int drivingStrategy;
+  final PathPlanningStrategy drivingStrategy;
 
   /// 步行/骑行策略，具体枚举值以当前导航 SDK 为准。
   final int? travelStrategy;
@@ -221,7 +221,7 @@ class NaviConfig {
       start?.encode(),
       end?.encode(),
       wayPoints?.map((e) => e.encode()).toList(),
-      drivingStrategy,
+      drivingStrategy.id,
       travelStrategy,
       multipleRoute,
       startNaviDirectly,
@@ -243,7 +243,7 @@ class NaviConfig {
               .map((e) => NaviPoint.decode(e as List<Object?>))
               .toList()
           : null,
-      drivingStrategy: at(7) as int? ?? 10,
+      drivingStrategy: PathPlanningStrategy.fromValue(at(7)),
       travelStrategy: at(8) as int?,
       multipleRoute: at(9) as bool? ?? true,
       startNaviDirectly: at(10) as bool?,
@@ -261,7 +261,7 @@ class NaviConfig {
     NaviPoint? start,
     NaviPoint? end,
     List<NaviPoint>? wayPoints,
-    int? drivingStrategy,
+    Object? drivingStrategy,
     int? travelStrategy,
     bool? multipleRoute,
     bool? startNaviDirectly,

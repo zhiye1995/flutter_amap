@@ -243,9 +243,10 @@ class AMapNaviApi {
                 naviType,
                 pageType
             ).setUseInnerVoice(true)
-            params.tryCall("setMultipleRouteNaviMode", multipleRoute)
-            params.tryCall("setRouteStrategy", drivingStrategy)
-            if (travelStrategy != null) {
+            if (naviType == AmapNaviType.DRIVER) {
+                params.tryCall("setMultipleRouteNaviMode", multipleRoute)
+                params.tryCall("setRouteStrategy", drivingStrategy)
+            } else if (travelStrategy != null) {
                 params.tryCall("setRouteStrategy", travelStrategy)
             }
             if (startNaviDirectly != null) {

@@ -186,7 +186,7 @@ void main() {
         position: Position(latitude: 39.99, longitude: 116.48),
         name: '终点',
       ),
-      strategy: 10,
+      strategy: PathPlanningStrategy.drivingMultipleRoutesDefault,
       wayPoints: <RoutePoint>[
         RoutePoint(position: Position(latitude: 39.95, longitude: 116.4)),
       ],
@@ -200,10 +200,19 @@ void main() {
 
     expect(map['type'], 'drive');
     expect(map['strategy'], 10);
+    expect(query.strategy, PathPlanningStrategy.drivingMultipleRoutesDefault);
     expect(map['avoidRoad'], '东三环');
     expect(map['extensions'], 'all');
     expect(map['carNumber'], '京A12345');
     expect((map['wayPoints'] as List), hasLength(1));
+
+    final legacyQuery = DriveRouteQuery(
+      origin: query.origin,
+      destination: query.destination,
+      strategy: 10,
+    );
+    expect(legacyQuery.strategy,
+        PathPlanningStrategy.drivingMultipleRoutesDefault);
   });
 
   test('RoutePlanResult decodes route paths and steps', () {
@@ -254,7 +263,7 @@ void main() {
         startAngle: 90,
       ),
       end: NaviPoint(position: Position(latitude: 39.99, longitude: 116.48)),
-      drivingStrategy: 10,
+      drivingStrategy: PathPlanningStrategy.drivingMultipleRoutesDefault,
       travelStrategy: 1,
       multipleRoute: false,
       startNaviDirectly: true,
@@ -266,7 +275,10 @@ void main() {
     expect(decoded.carNumber, '京A12345');
     expect(decoded.start?.poiId, 'start-poi');
     expect(decoded.start?.startAngle, 90);
-    expect(decoded.drivingStrategy, 10);
+    expect(
+      decoded.drivingStrategy,
+      PathPlanningStrategy.drivingMultipleRoutesDefault,
+    );
     expect(decoded.travelStrategy, 1);
     expect(decoded.multipleRoute, false);
     expect(decoded.startNaviDirectly, true);

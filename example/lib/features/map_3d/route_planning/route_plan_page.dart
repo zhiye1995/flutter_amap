@@ -1,12 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 class RoutePlanPage extends StatefulWidget {
-  const RoutePlanPage({
-    super.key,
-    required this.type,
-  });
+  const RoutePlanPage({super.key, required this.type});
 
   const RoutePlanPage.drive({super.key}) : type = RoutePlanType.drive;
   const RoutePlanPage.walk({super.key}) : type = RoutePlanType.walk;
@@ -30,22 +29,43 @@ class RoutePlanPage extends StatefulWidget {
 }
 
 class _RoutePlanPageState extends State<RoutePlanPage> {
-  static final _defaultStart =
-      Position(latitude: 39.908722, longitude: 116.397499);
-  static final _defaultEnd =
-      Position(latitude: 39.989872, longitude: 116.481956);
-  static final _padding = EdgePadding(top: 60, right: 60, bottom: 80, left: 60);
+  static final _defaultStart = Position(
+    latitude: 29.468220,
+    longitude: 106.648317,
+  );
+  static final _defaultEnd = Position(
+    latitude: 29.437143,
+    longitude: 106.486523,
+  );
+  static final _padding = EdgePadding(
+    top: 170,
+    right: 52,
+    bottom: 230,
+    left: 52,
+  );
+  static const _routeLinePrefix = 'route_path_';
+  static const _brandBlue = Color(0xFF3478F6);
+  static const _selectedRouteColor = Color(0xFF00B86B);
+  static const _alternativeRouteColors = <Color>[
+    Color(0x9990A4B8),
+    Color(0x998196A8),
+    Color(0x99E8590C),
+    Color(0x992E7D32),
+    Color(0x997B1FA2),
+  ];
 
   final _startLatController = TextEditingController(text: '39.908722');
   final _startLngController = TextEditingController(text: '116.397499');
   final _endLatController = TextEditingController(text: '39.989872');
   final _endLngController = TextEditingController(text: '116.481956');
-  final _strategyController = TextEditingController(text: '10');
   final _wayPointsController = TextEditingController();
   final _avoidRoadController = TextEditingController();
 
   AMapController? _controller;
   RoutePlanResult? _result;
+  final _routePolylineIds = <String>{};
+  var _driveStrategy = PathPlanningStrategy.drivingMultipleRoutesDefault;
+  var _selectedPathIndex = 0;
   var _loading = false;
   var _extensions = RoutePlanExtensions.all;
   String? _errorMessage;
@@ -56,7 +76,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     _startLngController.dispose();
     _endLatController.dispose();
     _endLngController.dispose();
-    _strategyController.dispose();
     _wayPointsController.dispose();
     _avoidRoadController.dispose();
     super.dispose();
@@ -65,34 +84,39 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
-          SizedBox(
-            height: 260,
-            child: AMapWidget(
-              initCameraPosition: CameraPosition(
-                position: _defaultStart,
-                zoom: 11,
-              ),
-              markers: _markers,
-              onMapCreated: (controller) => _controller = controller,
-            ),
-          ),
+          _buildRouteHeader(context),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(12),
+            child: Stack(
               children: [
-                _buildQueryCard(),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
-                  _buildErrorCard(),
-                ],
-                const SizedBox(height: 8),
-                if (_result != null) _buildResultCard(_result!),
+                Positioned.fill(
+                  child: AMapWidget(
+                    initCameraPosition: CameraPosition(
+                      position: _defaultStart,
+                      zoom: 11,
+                    ),
+                    markers: _markers,
+                    onMapPress: _selectNearestRoute,
+                    onMapCreated: (controller) {
+                      _controller = controller;
+                      final result = _result;
+                      if (result != null) {
+                        _drawRoute(result, fitSelected: false);
+                      }
+                    },
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  bottom: 30,
+                  child: _buildMapShortcutButtons(),
+                ),
               ],
             ),
           ),
+          SizedBox(height: 200, child: _buildBottomPanel()),
         ],
       ),
     );
@@ -105,78 +129,124 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     };
   }
 
-  Widget _buildQueryCard() {
-    final isDrive = widget.type == RoutePlanType.drive;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  bool get _isDrive => widget.type == RoutePlanType.drive;
+
+  Widget _buildRouteHeader(BuildContext context) {
+    return Material(
+      color: _brandBlue,
+      elevation: 4,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Align(
+                  alignment: .topLeft,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildRouteInputLine(
+                        prefix: '从',
+                        title: '我的位置',
+                        position: _startPosition,
+                        onTap: () => _editPosition(isStart: true),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildRouteInputLine(
+                        prefix: '到',
+                        title: '目的地',
+                        position: _endPosition,
+                        onTap: () => _editPosition(isStart: false),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  children: [
+                    IconButton(
+                      onPressed: _swapStartEnd,
+                      tooltip: '交换起终点',
+                      icon: const Icon(Icons.swap_vert, color: Colors.white),
+                    ),
+                    IconButton(
+                      onPressed: _loading ? null : _searchRoute,
+                      tooltip: '查询路线',
+                      icon: _loading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.search, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteInputLine({
+    required String prefix,
+    required String title,
+    required Position position,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        height: 35,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
           children: [
-            Text('路线参数', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
-            _buildPositionRow('起点', _startLatController, _startLngController),
-            const SizedBox(height: 10),
-            _buildPositionRow('终点', _endLatController, _endLngController),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _strategyController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: isDrive ? '驾车策略 0-20' : '模式/策略',
-                hintText: isDrive ? '10：高德默认多策略' : '0：默认',
-                border: const OutlineInputBorder(),
-                isDense: true,
+            Text(
+              prefix,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            if (isDrive) ...[
-              const SizedBox(height: 10),
-              TextField(
-                controller: _wayPointsController,
-                decoration: const InputDecoration(
-                  labelText: '途经点（可选）',
-                  hintText: 'lat,lng;lat,lng，地图 SDK 驾车最多 6 个',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _avoidRoadController,
-                decoration: const InputDecoration(
-                  labelText: '避让道路（可选）',
-                  hintText: '仅支持一条；与避让区域同时存在时避让道路优先',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            FilterChip(
-              label: const Text('返回扩展信息'),
-              selected: _extensions == RoutePlanExtensions.all,
-              onSelected: (value) => setState(() {
-                _extensions =
-                    value ? RoutePlanExtensions.all : RoutePlanExtensions.base;
-              }),
-            ),
-            const SizedBox(height: 10),
-            FilledButton.icon(
-              onPressed: _loading ? null : _searchRoute,
-              icon: _loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.alt_route),
-              label: Text(_loading ? '查询中...' : '查询并绘制路线'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _openNativeNavi,
-              icon: const Icon(Icons.navigation),
-              label: const Text('打开原生路线规划页'),
             ),
           ],
         ),
@@ -184,89 +254,412 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     );
   }
 
-  Widget _buildPositionRow(
-    String label,
-    TextEditingController latController,
-    TextEditingController lngController,
-  ) {
-    return Row(
+  Widget _buildMapShortcutButtons() {
+    return Column(
       children: [
-        SizedBox(width: 42, child: Text(label)),
-        Expanded(
-          child: TextField(
-            controller: latController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '纬度',
-              border: OutlineInputBorder(),
-              isDense: true,
+        _buildMapButton(Icons.refresh, _searchRoute),
+        const SizedBox(height: 12),
+        _buildMapButton(Icons.tune, _showRouteOptions),
+        const SizedBox(height: 12),
+        _buildMapButton(Icons.my_location, () {
+          final c = _controller;
+          if (c == null) return;
+          c.moveCamera(
+            CameraPosition(position: _startPosition, zoom: 12),
+            const Duration(milliseconds: 300),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMapButton(IconData icon, VoidCallback onPressed) {
+    return Material(
+      color: Colors.white,
+      elevation: 2,
+      borderRadius: BorderRadius.circular(8),
+      child: IconButton(
+        onPressed: _loading ? null : onPressed,
+        icon: Icon(icon, color: Colors.black87),
+      ),
+    );
+  }
+
+  Widget _buildBottomPanel() {
+    final result = _result;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 12,
+              offset: Offset(0, -3),
             ),
+          ],
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+          children: [
+            if (_errorMessage != null) ...[
+              _buildErrorBanner(),
+              const SizedBox(height: 12),
+            ],
+            if (result == null || result.paths.isEmpty)
+              _buildPlanningPanel()
+            else
+              _buildRouteResultPanel(result),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanningPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          widget.title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _loading ? null : _searchRoute,
+          icon: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.alt_route),
+          label: Text(_loading ? '查询中...' : '查询路线'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDrivingExtraOptions() {
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: EdgeInsets.zero,
+      title: const Text('更多驾车参数'),
+      children: [
+        TextField(
+          controller: _wayPointsController,
+          decoration: const InputDecoration(
+            labelText: '途经点（可选）',
+            hintText: 'lat,lng;lat,lng，地图 SDK 驾车最多 6 个',
+            border: OutlineInputBorder(),
+            isDense: true,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: lngController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '经度',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _avoidRoadController,
+          decoration: const InputDecoration(
+            labelText: '避让道路（可选）',
+            hintText: '仅支持一条',
+            border: OutlineInputBorder(),
+            isDense: true,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildErrorCard() {
-    return Card(
-      color: Theme.of(context).colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(
-          _errorMessage!,
-          style:
-              TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+  Widget _buildDrivingStrategyDropdown() {
+    return DropdownButtonFormField<PathPlanningStrategy>(
+      initialValue: _driveStrategy,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: '驾车策略',
+        helperText:
+            '${_driveStrategy.multipleRoute ? '多路线策略' : '单路线策略'}：${_driveStrategy.description}',
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: [
+        for (final strategy in PathPlanningStrategy.values)
+          DropdownMenuItem<PathPlanningStrategy>(
+            value: strategy,
+            child: Text(
+              '${strategy.displayName} · ${strategy.multipleRoute ? '多路线' : '单路线'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onChanged: _loading
+          ? null
+          : (value) {
+              if (value == null) return;
+              setState(() => _driveStrategy = value);
+            },
+    );
+  }
+
+  Widget _buildRouteResultPanel(RoutePlanResult result) {
+    final paths = result.paths;
+    final selectedIndex = _selectedIndexFor(paths.length);
+    final selectedPath = paths[selectedIndex];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 102,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: paths.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              return _buildRoutePlanCard(
+                paths[index],
+                index,
+                index == selectedIndex,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _routeSummary(selectedPath),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 150,
+              height: 48,
+              child: FilledButton(
+                onPressed: _openNativeNavi,
+                child: const Text('打开路线规划'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: selectedPath.steps.isEmpty
+                    ? null
+                    : () => _showRouteStepDetails(selectedPath),
+                icon: const Icon(Icons.list_alt),
+                label: const Text(
+                  '路段详情',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _loading ? null : _searchRoute,
+                icon: const Icon(Icons.refresh),
+                label: const Text('重算'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoutePlanCard(RoutePath path, int index, bool selected) {
+    final color = selected ? _brandBlue : const Color(0xFFE8E8E8);
+    final foreground = selected ? Colors.white : Colors.black87;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => _selectRoute(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 136,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: selected ? _brandBlue : const Color(0xFFDADDE2),
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+              color: color,
+              alignment: Alignment.center,
+              child: Text(
+                _pathTitle(path, index),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _formatDuration(path.duration),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? _brandBlue : Colors.black,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatDistance(path.distance),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? _brandBlue : Colors.black87,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildResultCard(RoutePlanResult result) {
-    final paths = result.paths;
-    if (paths.isEmpty) {
-      return const Card(child: ListTile(title: Text('未返回路线方案')));
-    }
-    final first = paths.first;
-    return Card(
-      child: Column(
+  Widget _buildStepItem(RouteStep step) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            title: Text('路线方案 ${paths.length} 条'),
-            subtitle: Text(
-              '首条：${_formatDistance(first.distance)} / '
-              '${_formatDuration(first.duration)}\n'
-              '策略：${first.strategy ?? '-'} '
-              '红绿灯：${first.totalTrafficLights ?? 0}',
-            ),
-            isThreeLine: true,
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            child: _buildRouteStepIcon(step),
           ),
-          ExpansionTile(
-            title: Text('路段明细（${first.steps.length}）'),
-            children: [
-              for (final step in first.steps.take(12))
-                ListTile(
-                  dense: true,
-                  title: Text(step.instruction ?? step.road ?? '-'),
-                  subtitle: Text(
-                    '${_formatDistance(step.distance)} '
-                    '${_formatDuration(step.duration)}',
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  step.instruction ?? step.road ?? '-',
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  '${step.action ?? step.assistantAction ?? '-'} · '
+                  '${_formatDistance(step.distance)} · '
+                  '${_formatDuration(step.duration)}',
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showRouteStepDetails(RoutePath path) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.78,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                Center(
+                  child: Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD0D3D8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '路段详情（${path.steps.length}）',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                        tooltip: '关闭',
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                    itemCount: path.steps.length,
+                    itemBuilder: (context, index) {
+                      return _buildStepItem(path.steps[index]);
+                    },
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        _errorMessage!,
+        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
       ),
     );
   }
@@ -281,35 +674,36 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     try {
       final result = switch (widget.type) {
         RoutePlanType.drive => await AMapSearch.searchDriveRoute(
-            DriveRouteQuery(
-              origin: origin,
-              destination: destination,
-              strategy: int.tryParse(_strategyController.text.trim()) ?? 10,
-              wayPoints: _parseWayPoints(),
-              avoidRoad: _emptyToNull(_avoidRoadController.text),
-              extensions: _extensions,
-            ),
+          DriveRouteQuery(
+            origin: origin,
+            destination: destination,
+            strategy: _driveStrategy,
+            wayPoints: _parseWayPoints(),
+            avoidRoad: _emptyToNull(_avoidRoadController.text),
+            extensions: _extensions,
           ),
+        ),
         RoutePlanType.walk => await AMapSearch.searchWalkRoute(
-            WalkRouteQuery(
-              origin: origin,
-              destination: destination,
-              mode: int.tryParse(_strategyController.text.trim()) ?? 0,
-              extensions: _extensions,
-            ),
+          WalkRouteQuery(
+            origin: origin,
+            destination: destination,
+            extensions: _extensions,
           ),
+        ),
         RoutePlanType.ride => await AMapSearch.searchRideRoute(
-            RideRouteQuery(
-              origin: origin,
-              destination: destination,
-              mode: int.tryParse(_strategyController.text.trim()) ?? 0,
-              extensions: _extensions,
-            ),
+          RideRouteQuery(
+            origin: origin,
+            destination: destination,
+            extensions: _extensions,
           ),
+        ),
       };
       if (!mounted) return;
-      setState(() => _result = result);
-      await _drawRoute(result);
+      setState(() {
+        _result = result;
+        _selectedPathIndex = 0;
+      });
+      await _drawRoute(result, fitSelected: false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.toString());
@@ -319,25 +713,87 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     }
   }
 
-  Future<void> _drawRoute(RoutePlanResult result) async {
+  Future<void> _drawRoute(
+    RoutePlanResult result, {
+    bool fitSelected = true,
+  }) async {
     final controller = _controller;
     if (controller == null) return;
-    await controller.removePolyline('route_path');
-    final points = result.paths.firstOrNull?.polyline ?? const <Position>[];
-    if (points.length < 2) return;
-    await controller.addPolyline(
-      Polyline(
-        id: 'route_path',
-        points: points,
-        width: 12,
-        color: const Color(0xFF1976D2),
-      ),
-    );
+    await _clearRouteOverlays(controller);
+    final allPoints = <Position>[];
+    final selectedIndex = _selectedIndexFor(result.paths.length);
+    final drawOrder = <int>[
+      for (var index = 0; index < result.paths.length; index++)
+        if (index != selectedIndex) index,
+      if (result.paths.isNotEmpty) selectedIndex,
+    ];
+    for (final pathIndex in drawOrder) {
+      final path = result.paths[pathIndex];
+      final points = _pathPoints(path);
+      if (points.length < 2) continue;
+      allPoints.addAll(points);
+      final lineId = '$_routeLinePrefix$pathIndex';
+      _routePolylineIds.add(lineId);
+      final selected = pathIndex == selectedIndex;
+      await controller.addPolyline(
+        Polyline(
+          id: lineId,
+          points: points,
+          width: selected ? 14 : 8,
+          color: _routeColor(pathIndex, selected: selected),
+        ),
+      );
+    }
+    if (allPoints.length < 2) return;
+    final selectedPoints = _pathPoints(result.paths[selectedIndex]);
     controller.moveCameraToFitPosition(
-      points,
+      fitSelected && selectedPoints.length >= 2 ? selectedPoints : allPoints,
       _padding,
       const Duration(milliseconds: 300),
     );
+  }
+
+  Future<void> _clearRouteOverlays(AMapController controller) async {
+    for (final id in _routePolylineIds.toList()) {
+      await controller.removePolyline(id);
+    }
+    _routePolylineIds.clear();
+  }
+
+  List<Position> _pathPoints(RoutePath path) {
+    if (path.polyline.length >= 2) return path.polyline;
+    return path.steps.expand((step) => step.polyline).toList();
+  }
+
+  Future<void> _selectRoute(int index) async {
+    final result = _result;
+    if (result == null || index < 0 || index >= result.paths.length) return;
+    if (index != _selectedPathIndex) {
+      setState(() => _selectedPathIndex = index);
+    }
+    await _drawRoute(result);
+  }
+
+  Future<void> _selectNearestRoute(Position tapPosition) async {
+    final result = _result;
+    if (result == null || result.paths.length < 2) return;
+    var nearestIndex = -1;
+    var nearestDistance = double.infinity;
+    for (var index = 0; index < result.paths.length; index++) {
+      final points = _pathPoints(result.paths[index]);
+      if (points.length < 2) continue;
+      final distance = _distanceToPolylineMeters(tapPosition, points);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    }
+    if (nearestIndex < 0) return;
+    final scale = await _controller?.getScalePerPixel();
+    final toleranceMeters = math.max(30.0, (scale ?? 8.0) * 26.0);
+    if (nearestDistance <= toleranceMeters) {
+      await _selectRoute(nearestIndex);
+    }
   }
 
   Future<void> _openNativeNavi() {
@@ -351,10 +807,140 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         pageType: NaviPageType.route,
         start: NaviPoint(position: _startPosition, name: '起点'),
         end: NaviPoint(position: _endPosition, name: '终点'),
-        drivingStrategy: int.tryParse(_strategyController.text.trim()) ?? 10,
-        travelStrategy: int.tryParse(_strategyController.text.trim()),
+        drivingStrategy: _driveStrategy,
+        startNaviDirectly: false,
       ),
     );
+  }
+
+  Future<void> _showRouteOptions() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _isDrive ? '路线参数' : '扩展信息',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_isDrive) ...[
+                    _buildDrivingStrategyDropdown(),
+                    const SizedBox(height: 12),
+                    _buildDrivingExtraOptions(),
+                  ],
+                  const SizedBox(height: 12),
+                  FilterChip(
+                    label: const Text('返回扩展信息'),
+                    selected: _extensions == RoutePlanExtensions.all,
+                    onSelected: (value) {
+                      setState(() {
+                        _extensions = value
+                            ? RoutePlanExtensions.all
+                            : RoutePlanExtensions.base;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _searchRoute();
+                    },
+                    child: const Text('按当前参数重算'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _editPosition({required bool isStart}) async {
+    final sourceLat = isStart ? _startLatController : _endLatController;
+    final sourceLng = isStart ? _startLngController : _endLngController;
+    final latController = TextEditingController(text: sourceLat.text);
+    final lngController = TextEditingController(text: sourceLng.text);
+    try {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(isStart ? '编辑起点' : '编辑终点'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: latController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '纬度'),
+                ),
+                TextField(
+                  controller: lngController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '经度'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('确定'),
+              ),
+            ],
+          );
+        },
+      );
+      if (accepted != true || !mounted) return;
+      setState(() {
+        sourceLat.text = latController.text.trim();
+        sourceLng.text = lngController.text.trim();
+        _result = null;
+        _selectedPathIndex = 0;
+        _errorMessage = null;
+      });
+      final controller = _controller;
+      if (controller != null) await _clearRouteOverlays(controller);
+    } finally {
+      latController.dispose();
+      lngController.dispose();
+    }
+  }
+
+  Future<void> _swapStartEnd() async {
+    setState(() {
+      final lat = _startLatController.text;
+      final lng = _startLngController.text;
+      _startLatController.text = _endLatController.text;
+      _startLngController.text = _endLngController.text;
+      _endLatController.text = lat;
+      _endLngController.text = lng;
+      _result = null;
+      _selectedPathIndex = 0;
+      _errorMessage = null;
+    });
+    final controller = _controller;
+    if (controller != null) await _clearRouteOverlays(controller);
   }
 
   List<RoutePoint> _parseWayPoints() {
@@ -368,7 +954,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           final lat = double.tryParse(pair[0].trim());
           final lng = double.tryParse(pair[1].trim());
           if (lat == null || lng == null) return null;
-          return RoutePoint(position: Position(latitude: lat, longitude: lng));
+          return RoutePoint(
+            position: Position(latitude: lat, longitude: lng),
+          );
         })
         .whereType<RoutePoint>()
         .toList();
@@ -376,18 +964,22 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
   Position get _startPosition {
     return Position(
-      latitude: double.tryParse(_startLatController.text.trim()) ??
+      latitude:
+          double.tryParse(_startLatController.text.trim()) ??
           _defaultStart.latitude,
-      longitude: double.tryParse(_startLngController.text.trim()) ??
+      longitude:
+          double.tryParse(_startLngController.text.trim()) ??
           _defaultStart.longitude,
     );
   }
 
   Position get _endPosition {
     return Position(
-      latitude: double.tryParse(_endLatController.text.trim()) ??
+      latitude:
+          double.tryParse(_endLatController.text.trim()) ??
           _defaultEnd.latitude,
-      longitude: double.tryParse(_endLngController.text.trim()) ??
+      longitude:
+          double.tryParse(_endLngController.text.trim()) ??
           _defaultEnd.longitude,
     );
   }
@@ -397,16 +989,127 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     return text.isEmpty ? null : text;
   }
 
+  int _selectedIndexFor(int length) {
+    if (length <= 0) return 0;
+    return _selectedPathIndex.clamp(0, length - 1).toInt();
+  }
+
+  Color _routeColor(int index, {required bool selected}) {
+    if (selected) return _selectedRouteColor;
+    return _alternativeRouteColors[index % _alternativeRouteColors.length];
+  }
+
+  String _pathTitle(RoutePath path, int index) {
+    final strategy = path.strategy?.trim();
+    if (strategy != null && strategy.isNotEmpty) {
+      if (strategy.length <= 6) return strategy;
+      if (strategy.contains('时间')) return '时间短';
+      if (strategy.contains('距离')) return '距离短';
+      if (strategy.contains('拥堵')) return '躲避拥堵';
+      if (strategy.contains('收费')) return '少收费';
+      if (strategy.contains('高速')) return '高速优先';
+      return strategy;
+    }
+    if (index == 0 && _isDrive) return _driveStrategy.label;
+    return index == 0 ? '推荐' : '方案 ${index + 1}';
+  }
+
+  String _routeSummary(RoutePath path) {
+    final lights = path.totalTrafficLights;
+    if (lights != null && lights > 0) return '红绿灯$lights个';
+    final strategy = path.strategy?.trim();
+    if (strategy != null && strategy.isNotEmpty) return strategy;
+    return '${_formatDistance(path.distance)} · ${_formatDuration(path.duration)}';
+  }
+
+  Widget _buildRouteStepIcon(RouteStep step) {
+    final iconType = step.iconType ?? _routeStepIconType(step);
+    return Image.asset(
+      'assets/navigation/$iconType.png',
+      package: 'flutter_amap',
+      width: 18,
+      height: 18,
+      color: Colors.black,
+      errorBuilder: (_, __, ___) => const SizedBox(width: 18, height: 18),
+    );
+  }
+
+  int _routeStepIconType(RouteStep step) {
+    final actionName = step.action?.trim().isNotEmpty == true
+        ? step.action!.trim()
+        : step.assistantAction?.trim();
+
+    if (actionName == null || actionName.isEmpty) return 3;
+    if (actionName == '左转') return 2;
+    if (actionName == '右转') return 1;
+    if (actionName == '向左前方行驶' || actionName == '靠左') return 6;
+    if (actionName == '向右前方行驶' || actionName == '靠右') return 5;
+    if (actionName == '向左后方行驶' || actionName == '左转调头') return 7;
+    if (actionName == '向右后方行驶') return 8;
+    if (actionName == '直行') return 3;
+    if (actionName == '减速行驶') return 4;
+    return 3;
+  }
+
+
+
+  double _distanceToPolylineMeters(Position point, List<Position> polyline) {
+    var minDistance = double.infinity;
+    for (var index = 0; index < polyline.length - 1; index++) {
+      final distance = _distanceToSegmentMeters(
+        point,
+        polyline[index],
+        polyline[index + 1],
+      );
+      if (distance < minDistance) minDistance = distance;
+    }
+    return minDistance;
+  }
+
+  double _distanceToSegmentMeters(
+    Position point,
+    Position start,
+    Position end,
+  ) {
+    const earthRadiusMeters = 6371000.0;
+    final baseLat = _radians(point.latitude);
+
+    double x(Position p) {
+      return _radians(p.longitude - point.longitude) *
+          math.cos(baseLat) *
+          earthRadiusMeters;
+    }
+
+    double y(Position p) {
+      return _radians(p.latitude - point.latitude) * earthRadiusMeters;
+    }
+
+    final startX = x(start);
+    final startY = y(start);
+    final endX = x(end);
+    final endY = y(end);
+    final dx = endX - startX;
+    final dy = endY - startY;
+    final len2 = dx * dx + dy * dy;
+    if (len2 == 0) return math.sqrt(startX * startX + startY * startY);
+    final t = (-(startX * dx + startY * dy) / len2).clamp(0.0, 1.0).toDouble();
+    final nearestX = startX + t * dx;
+    final nearestY = startY + t * dy;
+    return math.sqrt(nearestX * nearestX + nearestY * nearestY);
+  }
+
+  double _radians(double degrees) => degrees * math.pi / 180.0;
+
   String _formatDistance(double? meters) {
     if (meters == null) return '-';
-    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)} km';
-    return '${meters.toStringAsFixed(0)} m';
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)}公里';
+    return '${meters.toStringAsFixed(0)}米';
   }
 
   String _formatDuration(double? seconds) {
     if (seconds == null) return '-';
     final minutes = (seconds / 60).round();
-    if (minutes < 60) return '$minutes 分钟';
+    if (minutes < 60) return '$minutes分钟';
     return '${minutes ~/ 60}小时${minutes % 60}分钟';
   }
 }

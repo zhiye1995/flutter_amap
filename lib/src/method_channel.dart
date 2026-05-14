@@ -742,7 +742,7 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         'motorcycleCC': config.motorcycleCC,
         'naviType': config.naviType.index,
         'pageType': config.pageType.index,
-        'drivingStrategy': config.drivingStrategy,
+        'drivingStrategy': config.drivingStrategy.id,
         'travelStrategy': config.travelStrategy,
         'multipleRoute': config.multipleRoute,
         'startNaviDirectly': config.startNaviDirectly,

@@ -706,6 +706,189 @@ class RouteAvoidPolygon {
   }
 }
 
+/// 驾车路径规划策略。
+///
+/// 对齐高德导航 SDK `PathPlanningStrategy` 的 0-20 策略 ID。原生通道仍然
+/// 传 [id]，Dart API 使用枚举避免页面和业务代码里散落魔法数字。
+enum PathPlanningStrategy {
+  drivingDefault(
+    0,
+    'DRIVING_DEFAULT',
+    '速度优先',
+    '速度优先，不考虑当时路况，返回耗时最短的路线，但是此路线不一定距离最短',
+    false,
+  ),
+  drivingSaveMoney(
+    1,
+    'DRIVING_SAVE_MONEY',
+    '费用优先',
+    '费用优先，不走收费路段，且耗时最少的路线',
+    false,
+  ),
+  drivingShortestDistance(
+    2,
+    'DRIVING_SHORTEST_DISTANCE',
+    '距离优先',
+    '距离优先，不考虑路况，仅走距离最短的路线，但是可能存在穿越小路/小区的情况',
+    false,
+  ),
+  drivingNoExpressWays(
+    3,
+    'DRIVING_NO_EXPRESS_WAYS',
+    '不走快速路',
+    '速度优先，不走快速路，例如京通快速路（建议使用 13）',
+    false,
+  ),
+  drivingAvoidCongestion(
+    4,
+    'DRIVING_AVOID_CONGESTION',
+    '躲避拥堵',
+    '躲避拥堵，但是可能会存在绕路的情况，耗时可能较长',
+    false,
+  ),
+  drivingMultiplePrioritySpeedCostDistance(
+    5,
+    'DRIVING_MULTIPLE_PRIORITY_SPEED_COST_DISTANCE',
+    '多策略',
+    '同时使用速度优先、费用优先、距离优先三个策略计算路径，通常返回一到三条路线',
+    true,
+  ),
+  drivingSingleRouteAvoidHighspeed(
+    6,
+    'DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED',
+    '不走高速',
+    '速度优先，不走高速，但是不排除走其余收费路段',
+    false,
+  ),
+  drivingSingleRouteAvoidHighspeedCost(
+    7,
+    'DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED_COST',
+    '不走高速且避免收费',
+    '费用优先，不走高速且避免所有收费路段',
+    false,
+  ),
+  drivingSingleRouteAvoidCongestionCost(
+    8,
+    'DRIVING_SINGLE_ROUTE_AVOID_CONGESTION_COST',
+    '躲避拥堵和收费',
+    '躲避拥堵和收费，可能存在走高速的情况，并且考虑路况不走拥堵路线',
+    false,
+  ),
+  drivingSingleRouteAvoidHighspeedCostCongestion(
+    9,
+    'DRIVING_SINGLE_ROUTE_AVOID_HIGHSPEED_COST_CONGESTION',
+    '躲避拥堵收费且不走高速',
+    '躲避拥堵和收费，不走高速',
+    false,
+  ),
+  drivingMultipleRoutesDefault(
+    10,
+    'DRIVING_MULTIPLE_ROUTES_DEFAULT',
+    '高德默认多路线',
+    '返回结果会躲避拥堵，路程较短，尽量缩短时间，与高德地图默认策略一致',
+    true,
+  ),
+  drivingMultipleShortestTimeDistance(
+    11,
+    'DRIVING_MULTIPLE_SHORTEST_TIME_DISTANCE',
+    '时间/距离/避堵',
+    '返回三个结果包含：时间最短、距离最短、躲避拥堵（建议使用 10）',
+    true,
+  ),
+  drivingMultipleRoutesAvoidCongestion(
+    12,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_CONGESTION',
+    '躲避拥堵多路线',
+    '返回的结果考虑路况，尽量躲避拥堵，与高德地图“躲避拥堵”策略一致',
+    true,
+  ),
+  drivingMultipleRoutesAvoidHighspeed(
+    13,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_HIGHSPEED',
+    '不走高速多路线',
+    '返回的结果不走高速，与高德地图“不走高速”策略一致',
+    true,
+  ),
+  drivingMultipleRoutesAvoidCost(
+    14,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_COST',
+    '避免收费多路线',
+    '返回的结果尽可能规划收费较低甚至免费的路径，与高德地图“避免收费”策略一致',
+    true,
+  ),
+  drivingMultipleRoutesAvoidHighspeedCongestion(
+    15,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_HIGHSPEED_CONGESTION',
+    '躲避拥堵且不走高速',
+    '返回的结果考虑路况，尽量躲避拥堵，并且不走高速',
+    true,
+  ),
+  drivingMultipleRoutesAvoidHighspeedCost(
+    16,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_HIGHTSPEED_COST',
+    '避免收费且不走高速',
+    '返回的结果尽量不走高速，并且尽量规划收费较低甚至免费的路径',
+    true,
+  ),
+  drivingMultipleRoutesAvoidCostCongestion(
+    17,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_COST_CONGESTION',
+    '躲避拥堵且避免收费',
+    '返回路径规划结果会尽量躲避拥堵，并且规划收费较低甚至免费的路径',
+    true,
+  ),
+  drivingMultipleRoutesAvoidHighspeedCostCongestion(
+    18,
+    'DRIVING_MULTIPLE_ROUTES_AVOID_HIGHSPEED_COST_CONGESTION',
+    '躲避拥堵收费且不走高速',
+    '返回的结果尽量躲避拥堵，规划收费较低甚至免费的路径，并且尽量不走高速路',
+    true,
+  ),
+  drivingMultipleRoutesPriorityHighspeed(
+    19,
+    'DRIVING_MULTIPLE_ROUTES_PRIORITY_HIGHSPEED',
+    '高速优先',
+    '返回的结果会优先选择高速路，与高德地图“高速优先”策略一致',
+    true,
+  ),
+  drivingMultipleRoutesPriorityHighspeedAvoidCongestion(
+    20,
+    'DRIVING_MULTIPLE_ROUTES_PRIORITY_HIGHSPEED_AVOID_CONGESTION',
+    '高速优先且躲避拥堵',
+    '返回的结果会优先考虑高速路，并且会考虑路况躲避拥堵',
+    true,
+  );
+
+  const PathPlanningStrategy(
+    this.id,
+    this.constantName,
+    this.label,
+    this.description,
+    this.multipleRoute,
+  );
+
+  final int id;
+  final String constantName;
+  final String label;
+  final String description;
+
+  /// 是否为可能返回多条路径的策略。
+  final bool multipleRoute;
+
+  String get displayName => '$id $label';
+
+  static PathPlanningStrategy fromValue(Object? value) {
+    if (value is PathPlanningStrategy) return value;
+    if (value is num) {
+      return values.firstWhere(
+        (strategy) => strategy.id == value.toInt(),
+        orElse: () => drivingMultipleRoutesDefault,
+      );
+    }
+    return drivingMultipleRoutesDefault;
+  }
+}
+
 abstract class RoutePlanQuery {
   RoutePlanQuery({
     required this.type,
@@ -739,7 +922,7 @@ class DriveRouteQuery extends RoutePlanQuery {
   DriveRouteQuery({
     required super.origin,
     required super.destination,
-    this.strategy = 10,
+    Object strategy = PathPlanningStrategy.drivingMultipleRoutesDefault,
     this.wayPoints = const <RoutePoint>[],
     this.avoidPolygons = const <RouteAvoidPolygon>[],
     this.avoidRoad,
@@ -749,10 +932,11 @@ class DriveRouteQuery extends RoutePlanQuery {
     this.plateProvince,
     this.excludeRoadType,
     this.ferry,
-  }) : super(type: RoutePlanType.drive);
+  })  : strategy = PathPlanningStrategy.fromValue(strategy),
+        super(type: RoutePlanType.drive);
 
   /// 驾车策略。官方地图 SDK 支持 0-20。
-  final int strategy;
+  final PathPlanningStrategy strategy;
 
   /// 途经点。地图 SDK 驾车最多支持 6 个，导航 SDK 最多 16 个。
   final List<RoutePoint> wayPoints;
@@ -773,7 +957,7 @@ class DriveRouteQuery extends RoutePlanQuery {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       ...super.toMap(),
-      'strategy': strategy,
+      'strategy': strategy.id,
       'wayPoints': wayPoints.map((point) => point.toMap()).toList(),
       'avoidPolygons': avoidPolygons.map((polygon) => polygon.toMap()).toList(),
       'avoidRoad': avoidRoad ?? '',
@@ -953,6 +1137,7 @@ class RouteStep {
     this.road,
     this.action,
     this.assistantAction,
+    this.iconType,
     this.distance,
     this.duration,
     this.tolls,
@@ -967,6 +1152,7 @@ class RouteStep {
   final String? road;
   final String? action;
   final String? assistantAction;
+  final int? iconType;
   final double? distance;
   final double? duration;
   final double? tolls;
@@ -985,6 +1171,7 @@ class RouteStep {
       road: map['road'] as String?,
       action: map['action'] as String?,
       assistantAction: map['assistantAction'] as String?,
+      iconType: (map['iconType'] as num?)?.toInt(),
       distance: (map['distance'] as num?)?.toDouble(),
       duration: (map['duration'] as num?)?.toDouble(),
       tolls: (map['tolls'] as num?)?.toDouble(),
