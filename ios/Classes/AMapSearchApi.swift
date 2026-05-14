@@ -487,10 +487,11 @@ class AMapSearchApi: NSObject {
 
     private func avoidPolygons(_ value: Any?) -> [AMapGeoPolygon]? {
         guard let list = value as? [[String: Any]] else { return nil }
-        return list.compactMap { polygon in
+        return list.compactMap { polygon -> AMapGeoPolygon? in
             guard let points = polygon["points"] as? [[String: Any]] else { return nil }
             let geoPoints = points.compactMap { geoPoint($0) }
-            return geoPoints.count >= 3 ? AMapGeoPolygon.polygon(withPoints: geoPoints) : nil
+            guard geoPoints.count >= 3 else { return nil }
+            return AMapGeoPolygon.polygon(withPoints: geoPoints)
         }
     }
 
