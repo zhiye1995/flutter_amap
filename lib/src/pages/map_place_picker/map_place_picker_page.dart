@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../../flutter_amap.dart';
 
 const _kMapPlacePickerPanelAnimationDuration = Duration(milliseconds: 280);
 const _kMapPlacePickerCameraAnimationDuration = Duration(milliseconds: 300);
@@ -245,7 +245,6 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     });
 
     try {
-      
       final result = await AMapSearch.searchPOIKeywords(
         PoiKeywordSearchQuery(
           keywords: keywords,

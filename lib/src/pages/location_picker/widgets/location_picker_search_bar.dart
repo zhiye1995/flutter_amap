@@ -1,4 +1,4 @@
-part of '../../../../flutter_amap.dart';
+part of '../../../../../flutter_amap.dart';
 
 class _LocationPickerSearchBar extends StatelessWidget {
   const _LocationPickerSearchBar({

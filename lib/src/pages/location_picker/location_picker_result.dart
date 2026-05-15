@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../../flutter_amap.dart';
 
 /// 位置选择来源。
 enum LocationPickerResultSource {
@@ -94,8 +94,7 @@ class LocationPickerResult {
         reGeocode?.pois.isNotEmpty == true ? reGeocode!.pois.first : null;
     return LocationPickerResult(
       position: position,
-      name: _locationPickerEmptyToNull(poi?.name) ??
-          _locationPickerEmptyToNull(name),
+      name: _locationPickerEmptyToNull(name),
       address: _locationPickerEmptyToNull(poi?.address) ??
           _locationPickerEmptyToNull(reGeocode?.formattedAddress),
       poiId: _locationPickerEmptyToNull(poi?.poiId),

@@ -1033,8 +1033,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   String get _endTitle => _endLocation?.name ?? '目的地';
 
   String? get _startSearchKeyword {
-    final name = _startLocation?.name;
-    return name == '我的位置' ? null : name;
+    final location = _startLocation;
+    if (location?.source == LocationPickerResultSource.currentLocation) {
+      return null;
+    }
+    return location?.name;
   }
 
   String? get _endSearchKeyword => _endLocation?.name;

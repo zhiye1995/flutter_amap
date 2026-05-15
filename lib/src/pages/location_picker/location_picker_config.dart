@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../../flutter_amap.dart';
 
 /// 位置选择器搜索模式。
 enum LocationPickerSearchMode {
@@ -24,6 +24,7 @@ class LocationPickerConfig {
     this.location,
     this.includeCurrentLocation = true,
     this.currentLocationText = '我的位置',
+    this.currentLocationTimeout = const Duration(seconds: 15),
     this.searchMode = LocationPickerSearchMode.auto,
     this.debounceDelay = const Duration(milliseconds: 300),
     this.pageSize = 20,
@@ -55,6 +56,9 @@ class LocationPickerConfig {
 
   /// “我的位置”入口和返回结果的默认名称。
   final String currentLocationText;
+
+  /// 等待首次定位结果的超时时间。
+  final Duration currentLocationTimeout;
 
   /// 搜索模式。
   final LocationPickerSearchMode searchMode;

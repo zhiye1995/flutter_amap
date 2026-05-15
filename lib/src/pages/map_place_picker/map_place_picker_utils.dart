@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../../flutter_amap.dart';
 
 /// 拖动地图后，与上次周边搜索中心距离小于该值（米）则不再请求。
 const double _kMinNearbySearchMoveMeters = 40;

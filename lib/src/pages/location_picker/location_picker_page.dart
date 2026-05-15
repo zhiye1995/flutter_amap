@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../../flutter_amap.dart';
 
 class _LocationPickerEntry {
   const _LocationPickerEntry._({
@@ -273,7 +273,7 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
           (controller == null
               ? null
               : await controller.waitForUserLocation(
-                  timeout: const Duration(seconds: 10),
+                  timeout: config.currentLocationTimeout,
                 ));
       if (location == null) {
         throw StateError('定位尚未就绪');
@@ -301,7 +301,16 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
           reGeocode: reGeocode,
         ),
       );
+    } on TimeoutException catch (e) {
+      if (kDebugMode) print('Failed to get current location: $e');
+
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = '定位超时，请确认已授予定位权限并稍后重试';
+      });
     } catch (e) {
+      if (kDebugMode) print('Failed to get current location: $e');
+
       if (!mounted) return;
       setState(() => _errorMessage = e.toString());
     } finally {
