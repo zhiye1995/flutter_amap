@@ -357,6 +357,57 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     );
   }
 
+  /// 启动点标记平滑移动
+  @override
+  Future<void> startSmoothMoveMarker(
+    Marker marker,
+    List<Position> points,
+    int durationMs, {
+    required int mapId,
+  }) {
+    return _channel(mapId).invokeMethod(
+      "startSmoothMoveMarker",
+      <String, dynamic>{
+        "marker": marker,
+        "points": points,
+        "durationMs": durationMs,
+      },
+    );
+  }
+
+  /// 停止并移除平滑移动点标记
+  @override
+  Future<void> stopSmoothMoveMarker(String markerId, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "stopSmoothMoveMarker",
+      <String, dynamic>{
+        "markerId": markerId,
+      },
+    );
+  }
+
+  /// 暂停平滑移动点标记
+  @override
+  Future<void> pauseSmoothMoveMarker(String markerId, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "pauseSmoothMoveMarker",
+      <String, dynamic>{
+        "markerId": markerId,
+      },
+    );
+  }
+
+  /// 继续平滑移动点标记
+  @override
+  Future<void> resumeSmoothMoveMarker(String markerId, {required int mapId}) {
+    return _channel(mapId).invokeMethod(
+      "resumeSmoothMoveMarker",
+      <String, dynamic>{
+        "markerId": markerId,
+      },
+    );
+  }
+
   /// 添加折线
   @override
   Future<void> addPolyline(Polyline polyline, {required int mapId}) {

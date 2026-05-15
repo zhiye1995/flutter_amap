@@ -109,6 +109,32 @@ class AMapController: NSObject {
       api.removeMarker(id: id)
       result(nil)
     }
+    else if(call.method == "startSmoothMoveMarker") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let marker = arguments["marker"] as! Marker
+      let points = arguments["points"] as! [Position]
+      let durationMs = (arguments["durationMs"] as! NSNumber).intValue
+      api.startSmoothMoveMarker(marker: marker, points: points, durationMs: durationMs)
+      result(nil)
+    }
+    else if(call.method == "stopSmoothMoveMarker") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let markerId = arguments["markerId"] as! String
+      api.stopSmoothMoveMarker(markerId: markerId)
+      result(nil)
+    }
+    else if(call.method == "pauseSmoothMoveMarker") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let markerId = arguments["markerId"] as! String
+      api.pauseSmoothMoveMarker(markerId: markerId)
+      result(nil)
+    }
+    else if(call.method == "resumeSmoothMoveMarker") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let markerId = arguments["markerId"] as! String
+      api.resumeSmoothMoveMarker(markerId: markerId)
+      result(nil)
+    }
     else if(call.method == "addPolyline") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let polyline = arguments["polyline"] as! Polyline

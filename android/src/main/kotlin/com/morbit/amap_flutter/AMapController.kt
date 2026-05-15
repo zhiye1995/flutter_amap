@@ -117,6 +117,32 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(null)
       }
 
+      "startSmoothMoveMarker" -> {
+        val marker = call.argument<Marker>("marker")!!
+        val points = call.argument<List<Position>>("points")!!
+        val durationMs = (call.argument<Any>("durationMs") as Number).toLong()
+        api.startSmoothMoveMarker(marker, points, durationMs)
+        result.success(null)
+      }
+
+      "stopSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.stopSmoothMoveMarker(markerId)
+        result.success(null)
+      }
+
+      "pauseSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.pauseSmoothMoveMarker(markerId)
+        result.success(null)
+      }
+
+      "resumeSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.resumeSmoothMoveMarker(markerId)
+        result.success(null)
+      }
+
       "addPolyline" -> {
         val polyline = call.argument<Polyline>("polyline")!!
         api.addPolyline(polyline)

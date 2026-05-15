@@ -192,6 +192,39 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
+  /// 启动点标记平滑移动（Android `SmoothMoveMarker`；iOS `MAAnimatedAnnotation`）。
+  Future<void> startSmoothMoveMarker(
+    Marker marker,
+    List<Position> points,
+    int durationMs, {
+    required int mapId,
+  }) {
+    throw UnimplementedError(
+      'startSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 停止并移除平滑移动点标记。
+  Future<void> stopSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'stopSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 暂停平滑移动点标记。
+  Future<void> pauseSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'pauseSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 继续平滑移动点标记。
+  Future<void> resumeSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'resumeSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
   /// 添加折线
   Future<void> addPolyline(Polyline polyline, {required int mapId}) {
     throw UnimplementedError('addPolyline() has not been implemented.');

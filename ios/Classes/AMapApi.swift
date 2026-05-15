@@ -13,6 +13,25 @@ import AMapNaviKit
 #error("Neither MAMapKit nor AMapNaviKit is available. Please add AMapNavi (recommended) or AMap3DMap to your Pod dependencies.")
 #endif
 
+private class SmoothMoveState {
+  let marker: Marker
+  let points: [Position]
+  let durationMs: Int
+  var startTime: Date
+  var remainingMs: Int
+  var pausedPosition: Position?
+  var paused: Bool
+
+  init(marker: Marker, points: [Position], durationMs: Int) {
+    self.marker = marker
+    self.points = points
+    self.durationMs = durationMs
+    self.startTime = Date()
+    self.remainingMs = durationMs
+    self.paused = false
+  }
+}
+
 class _AMapApi: NSObject {
   let registrar: FlutterPluginRegistrar
   let mapView: MAMapView
@@ -29,6 +48,7 @@ class _AMapApi: NSObject {
   var polygons = [String: MAPolygon]()
   var polygonStyles = [String: Polygon]()
   private var markerAnimationTokens = [String: Int]()
+  private var smoothMoveStates = [String: SmoothMoveState]()
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -257,6 +277,100 @@ class _AMapApi: NSObject {
       markers.removeValue(forKey: id)
       markerIds.removeValue(forKey: annotation.hash)
     }
+  }
+
+  func startSmoothMoveMarker(marker: Marker, points: [Position], durationMs: Int) {
+    guard points.count >= 2 else { return }
+    let run: () -> Void = { [weak self] in
+      guard let self = self else { return }
+      self.stopSmoothMoveMarker(markerId: marker.id)
+      let safeDuration = max(1_000, durationMs)
+      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: points, durationMs: safeDuration)
+      let annotation = marker.annotation
+      self.markers[marker.id] = annotation
+      self.markerIds[annotation.hash] = marker.id
+      self.mapView.addAnnotation(annotation)
+      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: points, durationMs: safeDuration)
+    }
+    if Thread.isMainThread {
+      run()
+    } else {
+      DispatchQueue.main.async(execute: run)
+    }
+  }
+
+  func stopSmoothMoveMarker(markerId: String) {
+    guard let annotation = markers[markerId] else { return }
+    if let moveAnimations = annotation.allMoveAnimations() {
+      for item in moveAnimations {
+        item.cancel()
+      }
+    }
+    mapView.removeAnnotation(annotation)
+    markers.removeValue(forKey: markerId)
+    markerIds.removeValue(forKey: annotation.hash)
+    smoothMoveStates.removeValue(forKey: markerId)
+  }
+
+  func pauseSmoothMoveMarker(markerId: String) {
+    guard let state = smoothMoveStates[markerId], !state.paused else { return }
+    guard let annotation = markers[markerId] else { return }
+    let elapsedMs = Int(Date().timeIntervalSince(state.startTime) * 1000)
+    state.remainingMs = max(1_000, state.remainingMs - elapsedMs)
+    state.pausedPosition = annotation.coordinate.position
+    state.paused = true
+    if let moveAnimations = annotation.allMoveAnimations() {
+      for item in moveAnimations {
+        item.cancel()
+      }
+    }
+  }
+
+  func resumeSmoothMoveMarker(markerId: String) {
+    guard let state = smoothMoveStates[markerId], state.paused else { return }
+    guard let annotation = markers[markerId], let current = state.pausedPosition else { return }
+    let remainingPoints = buildRemainingSmoothMovePoints(current: current, points: state.points)
+    state.paused = false
+    state.pausedPosition = nil
+    state.startTime = Date()
+    startSmoothMoveSegment(
+      markerId: markerId,
+      annotation: annotation,
+      points: remainingPoints,
+      durationMs: state.remainingMs)
+  }
+
+  private func startSmoothMoveSegment(markerId: String, annotation: Annotation, points: [Position], durationMs: Int) {
+    guard points.count >= 2 else { return }
+    var coordinates = points.map { $0.coordinate }
+    annotation.coordinate = coordinates[0]
+    coordinates.removeFirst()
+    let endCoordinate = coordinates[coordinates.count - 1]
+    let duration = max(1.0, Double(durationMs) / 1000.0)
+    annotation.addMoveAnimation(
+      withKeyCoordinates: &coordinates,
+      count: UInt(coordinates.count),
+      withDuration: duration,
+      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
+        guard let self = self, let annotation = annotation else { return }
+        annotation.coordinate = endCoordinate
+        self.markers[markerId] = annotation
+        self.smoothMoveStates.removeValue(forKey: markerId)
+      }
+  }
+
+  private func buildRemainingSmoothMovePoints(current: Position, points: [Position]) -> [Position] {
+    let nearestIndex = points.indices.min { lhs, rhs in
+      distance(from: current, to: points[lhs]) < distance(from: current, to: points[rhs])
+    } ?? 0
+    let startIndex = min(nearestIndex + 1, points.count - 1)
+    return [current] + points[startIndex..<points.count]
+  }
+
+  private func distance(from start: Position, to end: Position) -> Double {
+    let dx = start.longitude - end.longitude
+    let dy = start.latitude - end.latitude
+    return dx * dx + dy * dy
   }
 
   func addPolyline(polyline: Polyline) {

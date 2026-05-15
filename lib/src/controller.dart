@@ -182,6 +182,53 @@ class AMapController {
     );
   }
 
+  /// 沿一组轨迹点平滑移动点标记。
+  ///
+  /// Android 使用高德官方 `SmoothMoveMarker`；iOS 使用 `MAAnimatedAnnotation` 的路径移动动画。
+  Future<void> startSmoothMoveMarker({
+    required Marker marker,
+    required List<Position> points,
+    required Duration duration,
+  }) async {
+    if (_isDestroyed) return;
+    if (points.length < 2) {
+      throw ArgumentError.value(points, 'points', '至少需要 2 个轨迹点');
+    }
+    await AMapFlutterPlatformInterface.instance.startSmoothMoveMarker(
+      marker,
+      points,
+      duration.inMilliseconds,
+      mapId: mapId,
+    );
+  }
+
+  /// 停止并移除指定的平滑移动点标记。
+  Future<void> stopSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.stopSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 暂停指定的平滑移动点标记。
+  Future<void> pauseSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.pauseSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 继续指定的平滑移动点标记。
+  Future<void> resumeSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.resumeSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
   /// 添加折线
   Future<void> addPolyline(Polyline polyline) async {
     if (_isDestroyed) return;
