@@ -35,6 +35,34 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
         result.success(api.getScalePerPixel())
       }
 
+      "convertCoordinate" -> {
+        val position = call.argument<Position>("position")!!
+        val from = call.argument<String>("from")!!
+        result.success(api.convertCoordinate(position, from))
+      }
+
+      "toScreenLocation" -> {
+        val position = call.argument<Position>("position")!!
+        result.success(api.toScreenLocation(position))
+      }
+
+      "fromScreenLocation" -> {
+        val point = call.argument<Size>("point")!!
+        result.success(api.fromScreenLocation(point))
+      }
+
+      "calculateLineDistance" -> {
+        val start = call.argument<Position>("start")!!
+        val end = call.argument<Position>("end")!!
+        result.success(api.calculateLineDistance(start, end))
+      }
+
+      "containsCoordinate" -> {
+        val point = call.argument<Position>("point")!!
+        val polygon = call.argument<List<Position>>("polygon")!!
+        result.success(api.containsCoordinate(point, polygon))
+      }
+
       "takeMapSnapshot" -> {
         api.takeMapSnapshot(result)
       }
@@ -86,6 +114,32 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
       "removeMarker" -> {
         val id = call.argument<String>("id")!!
         api.removeMarker(id)
+        result.success(null)
+      }
+
+      "startSmoothMoveMarker" -> {
+        val marker = call.argument<Marker>("marker")!!
+        val points = call.argument<List<Position>>("points")!!
+        val durationMs = (call.argument<Any>("durationMs") as Number).toLong()
+        api.startSmoothMoveMarker(marker, points, durationMs)
+        result.success(null)
+      }
+
+      "stopSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.stopSmoothMoveMarker(markerId)
+        result.success(null)
+      }
+
+      "pauseSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.pauseSmoothMoveMarker(markerId)
+        result.success(null)
+      }
+
+      "resumeSmoothMoveMarker" -> {
+        val markerId = call.argument<String>("markerId")!!
+        api.resumeSmoothMoveMarker(markerId)
         result.success(null)
       }
 

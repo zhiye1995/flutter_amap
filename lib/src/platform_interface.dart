@@ -192,6 +192,39 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
+  /// 启动点标记平滑移动（Android `SmoothMoveMarker`；iOS `MAAnimatedAnnotation`）。
+  Future<void> startSmoothMoveMarker(
+    Marker marker,
+    List<Position> points,
+    int durationMs, {
+    required int mapId,
+  }) {
+    throw UnimplementedError(
+      'startSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 停止并移除平滑移动点标记。
+  Future<void> stopSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'stopSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 暂停平滑移动点标记。
+  Future<void> pauseSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'pauseSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
+  /// 继续平滑移动点标记。
+  Future<void> resumeSmoothMoveMarker(String markerId, {required int mapId}) {
+    throw UnimplementedError(
+      'resumeSmoothMoveMarker() has not been implemented.',
+    );
+  }
+
   /// 添加折线
   Future<void> addPolyline(Polyline polyline, {required int mapId}) {
     throw UnimplementedError('addPolyline() has not been implemented.');
@@ -269,6 +302,45 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   /// 获取当前比例尺（每像素代表多少米）
   Future<double> getScalePerPixel({required int mapId}) {
     throw UnimplementedError('getScalePerPixel() has not been implemented.');
+  }
+
+  /// 将指定坐标系的坐标转换为高德地图坐标。
+  Future<Position> convertCoordinate(
+    Position position,
+    CoordinateConvertType from, {
+    required int mapId,
+  }) {
+    throw UnimplementedError('convertCoordinate() has not been implemented.');
+  }
+
+  /// 经纬度转屏幕像素点。
+  Future<Size> toScreenLocation(Position position, {required int mapId}) {
+    throw UnimplementedError('toScreenLocation() has not been implemented.');
+  }
+
+  /// 屏幕像素点转经纬度。
+  Future<Position> fromScreenLocation(Size point, {required int mapId}) {
+    throw UnimplementedError('fromScreenLocation() has not been implemented.');
+  }
+
+  /// 计算两点距离，单位：米。
+  Future<double> calculateLineDistance(
+    Position start,
+    Position end, {
+    required int mapId,
+  }) {
+    throw UnimplementedError(
+      'calculateLineDistance() has not been implemented.',
+    );
+  }
+
+  /// 判断点是否在多边形内。
+  Future<bool> containsCoordinate(
+    Position point,
+    List<Position> polygon, {
+    required int mapId,
+  }) {
+    throw UnimplementedError('containsCoordinate() has not been implemented.');
   }
 
   /// 截取当前地图可视区域为 PNG 字节（与高德 Android [AMap.getMapScreenShot]、

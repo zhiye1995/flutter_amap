@@ -182,6 +182,53 @@ class AMapController {
     );
   }
 
+  /// 沿一组轨迹点平滑移动点标记。
+  ///
+  /// Android 使用高德官方 `SmoothMoveMarker`；iOS 使用 `MAAnimatedAnnotation` 的路径移动动画。
+  Future<void> startSmoothMoveMarker({
+    required Marker marker,
+    required List<Position> points,
+    required Duration duration,
+  }) async {
+    if (_isDestroyed) return;
+    if (points.length < 2) {
+      throw ArgumentError.value(points, 'points', '至少需要 2 个轨迹点');
+    }
+    await AMapFlutterPlatformInterface.instance.startSmoothMoveMarker(
+      marker,
+      points,
+      duration.inMilliseconds,
+      mapId: mapId,
+    );
+  }
+
+  /// 停止并移除指定的平滑移动点标记。
+  Future<void> stopSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.stopSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 暂停指定的平滑移动点标记。
+  Future<void> pauseSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.pauseSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
+  /// 继续指定的平滑移动点标记。
+  Future<void> resumeSmoothMoveMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.resumeSmoothMoveMarker(
+      markerId,
+      mapId: mapId,
+    );
+  }
+
   /// 添加折线
   Future<void> addPolyline(Polyline polyline) async {
     if (_isDestroyed) return;
@@ -317,6 +364,52 @@ class AMapController {
   /// 返回当前缩放级别下，地图上每个像素代表的实际距离（单位：米）
   Future<double> getScalePerPixel() {
     return AMapFlutterPlatformInterface.instance.getScalePerPixel(mapId: mapId);
+  }
+
+  /// 将指定坐标系的坐标转换为高德地图坐标。
+  Future<Position> convertCoordinate(
+    Position position, {
+    CoordinateConvertType from = CoordinateConvertType.gps,
+  }) {
+    return AMapFlutterPlatformInterface.instance.convertCoordinate(
+      position,
+      from,
+      mapId: mapId,
+    );
+  }
+
+  /// 将经纬度转换为当前地图视图内的屏幕像素点。
+  Future<Size> toScreenLocation(Position position) {
+    return AMapFlutterPlatformInterface.instance.toScreenLocation(
+      position,
+      mapId: mapId,
+    );
+  }
+
+  /// 将当前地图视图内的屏幕像素点转换为经纬度。
+  Future<Position> fromScreenLocation(Size point) {
+    return AMapFlutterPlatformInterface.instance.fromScreenLocation(
+      point,
+      mapId: mapId,
+    );
+  }
+
+  /// 计算两点之间的球面距离，单位：米。
+  Future<double> calculateLineDistance(Position start, Position end) {
+    return AMapFlutterPlatformInterface.instance.calculateLineDistance(
+      start,
+      end,
+      mapId: mapId,
+    );
+  }
+
+  /// 判断点是否在多边形内。
+  Future<bool> containsCoordinate(Position point, List<Position> polygon) {
+    return AMapFlutterPlatformInterface.instance.containsCoordinate(
+      point,
+      polygon,
+      mapId: mapId,
+    );
   }
 
   /// 截取当前地图可视区域为 PNG 图片字节（对齐高德 Android [AMap.getMapScreenShot] /

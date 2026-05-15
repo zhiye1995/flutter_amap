@@ -23,6 +23,20 @@ enum MapType {
   naviNight,
 }
 
+/// 原始坐标系类型，用于转换为高德地图坐标。
+enum CoordinateConvertType {
+  gps('gps'),
+  baidu('baidu'),
+  mapbar('mapbar'),
+  mapabc('mapabc'),
+  sosomap('sosomap'),
+  aliyun('aliyun');
+
+  const CoordinateConvertType(this.value);
+
+  final String value;
+}
+
 /// 地图视野
 class CameraPosition {
   CameraPosition({

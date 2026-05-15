@@ -1,8 +1,11 @@
 package com.morbit.amap_flutter
 
 import android.graphics.Bitmap
+import android.graphics.Point
 import com.amap.api.maps.AMap
+import com.amap.api.maps.AMapUtils
 import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.CoordinateConverter
 import com.amap.api.maps.model.CustomMapStyleOptions
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
@@ -12,6 +15,7 @@ import com.amap.api.maps.model.animation.Animation
 import com.amap.api.maps.model.animation.RotateAnimation
 import com.amap.api.maps.model.animation.ScaleAnimation
 import com.amap.api.maps.model.animation.TranslateAnimation
+import com.amap.api.maps.utils.overlay.SmoothMoveMarker
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +23,18 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
   private val mapView = amap.getView()
   private val markerAnimationTokens = mutableMapOf<String, Int>()
+  private val smoothMoveMarkers = mutableMapOf<String, SmoothMoveMarker>()
+  private val smoothMoveStates = mutableMapOf<String, SmoothMoveState>()
+
+  private data class SmoothMoveState(
+    val marker: Marker,
+    val points: List<Position>,
+    val durationMs: Long,
+    val startTimeMs: Long,
+    var remainingMs: Long,
+    var pausedPosition: Position? = null,
+    var paused: Boolean = false,
+  )
 
   fun initMap() {
     // 处理仅设置 zoom/tilt/bearing 但不传 position 的情况：
@@ -157,6 +173,71 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
       amap.aMapMarkerIdToDartMarkerId.remove(marker.id)
       markerAnimationTokens.remove(id)
     }
+  }
+
+  fun startSmoothMoveMarker(marker: Marker, points: List<Position>, durationMs: Long) {
+    if (points.size < 2) return
+    stopSmoothMoveMarker(marker.id)
+    val safeDuration = durationMs.coerceAtLeast(1_000L)
+    smoothMoveStates[marker.id] =
+      SmoothMoveState(
+        marker = marker,
+        points = points,
+        durationMs = safeDuration,
+        startTimeMs = System.currentTimeMillis(),
+        remainingMs = safeDuration,
+      )
+    startSmoothMoveSegment(marker.id, marker, points, safeDuration)
+  }
+
+  fun stopSmoothMoveMarker(markerId: String) {
+    smoothMoveMarkers.remove(markerId)?.let {
+      it.stopMove()
+      it.destroy()
+    }
+    smoothMoveStates.remove(markerId)
+  }
+
+  fun pauseSmoothMoveMarker(markerId: String) {
+    val state = smoothMoveStates[markerId] ?: return
+    if (state.paused) return
+    val smoothMarker = smoothMoveMarkers.remove(markerId) ?: return
+    val current = smoothMarker.position?.toPosition() ?: state.points.first()
+    val elapsed = System.currentTimeMillis() - state.startTimeMs
+    state.pausedPosition = current
+    state.remainingMs = (state.remainingMs - elapsed).coerceAtLeast(1_000L)
+    state.paused = true
+    smoothMarker.stopMove()
+    smoothMarker.destroy()
+  }
+
+  fun resumeSmoothMoveMarker(markerId: String) {
+    val state = smoothMoveStates[markerId] ?: return
+    if (!state.paused) return
+    val current = state.pausedPosition ?: return
+    val remainingPoints = buildRemainingSmoothMovePoints(current, state.points)
+    state.paused = false
+    state.pausedPosition = null
+    smoothMoveStates[markerId] = state.copy(startTimeMs = System.currentTimeMillis())
+    startSmoothMoveSegment(markerId, state.marker.copy(position = current), remainingPoints, state.remainingMs)
+  }
+
+  private fun startSmoothMoveSegment(markerId: String, marker: Marker, points: List<Position>, durationMs: Long) {
+    if (points.size < 2) return
+    val smoothMarker = SmoothMoveMarker(mapView.map)
+    marker.bitmap?.toBitmapDescriptor(amap.binding)?.let { smoothMarker.setDescriptor(it) }
+    smoothMarker.setPoints(points.map { it.toPosition() })
+    smoothMarker.setTotalDuration((durationMs.coerceAtLeast(1_000L) / 1_000L).toInt())
+    smoothMoveMarkers[markerId] = smoothMarker
+    smoothMarker.startSmoothMove()
+  }
+
+  private fun buildRemainingSmoothMovePoints(current: Position, points: List<Position>): List<Position> {
+    val nearestIndex =
+      points.indices.minByOrNull { index ->
+        AMapUtils.calculateLineDistance(current.toPosition(), points[index].toPosition())
+      } ?: 0
+    return listOf(current) + points.drop((nearestIndex + 1).coerceAtMost(points.size - 1))
   }
 
   fun addPolyline(polyline: Polyline) {
@@ -315,6 +396,60 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
 
   fun getScalePerPixel(): Double {
     return mapView.map.scalePerPixel.toDouble()
+  }
+
+  fun convertCoordinate(position: Position, from: String): Position {
+    val sourceType = when (from) {
+      "gps" -> CoordinateConverter.CoordType.GPS
+      "baidu" -> CoordinateConverter.CoordType.BAIDU
+      "mapbar" -> CoordinateConverter.CoordType.MAPBAR
+      "mapabc" -> CoordinateConverter.CoordType.MAPABC
+      "sosomap" -> CoordinateConverter.CoordType.SOSOMAP
+      "aliyun" -> CoordinateConverter.CoordType.ALIYUN
+      else -> CoordinateConverter.CoordType.GPS
+    }
+    return CoordinateConverter(amap.binding.applicationContext)
+      .from(sourceType)
+      .coord(position.toPosition())
+      .convert()
+      .toPosition()
+  }
+
+  fun toScreenLocation(position: Position): Size {
+    val point = mapView.map.projection.toScreenLocation(position.toPosition())
+    return Size(point.x.toDouble(), point.y.toDouble())
+  }
+
+  fun fromScreenLocation(point: Size): Position {
+    return mapView.map.projection.fromScreenLocation(
+      Point(point.width.toInt(), point.height.toInt()),
+    ).toPosition()
+  }
+
+  fun calculateLineDistance(start: Position, end: Position): Double {
+    return AMapUtils.calculateLineDistance(
+      start.toPosition(),
+      end.toPosition(),
+    ).toDouble()
+  }
+
+  fun containsCoordinate(point: Position, polygon: List<Position>): Boolean {
+    if (polygon.size < 3) return false
+    var inside = false
+    var previous = polygon.lastIndex
+    polygon.indices.forEach { current ->
+      val currentPoint = polygon[current]
+      val previousPoint = polygon[previous]
+      val intersects =
+        (currentPoint.latitude > point.latitude) != (previousPoint.latitude > point.latitude) &&
+          point.longitude < (previousPoint.longitude - currentPoint.longitude) *
+          (point.latitude - currentPoint.latitude) /
+          (previousPoint.latitude - currentPoint.latitude) +
+          currentPoint.longitude
+      if (intersects) inside = !inside
+      previous = current
+    }
+    return inside
   }
 
   /// 与高德 Android Demo「地图截屏」一致：截取当前可视地图区域（PNG）。
