@@ -1,8 +1,11 @@
 package com.morbit.amap_flutter
 
 import android.graphics.Bitmap
+import android.graphics.Point
 import com.amap.api.maps.AMap
+import com.amap.api.maps.AMapUtils
 import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.CoordinateConverter
 import com.amap.api.maps.model.CustomMapStyleOptions
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
@@ -315,6 +318,60 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
 
   fun getScalePerPixel(): Double {
     return mapView.map.scalePerPixel.toDouble()
+  }
+
+  fun convertCoordinate(position: Position, from: String): Position {
+    val sourceType = when (from) {
+      "gps" -> CoordinateConverter.CoordType.GPS
+      "baidu" -> CoordinateConverter.CoordType.BAIDU
+      "mapbar" -> CoordinateConverter.CoordType.MAPBAR
+      "mapabc" -> CoordinateConverter.CoordType.MAPABC
+      "sosomap" -> CoordinateConverter.CoordType.SOSOMAP
+      "aliyun" -> CoordinateConverter.CoordType.ALIYUN
+      else -> CoordinateConverter.CoordType.GPS
+    }
+    return CoordinateConverter(amap.binding.applicationContext)
+      .from(sourceType)
+      .coord(position.toPosition())
+      .convert()
+      .toPosition()
+  }
+
+  fun toScreenLocation(position: Position): Size {
+    val point = mapView.map.projection.toScreenLocation(position.toPosition())
+    return Size(point.x.toDouble(), point.y.toDouble())
+  }
+
+  fun fromScreenLocation(point: Size): Position {
+    return mapView.map.projection.fromScreenLocation(
+      Point(point.width.toInt(), point.height.toInt()),
+    ).toPosition()
+  }
+
+  fun calculateLineDistance(start: Position, end: Position): Double {
+    return AMapUtils.calculateLineDistance(
+      start.toPosition(),
+      end.toPosition(),
+    ).toDouble()
+  }
+
+  fun containsCoordinate(point: Position, polygon: List<Position>): Boolean {
+    if (polygon.size < 3) return false
+    var inside = false
+    var previous = polygon.lastIndex
+    polygon.indices.forEach { current ->
+      val currentPoint = polygon[current]
+      val previousPoint = polygon[previous]
+      val intersects =
+        (currentPoint.latitude > point.latitude) != (previousPoint.latitude > point.latitude) &&
+          point.longitude < (previousPoint.longitude - currentPoint.longitude) *
+          (point.latitude - currentPoint.latitude) /
+          (previousPoint.latitude - currentPoint.latitude) +
+          currentPoint.longitude
+      if (intersects) inside = !inside
+      previous = current
+    }
+    return inside
   }
 
   /// 与高德 Android Demo「地图截屏」一致：截取当前可视地图区域（PNG）。

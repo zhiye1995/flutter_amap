@@ -319,6 +319,52 @@ class AMapController {
     return AMapFlutterPlatformInterface.instance.getScalePerPixel(mapId: mapId);
   }
 
+  /// 将指定坐标系的坐标转换为高德地图坐标。
+  Future<Position> convertCoordinate(
+    Position position, {
+    CoordinateConvertType from = CoordinateConvertType.gps,
+  }) {
+    return AMapFlutterPlatformInterface.instance.convertCoordinate(
+      position,
+      from,
+      mapId: mapId,
+    );
+  }
+
+  /// 将经纬度转换为当前地图视图内的屏幕像素点。
+  Future<Size> toScreenLocation(Position position) {
+    return AMapFlutterPlatformInterface.instance.toScreenLocation(
+      position,
+      mapId: mapId,
+    );
+  }
+
+  /// 将当前地图视图内的屏幕像素点转换为经纬度。
+  Future<Position> fromScreenLocation(Size point) {
+    return AMapFlutterPlatformInterface.instance.fromScreenLocation(
+      point,
+      mapId: mapId,
+    );
+  }
+
+  /// 计算两点之间的球面距离，单位：米。
+  Future<double> calculateLineDistance(Position start, Position end) {
+    return AMapFlutterPlatformInterface.instance.calculateLineDistance(
+      start,
+      end,
+      mapId: mapId,
+    );
+  }
+
+  /// 判断点是否在多边形内。
+  Future<bool> containsCoordinate(Position point, List<Position> polygon) {
+    return AMapFlutterPlatformInterface.instance.containsCoordinate(
+      point,
+      polygon,
+      mapId: mapId,
+    );
+  }
+
   /// 截取当前地图可视区域为 PNG 图片字节（对齐高德 Android [AMap.getMapScreenShot] /
   /// iOS [MAMapView takeSnapshotInRect:]）。
   ///

@@ -512,6 +512,81 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     return result ?? 0.0;
   }
 
+  @override
+  Future<Position> convertCoordinate(
+    Position position,
+    CoordinateConvertType from, {
+    required int mapId,
+  }) async {
+    final result = await _channel(mapId).invokeMethod<Position>(
+      "convertCoordinate",
+      <String, dynamic>{
+        "position": position,
+        "from": from.value,
+      },
+    );
+    if (result == null) {
+      throw StateError("convertCoordinate: native result is null");
+    }
+    return result;
+  }
+
+  @override
+  Future<Size> toScreenLocation(Position position, {required int mapId}) async {
+    final result = await _channel(mapId).invokeMethod<Size>(
+      "toScreenLocation",
+      <String, dynamic>{"position": position},
+    );
+    if (result == null) {
+      throw StateError("toScreenLocation: native result is null");
+    }
+    return result;
+  }
+
+  @override
+  Future<Position> fromScreenLocation(Size point, {required int mapId}) async {
+    final result = await _channel(mapId).invokeMethod<Position>(
+      "fromScreenLocation",
+      <String, dynamic>{"point": point},
+    );
+    if (result == null) {
+      throw StateError("fromScreenLocation: native result is null");
+    }
+    return result;
+  }
+
+  @override
+  Future<double> calculateLineDistance(
+    Position start,
+    Position end, {
+    required int mapId,
+  }) async {
+    final result = await _channel(mapId).invokeMethod<double>(
+      "calculateLineDistance",
+      <String, dynamic>{
+        "start": start,
+        "end": end,
+      },
+    );
+    return result ?? 0.0;
+  }
+
+  @override
+  Future<bool> containsCoordinate(
+    Position point,
+    List<Position> polygon, {
+    required int mapId,
+  }) async {
+    final result = await _channel(mapId).invokeMethod<bool>(
+      "containsCoordinate",
+      <String, dynamic>{
+        "point": point,
+        "polygon": polygon,
+      },
+    );
+    return result ?? false;
+  }
+
   /// 地图可视区域 PNG 截图
   @override
   Future<Uint8List> takeMapSnapshot({required int mapId}) async {

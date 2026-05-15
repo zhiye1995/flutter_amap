@@ -1,5 +1,7 @@
 import Flutter
 import QuartzCore
+import CoreLocation
+import AMapFoundationKit
 // `MAMapKit` 通常来自 `AMap3DMap`。
 // 但在一些集成方式下（例如仅引入 `AMapNavi`），`MAMapKit` 这个 Swift module 可能不存在，
 // 地图相关类型会通过 `AMapNaviKit` 暴露出来；因此这里做条件导入以兼容两种情况。
@@ -533,6 +535,50 @@ class _AMapApi: NSObject {
 
   func getScalePerPixel() -> Double {
     return mapView.metersPerPointForCurrentZoom
+  }
+
+  func convertCoordinate(position: Position, from: String) -> Position {
+    if from == "gps" {
+      return AMapCoordinateConvert(position.coordinate, .GPS).position
+    }
+    return position
+  }
+
+  func toScreenLocation(position: Position) -> Size {
+    let point = mapView.convert(position.coordinate, toPointTo: mapView)
+    return Size(width: Double(point.x), height: Double(point.y))
+  }
+
+  func fromScreenLocation(point: Size) -> Position {
+    let cgPoint = CGPoint(x: point.width, y: point.height)
+    return mapView.convert(cgPoint, toCoordinateFrom: mapView).position
+  }
+
+  func calculateLineDistance(start: Position, end: Position) -> Double {
+    let startLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
+    let endLocation = CLLocation(latitude: end.latitude, longitude: end.longitude)
+    return startLocation.distance(from: endLocation)
+  }
+
+  func containsCoordinate(point: Position, polygon: [Position]) -> Bool {
+    guard polygon.count >= 3 else { return false }
+
+    var inside = false
+    var previous = polygon.count - 1
+    for current in polygon.indices {
+      let currentPoint = polygon[current]
+      let previousPoint = polygon[previous]
+      let intersects = ((currentPoint.latitude > point.latitude) != (previousPoint.latitude > point.latitude))
+        && (point.longitude < (previousPoint.longitude - currentPoint.longitude)
+          * (point.latitude - currentPoint.latitude)
+          / (previousPoint.latitude - currentPoint.latitude)
+          + currentPoint.longitude)
+      if intersects {
+        inside.toggle()
+      }
+      previous = current
+    }
+    return inside
   }
 
   /// 与高德 iOS `takeSnapshotInRect:withCompletionBlock:` 一致：可视区域截图（PNG）。

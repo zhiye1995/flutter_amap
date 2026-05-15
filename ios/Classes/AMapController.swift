@@ -30,6 +30,34 @@ class AMapController: NSObject {
     else if(call.method == "getScalePerPixel") {
       result(api.getScalePerPixel())
     }
+    else if(call.method == "convertCoordinate") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let position = arguments["position"] as! Position
+      let from = arguments["from"] as! String
+      result(api.convertCoordinate(position: position, from: from))
+    }
+    else if(call.method == "toScreenLocation") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let position = arguments["position"] as! Position
+      result(api.toScreenLocation(position: position))
+    }
+    else if(call.method == "fromScreenLocation") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let point = arguments["point"] as! Size
+      result(api.fromScreenLocation(point: point))
+    }
+    else if(call.method == "calculateLineDistance") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let start = arguments["start"] as! Position
+      let end = arguments["end"] as! Position
+      result(api.calculateLineDistance(start: start, end: end))
+    }
+    else if(call.method == "containsCoordinate") {
+      let arguments = call.arguments as! Dictionary<String, AnyObject>
+      let point = arguments["point"] as! Position
+      let polygon = arguments["polygon"] as! [Position]
+      result(api.containsCoordinate(point: point, polygon: polygon))
+    }
     else if(call.method == "takeMapSnapshot") {
       api.takeMapSnapshot(result: result)
     }
