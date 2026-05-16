@@ -1,4 +1,4 @@
-part of '../flutter_amap.dart';
+part of '../../flutter_amap.dart';
 
 extension EdgePadding$Ext on EdgePadding {
   static EdgePadding all(double value) {

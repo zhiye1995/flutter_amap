@@ -1,4 +1,4 @@
-part of '../flutter_amap.dart';
+part of '../../flutter_amap.dart';
 
 abstract class AMapFlutterPlatformInterface extends PlatformInterface {
   /// Constructs a AMapFlutterPlatform.

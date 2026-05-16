@@ -68,6 +68,8 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
 
   AMapController? _controller;
   Location? _lastLocation;
+  DateTime? _lastLocationUpdatedAt;
+  Future<Location?>? _currentLocationFuture;
   Timer? _debounceTimer;
   List<_LocationPickerEntry> _entries = const <_LocationPickerEntry>[];
   var _isLoading = false;
@@ -180,6 +182,56 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
 
   Position? get _searchLocation => config.location ?? _lastLocation?.position;
 
+  bool get _hasFreshCurrentLocation {
+    final updatedAt = _lastLocationUpdatedAt;
+    if (_lastLocation == null || updatedAt == null) return false;
+    return DateTime.now().difference(updatedAt) <=
+        config.currentLocationCacheMaxAge;
+  }
+
+  void _cacheCurrentLocation(Location location) {
+    _lastLocation = location;
+    _lastLocationUpdatedAt = DateTime.now();
+  }
+
+  Future<Location?> _ensureCurrentLocation({required bool forceRefresh}) {
+    if (!forceRefresh && _hasFreshCurrentLocation) {
+      return Future<Location?>.value(_lastLocation);
+    }
+
+    final activeFuture = _currentLocationFuture;
+    if (!forceRefresh && activeFuture != null) {
+      return activeFuture;
+    }
+
+    final controller = _controller;
+    if (controller == null) {
+      return Future<Location?>.value(null);
+    }
+
+    late final Future<Location?> future;
+    future = controller
+        .waitForUserLocation(timeout: config.currentLocationTimeout)
+        .then<Location?>((location) {
+      _cacheCurrentLocation(location);
+      return location;
+    }).whenComplete(() {
+      if (identical(_currentLocationFuture, future)) {
+        _currentLocationFuture = null;
+      }
+    });
+    _currentLocationFuture = future;
+    return future;
+  }
+
+  void _preloadCurrentLocation() {
+    if (!config.includeCurrentLocation || _controller == null) return;
+    _ensureCurrentLocation(forceRefresh: false).catchError((e) {
+      if (kDebugMode) print('Failed to preload current location: $e');
+      return null;
+    });
+  }
+
   Future<void> _onEntryTap(_LocationPickerEntry entry) async {
     if (_isResolving) return;
     setState(() {
@@ -268,17 +320,12 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
     });
 
     try {
-      final controller = _controller;
-      final location = _lastLocation ??
-          (controller == null
-              ? null
-              : await controller.waitForUserLocation(
-                  timeout: config.currentLocationTimeout,
-                ));
+      final location = await _ensureCurrentLocation(
+        forceRefresh: !_hasFreshCurrentLocation,
+      );
       if (location == null) {
         throw StateError('定位尚未就绪');
       }
-      _lastLocation = location;
 
       ReGeocodeResult? reGeocode;
       try {
@@ -349,9 +396,10 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
                 initCameraPosition: CameraPosition(position: config.location),
                 onMapCreated: (controller) {
                   _controller = controller;
+                  _preloadCurrentLocation();
                 },
                 onUserLocationChange: (location) {
-                  _lastLocation = location;
+                  _cacheCurrentLocation(location);
                 },
               ),
             ),

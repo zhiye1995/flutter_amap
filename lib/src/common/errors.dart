@@ -1,4 +1,4 @@
-part of '../flutter_amap.dart';
+part of '../../flutter_amap.dart';
 
 /// The error for provided unknown map id
 class UnknownMapIDError extends Error {

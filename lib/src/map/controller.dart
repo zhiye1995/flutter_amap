@@ -1,4 +1,4 @@
-part of '../flutter_amap.dart';
+part of '../../flutter_amap.dart';
 
 /// Controller for a single AMap instance running on the host platform,
 /// which passed in [AMapWidget.onMapCreated] callback.

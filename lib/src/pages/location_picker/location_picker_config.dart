@@ -25,6 +25,7 @@ class LocationPickerConfig {
     this.includeCurrentLocation = true,
     this.currentLocationText = '我的位置',
     this.currentLocationTimeout = const Duration(seconds: 15),
+    this.currentLocationCacheMaxAge = const Duration(seconds: 10),
     this.searchMode = LocationPickerSearchMode.auto,
     this.debounceDelay = const Duration(milliseconds: 300),
     this.pageSize = 20,
@@ -59,6 +60,9 @@ class LocationPickerConfig {
 
   /// 等待首次定位结果的超时时间。
   final Duration currentLocationTimeout;
+
+  /// 当前位置缓存的最大有效时长，超过后点击“我的位置”会重新获取。
+  final Duration currentLocationCacheMaxAge;
 
   /// 搜索模式。
   final LocationPickerSearchMode searchMode;

@@ -34,10 +34,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     latitude: 29.468220,
     longitude: 106.648317,
   );
-  static final _defaultEnd = Position(
-    latitude: 29.437143,
-    longitude: 106.486523,
-  );
   static final _padding = EdgePadding(
     top: 170,
     right: 52,
@@ -55,10 +51,10 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     Color(0x997B1FA2),
   ];
 
-  final _startLatController = TextEditingController(text: '39.908722');
-  final _startLngController = TextEditingController(text: '116.397499');
-  final _endLatController = TextEditingController(text: '39.989872');
-  final _endLngController = TextEditingController(text: '116.481956');
+  final _startLatController = TextEditingController();
+  final _startLngController = TextEditingController();
+  final _endLatController = TextEditingController();
+  final _endLngController = TextEditingController();
   final _wayPointsController = TextEditingController();
   final _avoidRoadController = TextEditingController();
 
@@ -104,9 +100,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     showUserLocation: true,
                     markers: _markers,
                     onMapPress: _selectNearestRoute,
-                    onUserLocationChange: (location) {
-                      _lastLocation = location;
-                    },
+                    onUserLocationChange: _handleUserLocationChange,
                     onMapCreated: (controller) {
                       _controller = controller;
                       final result = _result;
@@ -131,9 +125,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Set<Marker> get _markers {
+    final endPosition = _endPosition;
     return <Marker>{
       Marker(id: 'route_start', position: _startPosition, title: '起点'),
-      Marker(id: 'route_end', position: _endPosition, title: '终点'),
+      if (endPosition != null)
+        Marker(id: 'route_end', position: endPosition, title: '终点'),
     };
   }
 
@@ -166,14 +162,13 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       _buildRouteInputLine(
                         prefix: '从',
                         title: _startTitle,
-                        position: _startPosition,
                         onTap: () => _pickPosition(isStart: true),
                       ),
                       const SizedBox(height: 10),
                       _buildRouteInputLine(
                         prefix: '到',
                         title: _endTitle,
-                        position: _endPosition,
+                        isPlaceholder: _endPosition == null,
                         onTap: () => _pickPosition(isStart: false),
                       ),
                     ],
@@ -214,7 +209,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   Widget _buildRouteInputLine({
     required String prefix,
     required String title,
-    required Position position,
+    bool isPlaceholder = false,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -233,7 +228,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               prefix,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -247,9 +242,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                    style: TextStyle(
+                      color: isPlaceholder
+                          ? Colors.white.withValues(alpha: 0.55 )
+                          : Colors.white,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -687,12 +684,18 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Future<void> _searchRoute() async {
+    final endPosition = _endPosition;
+    if (endPosition == null) {
+      setState(() => _errorMessage = '请输入终点');
+      LoadingUtil.showError('请输入终点');
+      return;
+    }
     final origin =
         _startLocation?.toRoutePoint() ??
-        RoutePoint(position: _startPosition, name: '起点');
+        RoutePoint(position: _startPosition, name: '我的位置');
     final destination =
         _endLocation?.toRoutePoint() ??
-        RoutePoint(position: _endPosition, name: '终点');
+        RoutePoint(position: endPosition, name: '终点');
     setState(() {
       _loading = true;
       _errorMessage = null;
@@ -823,6 +826,12 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Future<void> _openNativeNavi() {
+    final endPosition = _endPosition;
+    if (endPosition == null) {
+      setState(() => _errorMessage = '请先选择终点');
+      LoadingUtil.showError('请先选择终点');
+      return Future<void>.value();
+    }
     return AMapNavi.startNavigation(
       config: NaviConfig(
         naviType: switch (widget.type) {
@@ -833,10 +842,10 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         pageType: NaviPageType.route,
         start:
             _startLocation?.toNaviPoint() ??
-            NaviPoint(position: _startPosition, name: '起点'),
+            NaviPoint(position: _startPosition, name: '我的位置'),
         end:
             _endLocation?.toNaviPoint() ??
-            NaviPoint(position: _endPosition, name: '终点'),
+            NaviPoint(position: endPosition, name: '终点'),
         drivingStrategy: _driveStrategy,
         startNaviDirectly: false,
       ),
@@ -945,6 +954,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   Future<void> _swapStartEnd() async {
+    if (_endPosition == null) {
+      setState(() => _errorMessage = '请先选择终点');
+      LoadingUtil.showError('请先选择终点');
+      return;
+    }
     setState(() {
       final lat = _startLatController.text;
       final lng = _startLngController.text;
@@ -961,6 +975,18 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     });
     final controller = _controller;
     if (controller != null) await _clearRouteOverlays(controller);
+  }
+
+  void _handleUserLocationChange(Location location) {
+    _lastLocation = location;
+    if (_startLocation != null || _startLatController.text.isNotEmpty) return;
+    setState(() {
+      _setPositionText(isStart: true, position: location.position);
+      _startLocation = LocationPickerResult.fromCurrentLocation(
+        position: location.position,
+        name: '我的位置',
+      );
+    });
   }
 
   Future<void> _moveToCurrentLocation() async {
@@ -1030,7 +1056,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
   String get _startTitle => _startLocation?.name ?? '我的位置';
 
-  String get _endTitle => _endLocation?.name ?? '目的地';
+  String get _endTitle => _endLocation?.name ?? '请选择终点';
 
   String? get _startSearchKeyword {
     final location = _startLocation;
@@ -1053,15 +1079,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     );
   }
 
-  Position get _endPosition {
-    return Position(
-      latitude:
-          double.tryParse(_endLatController.text.trim()) ??
-          _defaultEnd.latitude,
-      longitude:
-          double.tryParse(_endLngController.text.trim()) ??
-          _defaultEnd.longitude,
-    );
+  Position? get _endPosition {
+    final latitude = double.tryParse(_endLatController.text.trim());
+    final longitude = double.tryParse(_endLngController.text.trim());
+    if (latitude == null || longitude == null) return null;
+    return Position(latitude: latitude, longitude: longitude);
   }
 
   String? _emptyToNull(String value) {

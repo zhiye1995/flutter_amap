@@ -3,26 +3,25 @@ import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:flutter/cupertino.dart";
-import "package:flutter_amap/src/message_codec.dart";
+import "package:flutter_amap/src/platform/message_codec.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import 'package:flutter/services.dart';
 import 'package:highlight_text/highlight_text.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import "package:stream_transform/stream_transform.dart";
-
 import "src/widgets/marker_pointer_painter.dart";
 
-part "src/amap_widget.dart";
-part 'src/controller.dart';
-part 'src/errors.dart';
-part 'src/events.dart';
-part 'src/method_channel.dart';
-part 'src/platform_interface.dart';
-part "src/amap_navi.dart";
-part 'src/types_extension.dart';
-part 'src/amap_search.dart';
-part 'src/place_picker.dart';
+part "src/map/amap_widget.dart";
+part 'src/map/controller.dart';
+part 'src/common/errors.dart';
+part 'src/common/events.dart';
+part 'src/common/types_extension.dart';
+part 'src/platform/method_channel.dart';
+part 'src/platform/platform_interface.dart';
+part "src/api/amap_navi.dart";
+part 'src/api/amap_search.dart';
+part 'src/widgets/place_picker.dart';
 part 'src/pages/location_picker/location_picker_config.dart';
 part 'src/pages/location_picker/location_picker_result.dart';
 part 'src/pages/location_picker/widgets/location_picker_result_item.dart';
