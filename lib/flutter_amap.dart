@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:convert";
 import "dart:math" as math;
 import "dart:ui" as ui;
 
@@ -9,6 +10,7 @@ import "package:flutter/material.dart";
 import 'package:flutter/services.dart';
 import 'package:highlight_text/highlight_text.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import "package:stream_transform/stream_transform.dart";
 import "src/widgets/marker_pointer_painter.dart";
 

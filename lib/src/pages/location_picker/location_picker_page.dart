@@ -6,6 +6,7 @@ class _LocationPickerEntry {
     required this.subtitle,
     this.poi,
     this.inputTip,
+    this.result,
   });
 
   factory _LocationPickerEntry.fromInputTip(InputTip tip) {
@@ -28,11 +29,32 @@ class _LocationPickerEntry {
     );
   }
 
+  factory _LocationPickerEntry.fromHistory(LocationPickerResult result) {
+    return _LocationPickerEntry._(
+      title: _locationPickerEmptyToNull(result.name) ??
+          _locationPickerFormatPosition(result.position),
+      subtitle: _locationPickerEntrySubtitle(
+        <String?>[
+          result.address,
+          _locationPickerResultSourceText(result.source)
+        ],
+      ),
+      result: result,
+    );
+  }
+
   final String title;
   final String subtitle;
   final PoiItem? poi;
   final InputTip? inputTip;
+  final LocationPickerResult? result;
 }
+
+const int _locationPickerHistoryLimit = 10;
+const String _locationPickerHistoryPrefsKey =
+    'flutter_amap.location_picker.history';
+final List<LocationPickerResult> _locationPickerHistory =
+    <LocationPickerResult>[];
 
 /// 高德位置选择器全屏页面。
 class AMapLocationPicker extends StatefulWidget {
@@ -72,6 +94,7 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
   Future<Location?>? _currentLocationFuture;
   Timer? _debounceTimer;
   List<_LocationPickerEntry> _entries = const <_LocationPickerEntry>[];
+  bool _historyLoaded = false;
   var _isLoading = false;
   var _isResolving = false;
   String? _errorMessage;
@@ -83,6 +106,7 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _loadHistory();
     final initialKeyword = config.initialKeyword?.trim();
     if (initialKeyword != null && initialKeyword.isNotEmpty) {
       _searchController.text = initialKeyword;
@@ -105,7 +129,7 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
     final keyword = _searchController.text.trim();
     if (keyword.isEmpty) {
       setState(() {
-        _entries = const <_LocationPickerEntry>[];
+        _entries = _historyEntries();
         _isLoading = false;
         _errorMessage = null;
       });
@@ -240,6 +264,7 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
     });
     try {
       final result = await _resolveEntry(entry);
+      _cacheSelectedResult(result);
       if (!mounted) return;
       Navigator.of(context).pop(result);
     } catch (e) {
@@ -251,6 +276,11 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
   }
 
   Future<LocationPickerResult> _resolveEntry(_LocationPickerEntry entry) async {
+    final historyResult = entry.result;
+    if (historyResult != null) {
+      return historyResult;
+    }
+
     final poi = entry.poi;
     if (poi != null) {
       return LocationPickerResult.fromPoi(poi);
@@ -285,6 +315,62 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
     }
 
     throw StateError('未能解析该地点坐标');
+  }
+
+  List<_LocationPickerEntry> _historyEntries() {
+    return _locationPickerHistory
+        .map(_LocationPickerEntry.fromHistory)
+        .toList(growable: false);
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final values =
+        prefs.getStringList(_locationPickerHistoryPrefsKey) ?? const <String>[];
+    final history = <LocationPickerResult>[];
+    for (final value in values) {
+      final result = _locationPickerResultFromJson(value);
+      if (result != null) {
+        history.add(result);
+      }
+    }
+
+    _locationPickerHistory
+      ..clear()
+      ..addAll(history.take(_locationPickerHistoryLimit));
+
+    if (!mounted) return;
+    setState(() {
+      _historyLoaded = true;
+      if (_searchController.text.trim().isEmpty) {
+        _entries = _historyEntries();
+      }
+    });
+  }
+
+  void _cacheSelectedResult(LocationPickerResult result) {
+    final key = _locationPickerHistoryKey(result);
+    _locationPickerHistory.removeWhere(
+      (item) => _locationPickerHistoryKey(item) == key,
+    );
+    _locationPickerHistory.insert(0, result);
+    if (_locationPickerHistory.length > _locationPickerHistoryLimit) {
+      _locationPickerHistory.removeRange(
+        _locationPickerHistoryLimit,
+        _locationPickerHistory.length,
+      );
+    }
+    _saveHistory();
+  }
+
+  Future<void> _saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _locationPickerHistoryPrefsKey,
+      _locationPickerHistory
+          .map(_locationPickerResultToJson)
+          .toList(growable: false),
+    );
   }
 
   Future<PoiItem?> _resolveInputTipPoi(InputTip tip) async {
@@ -433,9 +519,13 @@ class _AMapLocationPickerState extends State<AMapLocationPicker> {
     if (_entries.isEmpty) {
       final hasKeyword = _searchController.text.trim().isNotEmpty;
       return _LocationPickerMessageView(
-        icon: hasKeyword ? Icons.location_off_outlined : Icons.search,
-        title: hasKeyword ? '未找到相关地点' : '请输入地点名称',
-        message: hasKeyword ? '换个关键词试试' : null,
+        icon: hasKeyword
+            ? Icons.location_off_outlined
+            : (_historyLoaded ? Icons.history : Icons.search),
+        title:
+            hasKeyword ? '未找到相关地点' : (_historyLoaded ? '暂无历史地点' : '正在加载历史地点'),
+        message:
+            hasKeyword ? '换个关键词试试' : (_historyLoaded ? '搜索并选择地点后会显示在这里' : null),
       );
     }
 
@@ -516,4 +606,62 @@ String _locationPickerEntrySubtitle(List<String?> parts) {
       .where((part) => part.isNotEmpty)
       .join(' ');
   return text;
+}
+
+String _locationPickerHistoryKey(LocationPickerResult result) {
+  final poiId = _locationPickerEmptyToNull(result.poiId);
+  if (poiId != null) return 'poi:$poiId';
+  return 'pos:${result.position.latitude},${result.position.longitude}:'
+      '${_locationPickerEmptyToNull(result.name) ?? ''}';
+}
+
+String _locationPickerFormatPosition(Position position) {
+  return '${position.latitude.toStringAsFixed(6)}, '
+      '${position.longitude.toStringAsFixed(6)}';
+}
+
+String _locationPickerResultSourceText(LocationPickerResultSource source) {
+  return switch (source) {
+    LocationPickerResultSource.poi => '历史 POI',
+    LocationPickerResultSource.inputTip => '历史搜索',
+    LocationPickerResultSource.currentLocation => '历史位置',
+    LocationPickerResultSource.coordinate => '历史坐标',
+  };
+}
+
+String _locationPickerResultToJson(LocationPickerResult result) {
+  return jsonEncode(<String, Object?>{
+    'latitude': result.position.latitude,
+    'longitude': result.position.longitude,
+    'name': result.name,
+    'address': result.address,
+    'poiId': result.poiId,
+    'source': result.source.name,
+  });
+}
+
+LocationPickerResult? _locationPickerResultFromJson(String value) {
+  try {
+    final data = jsonDecode(value);
+    if (data is! Map<String, Object?>) return null;
+    final latitude = (data['latitude'] as num?)?.toDouble();
+    final longitude = (data['longitude'] as num?)?.toDouble();
+    if (latitude == null || longitude == null) return null;
+    return LocationPickerResult(
+      position: Position(latitude: latitude, longitude: longitude),
+      name: data['name'] as String?,
+      address: data['address'] as String?,
+      poiId: data['poiId'] as String?,
+      source: _locationPickerResultSourceFromName(data['source'] as String?),
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+LocationPickerResultSource _locationPickerResultSourceFromName(String? name) {
+  for (final source in LocationPickerResultSource.values) {
+    if (source.name == name) return source;
+  }
+  return LocationPickerResultSource.coordinate;
 }
