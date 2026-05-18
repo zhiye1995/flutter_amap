@@ -160,14 +160,20 @@ extension Marker {
 }
 
 extension Polyline {
+  var drawStyleIndexes: [NSNumber] {
+    if !textureIndexes.isEmpty {
+      return textureIndexes.map { NSNumber(value: max(0, min($0, points.count - 1))) }
+    }
+    return Array(1..<points.count).map { NSNumber(value: $0) }
+  }
+
   var overlay: MAPolyline {
     var coordinates = points.map { $0.coordinate }
-    if !colors.isEmpty {
-      let indexes = Array(1..<points.count).map { NSNumber(value: $0) }
+    if !colors.isEmpty || (useTexture && !textures.isEmpty) {
       return MAMultiPolyline(
         coordinates: &coordinates,
         count: UInt(points.count),
-        drawStyleIndexes: indexes
+        drawStyleIndexes: drawStyleIndexes
       )
     }
     if geodesic {

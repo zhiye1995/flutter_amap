@@ -179,6 +179,12 @@ class Polyline {
     this.visible = true,
     this.gradient = false,
     this.geodesic = false,
+    this.useTexture = false,
+    this.texture,
+    this.textures = const <Bitmap>[],
+    this.textureIndexes = const <int>[],
+    this.dottedLine = false,
+    this.zIndex = 0,
   });
 
   /// 折线ID
@@ -211,6 +217,43 @@ class Polyline {
   /// `MAGeodesicPolyline`。多彩线与大地曲线同时设置时，iOS 优先按多彩线绘制。
   bool geodesic;
 
+  /// 是否启用纹理贴图。
+  ///
+  /// Android 对应 `PolylineOptions.setUseTexture`；iOS 在 [texture] 不为空时
+  /// 调用 `MAPolylineRenderer.loadStrokeTextureImage`。iOS 启用纹理后，
+  /// 线颜色、端点类型和连接类型等样式由原生 SDK 忽略。
+  bool useTexture;
+
+  /// 单一纹理图片。
+  ///
+  /// 建议使用正方形且宽高为 2 的整数幂的图片，例如 64x64。iOS 普通
+  /// 纹理线仅 3D 地图支持。
+  Bitmap? texture;
+
+  /// 分段纹理图片列表。
+  ///
+  /// Android 对应 `PolylineOptions.setCustomTextureList`；iOS 对应
+  /// `MAMultiTexturePolylineRenderer.strokeTextureImages`。
+  List<Bitmap> textures;
+
+  /// 分段纹理索引。
+  ///
+  /// Android 对应 `PolylineOptions.setCustomTextureIndex`；iOS 用作
+  /// `MAMultiPolyline.drawStyleIndexes`。
+  List<int> textureIndexes;
+
+  /// 是否绘制虚线。
+  ///
+  /// Android 对应 `PolylineOptions.setDottedLine`；iOS 对应
+  /// `MAOverlayPathRenderer.lineDashType`。
+  bool dottedLine;
+
+  /// 折线层级。
+  ///
+  /// Android 对应 `PolylineOptions.zIndex`；iOS 会按该值重排折线覆盖物，
+  /// 仅保证折线之间的相对层级。
+  double zIndex;
+
   Object encode() {
     return <Object?>[
       id,
@@ -221,6 +264,12 @@ class Polyline {
       colors.map((color) => color.toARGB32()).toList(),
       gradient,
       geodesic,
+      useTexture,
+      texture?.encode(),
+      textures.map((texture) => texture.encode()).toList(),
+      textureIndexes,
+      dottedLine,
+      zIndex,
     ];
   }
 
@@ -240,6 +289,22 @@ class Polyline {
           : const <Color>[],
       gradient: result.length > 6 ? result[6]! as bool : false,
       geodesic: result.length > 7 ? result[7]! as bool : false,
+      useTexture: result.length > 8 ? result[8]! as bool : false,
+      texture: result.length > 9 && result[9] != null
+          ? Bitmap.decode(result[9]! as List<Object?>)
+          : null,
+      textures: result.length > 10 && result[10] != null
+          ? (result[10]! as List<Object?>)
+              .map((texture) => Bitmap.decode(texture! as List<Object?>))
+              .toList()
+          : const <Bitmap>[],
+      textureIndexes: result.length > 11 && result[11] != null
+          ? (result[11]! as List<Object?>)
+              .map((index) => index! as int)
+              .toList()
+          : const <int>[],
+      dottedLine: result.length > 12 ? result[12]! as bool : false,
+      zIndex: result.length > 13 ? result[13]! as double : 0,
     );
   }
 
@@ -252,6 +317,12 @@ class Polyline {
     bool? visible,
     bool? gradient,
     bool? geodesic,
+    bool? useTexture,
+    Bitmap? texture,
+    List<Bitmap>? textures,
+    List<int>? textureIndexes,
+    bool? dottedLine,
+    double? zIndex,
   }) {
     return Polyline(
       id: id ?? this.id,
@@ -262,6 +333,12 @@ class Polyline {
       visible: visible ?? this.visible,
       gradient: gradient ?? this.gradient,
       geodesic: geodesic ?? this.geodesic,
+      useTexture: useTexture ?? this.useTexture,
+      texture: texture ?? this.texture,
+      textures: textures ?? this.textures,
+      textureIndexes: textureIndexes ?? this.textureIndexes,
+      dottedLine: dottedLine ?? this.dottedLine,
+      zIndex: zIndex ?? this.zIndex,
     );
   }
 
@@ -278,19 +355,33 @@ class Polyline {
         width == other.width &&
         visible == other.visible &&
         gradient == other.gradient &&
-        geodesic == other.geodesic;
+        geodesic == other.geodesic &&
+        useTexture == other.useTexture &&
+        texture == other.texture &&
+        listEquals(textures, other.textures) &&
+        listEquals(textureIndexes, other.textureIndexes) &&
+        dottedLine == other.dottedLine &&
+        zIndex == other.zIndex;
   }
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        Object.hashAll(points),
-        color,
-        Object.hashAll(colors),
-        width,
-        visible,
-        gradient,
-        geodesic,
+  int get hashCode => Object.hashAll(
+        <Object?>[
+          id,
+          Object.hashAll(points),
+          color,
+          Object.hashAll(colors),
+          width,
+          visible,
+          gradient,
+          geodesic,
+          useTexture,
+          texture,
+          Object.hashAll(textures),
+          Object.hashAll(textureIndexes),
+          dottedLine,
+          zIndex,
+        ],
       );
 }
 

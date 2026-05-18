@@ -60,15 +60,16 @@ const mapOverlayCategory = Map3dCategoryData('地图上绘制', [
     isCompleted: true,
   ),
   Map3dItemData(
+    'Polyline样式增强',
+    pageBuilder: PolylineStylePage.new,
+    isCompleted: true,
+  ),
+  Map3dItemData(
     '绘制大地曲线',
     pageBuilder: GeodesicPolylinePage.new,
     isCompleted: true,
   ),
-  Map3dItemData(
-    '绘制弧线',
-    pageBuilder: ArcPolylinePage.new,
-    isCompleted: true,
-  ),
+  Map3dItemData('绘制弧线', pageBuilder: ArcPolylinePage.new, isCompleted: true),
   Map3dItemData(
     'NavigateArrow功能',
     pageBuilder: NavigateArrowPage.new,

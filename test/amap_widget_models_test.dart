@@ -48,9 +48,49 @@ void main() {
       visible: false,
       gradient: true,
       geodesic: true,
+      useTexture: true,
+      texture: Bitmap(
+        bytes: Uint8List.fromList(<int>[1, 2, 3]),
+        size: Size(width: 64, height: 64),
+      ),
+      textures: <Bitmap>[
+        Bitmap(asset: 'assets/polyline_texture.png'),
+        Bitmap(
+          bytes: Uint8List.fromList(<int>[4, 5, 6]),
+          size: Size(width: 64, height: 64),
+        ),
+      ],
+      textureIndexes: const <int>[1],
+      dottedLine: true,
+      zIndex: 3,
     );
 
     expect(Polyline.decode(polyline.encode() as List<Object?>), polyline);
+  });
+
+  test('Polyline decodes legacy drawing fields with new defaults', () {
+    final legacy = <Object?>[
+      'line-legacy',
+      <Object?>[
+        Position(latitude: 39.9, longitude: 116.3).encode(),
+        Position(latitude: 39.91, longitude: 116.31).encode(),
+      ],
+      const Color(0xFFFF0000).toARGB32(),
+      12.0,
+      true,
+      <Object?>[],
+      false,
+      false,
+    ];
+
+    final decoded = Polyline.decode(legacy);
+
+    expect(decoded.useTexture, isFalse);
+    expect(decoded.texture, isNull);
+    expect(decoded.textures, isEmpty);
+    expect(decoded.textureIndexes, isEmpty);
+    expect(decoded.dottedLine, isFalse);
+    expect(decoded.zIndex, 0);
   });
 
   test('NavigateArrow encodes and decodes all drawing fields', () {

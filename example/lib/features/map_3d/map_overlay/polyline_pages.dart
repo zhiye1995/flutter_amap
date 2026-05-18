@@ -5,6 +5,8 @@ import 'package:flutter_amap_example/core/utils/utils.dart';
 
 final _mapCenter = Position(latitude: 39.984120, longitude: 116.307484);
 final _linePadding = EdgePadding(top: 80, right: 60, bottom: 120, left: 60);
+const _polylineTextureAsset = 'assets/polyline_texture.png';
+const _polylineTextureAltAsset = 'assets/polyline_texture_alt.png';
 
 /// Polylines 功能：普通折线的添加、删除、样式更新，以及地图点击追加路径点。
 class PolylinesPage extends StatefulWidget {
@@ -39,8 +41,10 @@ class _PolylinesPageState extends State<PolylinesPage> {
         children: [
           Expanded(
             child: AMapWidget(
-              initCameraPosition:
-                  CameraPosition(position: _mapCenter, zoom: 16.4),
+              initCameraPosition: CameraPosition(
+                position: _mapCenter,
+                zoom: 16.4,
+              ),
               onMapCreated: _bootstrap,
               onMapPress: _appendPoint,
               onPoiClick: (poi) => _appendPoint(poi.position),
@@ -81,7 +85,10 @@ class _PolylinesPageState extends State<PolylinesPage> {
     if (!mounted || _controller != c) return;
     await _draw();
     c.moveCameraToFitPosition(
-        _points, _linePadding, const Duration(milliseconds: 300));
+      _points,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
     if (mounted) {
       setState(() => _ready = true);
       context.snackBar('点击地图空白处或 POI，可把点追加到折线尾部。');
@@ -191,8 +198,10 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
         children: [
           Expanded(
             child: AMapWidget(
-              initCameraPosition:
-                  CameraPosition(position: _mapCenter, zoom: 16.2),
+              initCameraPosition: CameraPosition(
+                position: _mapCenter,
+                zoom: 16.2,
+              ),
               onMapCreated: _bootstrap,
             ),
           ),
@@ -220,7 +229,10 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
     if (!mounted || _controller != c) return;
     await _draw();
     c.moveCameraToFitPosition(
-        _points, _linePadding, const Duration(milliseconds: 300));
+      _points,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
     if (mounted) setState(() => _ready = true);
   }
 
@@ -242,6 +254,214 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
 
   Future<void> _toggleGradient() async {
     setState(() => _gradient = !_gradient);
+    await _draw();
+  }
+}
+
+/// Polyline 样式增强：演示纹理线、分段纹理、虚线和 zIndex 叠放。
+class PolylineStylePage extends StatefulWidget {
+  const PolylineStylePage({super.key});
+
+  static const title = 'Polyline样式增强';
+
+  @override
+  State<PolylineStylePage> createState() => _PolylineStylePageState();
+}
+
+class _PolylineStylePageState extends State<PolylineStylePage> {
+  static const _dottedId = 'polyline_style_dotted';
+  static const _textureId = 'polyline_style_texture';
+  static const _multiTextureId = 'polyline_style_multi_texture';
+  static const _zBackId = 'polyline_style_z_back';
+  static const _zFrontId = 'polyline_style_z_front';
+
+  AMapController? _controller;
+  var _ready = false;
+  var _useTexture = true;
+  var _frontOnTop = true;
+
+  final _dottedPoints = <Position>[
+    Position(latitude: 39.985130, longitude: 116.303780),
+    Position(latitude: 39.986020, longitude: 116.305260),
+    Position(latitude: 39.985360, longitude: 116.306760),
+    Position(latitude: 39.986110, longitude: 116.308180),
+  ];
+
+  final _texturePoints = <Position>[
+    Position(latitude: 39.983880, longitude: 116.303960),
+    Position(latitude: 39.984280, longitude: 116.305280),
+    Position(latitude: 39.983540, longitude: 116.306520),
+    Position(latitude: 39.984060, longitude: 116.307760),
+  ];
+
+  final _multiTexturePoints = <Position>[
+    Position(latitude: 39.982720, longitude: 116.304240),
+    Position(latitude: 39.982980, longitude: 116.305620),
+    Position(latitude: 39.982420, longitude: 116.306840),
+    Position(latitude: 39.982900, longitude: 116.308140),
+    Position(latitude: 39.982320, longitude: 116.309300),
+  ];
+
+  final _zBackPoints = <Position>[
+    Position(latitude: 39.985020, longitude: 116.309200),
+    Position(latitude: 39.983900, longitude: 116.310780),
+  ];
+
+  final _zFrontPoints = <Position>[
+    Position(latitude: 39.983880, longitude: 116.309200),
+    Position(latitude: 39.985040, longitude: 116.310780),
+  ];
+
+  List<Position> get _fitPoints => [
+    ..._dottedPoints,
+    ..._texturePoints,
+    ..._multiTexturePoints,
+    ..._zBackPoints,
+    ..._zFrontPoints,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text(PolylineStylePage.title)),
+      body: Column(
+        children: [
+          Expanded(
+            child: AMapWidget(
+              initCameraPosition: CameraPosition(
+                position: _mapCenter,
+                zoom: 16.1,
+              ),
+              onMapCreated: _bootstrap,
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: _Panel(
+              title: _useTexture
+                  ? '纹理线启用中；iOS 仅 3D 地图支持，纹理会覆盖颜色样式。'
+                  : '纹理线关闭后展示普通线，虚线和 zIndex 仍生效。',
+              children: [
+                const _LegendDot(color: Color(0xFF7B1FA2), label: '虚线'),
+                const _LegendDot(color: Color(0xFF00897B), label: '单纹理'),
+                const _LegendDot(color: Color(0xFFFF8F00), label: '分段纹理'),
+                FilledButton(
+                  onPressed: !_ready ? null : _toggleTexture,
+                  child: Text(_useTexture ? '关闭纹理' : '启用纹理'),
+                ),
+                FilledButton(
+                  onPressed: !_ready ? null : _toggleZIndex,
+                  child: Text(_frontOnTop ? '蓝线置底' : '蓝线置顶'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _bootstrap(AMapController c) async {
+    setState(() => _controller = c);
+    await c.waitForMapCompleted();
+    if (!mounted || _controller != c) return;
+    await _draw();
+    c.moveCameraToFitPosition(
+      _fitPoints,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
+    if (mounted) setState(() => _ready = true);
+  }
+
+  Future<void> _draw() async {
+    final c = _controller;
+    if (c == null) return;
+    for (final id in [
+      _dottedId,
+      _textureId,
+      _multiTextureId,
+      _zBackId,
+      _zFrontId,
+    ]) {
+      await c.removePolyline(id);
+    }
+    await c.addPolyline(
+      Polyline(
+        id: _dottedId,
+        points: _dottedPoints,
+        color: const Color(0xFF7B1FA2),
+        width: 12,
+        dottedLine: true,
+        zIndex: 1,
+      ),
+    );
+    await c.addPolyline(
+      Polyline(
+        id: _textureId,
+        points: _texturePoints,
+        color: const Color(0xFF00897B),
+        width: 18,
+        useTexture: _useTexture,
+        texture: _useTexture
+            ? Bitmap(
+                asset: _polylineTextureAsset,
+                size: Size(width: 64, height: 64),
+              )
+            : null,
+        zIndex: 2,
+      ),
+    );
+    await c.addPolyline(
+      Polyline(
+        id: _multiTextureId,
+        points: _multiTexturePoints,
+        color: const Color(0xFFFF8F00),
+        width: 18,
+        useTexture: _useTexture,
+        textures: _useTexture
+            ? <Bitmap>[
+                Bitmap(
+                  asset: _polylineTextureAsset,
+                  size: Size(width: 64, height: 64),
+                ),
+                Bitmap(
+                  asset: _polylineTextureAltAsset,
+                  size: Size(width: 64, height: 64),
+                ),
+              ]
+            : const <Bitmap>[],
+        textureIndexes: const <int>[1, 2, 3],
+        zIndex: 3,
+      ),
+    );
+    await c.addPolyline(
+      Polyline(
+        id: _zBackId,
+        points: _zBackPoints,
+        color: const Color(0xFFE53935),
+        width: 18,
+        zIndex: _frontOnTop ? 4 : 6,
+      ),
+    );
+    await c.addPolyline(
+      Polyline(
+        id: _zFrontId,
+        points: _zFrontPoints,
+        color: const Color(0xFF1976D2),
+        width: 10,
+        zIndex: _frontOnTop ? 6 : 4,
+      ),
+    );
+  }
+
+  Future<void> _toggleTexture() async {
+    setState(() => _useTexture = !_useTexture);
+    await _draw();
+  }
+
+  Future<void> _toggleZIndex() async {
+    setState(() => _frontOnTop = !_frontOnTop);
     await _draw();
   }
 }
@@ -295,8 +515,9 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
               title: '参考官方 Demo 坐标绘制导航箭头；iOS 使用 3D 箭头线等效展示。',
               children: [
                 _LegendDot(
-                  color:
-                      _red ? const Color(0xFFE53935) : const Color(0xFF1976D2),
+                  color: _red
+                      ? const Color(0xFFE53935)
+                      : const Color(0xFF1976D2),
                   label: _red ? '红色箭头' : '蓝色箭头',
                 ),
                 FilledButton(
@@ -442,7 +663,10 @@ class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
     _addCityMarkers(c);
     await _draw();
     c.moveCameraToFitPosition(
-        _points, _linePadding, const Duration(milliseconds: 300));
+      _points,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
     if (mounted) setState(() => _ready = true);
   }
 
@@ -527,16 +751,19 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
         children: [
           Expanded(
             child: AMapWidget(
-              initCameraPosition:
-                  CameraPosition(position: _mapCenter, zoom: 15.8),
+              initCameraPosition: CameraPosition(
+                position: _mapCenter,
+                zoom: 15.8,
+              ),
               onMapCreated: _bootstrap,
             ),
           ),
           SafeArea(
             top: false,
             child: _Panel(
-              title:
-                  _useNorthPassed ? '当前使用北侧途经点，弧线向上拱起。' : '当前使用南侧途经点，弧线向下拱起。',
+              title: _useNorthPassed
+                  ? '当前使用北侧途经点，弧线向上拱起。'
+                  : '当前使用南侧途经点，弧线向下拱起。',
               children: [
                 const _LegendDot(color: Color(0xFFE53935), label: 'Arc'),
                 const _LegendDot(color: Color(0x661976D2), label: '三点参考线'),
@@ -559,7 +786,10 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
     _addMarkers(c);
     await _draw();
     c.moveCameraToFitPosition(
-        _fitPoints, _linePadding, const Duration(milliseconds: 300));
+      _fitPoints,
+      _linePadding,
+      const Duration(milliseconds: 300),
+    );
     if (mounted) setState(() => _ready = true);
   }
 
@@ -607,10 +837,7 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({
-    required this.title,
-    required this.children,
-  });
+  const _Panel({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;

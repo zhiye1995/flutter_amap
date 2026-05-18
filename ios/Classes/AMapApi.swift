@@ -380,7 +380,7 @@ class _AMapApi: NSObject {
     polylines[polyline.id] = overlay
     polylineStyles[polyline.id] = polyline
     if polyline.visible {
-      mapView.add(overlay)
+      reloadVisiblePolylines()
     }
   }
 
@@ -389,6 +389,26 @@ class _AMapApi: NSObject {
       mapView.remove(overlay)
       polylines.removeValue(forKey: id)
       polylineStyles.removeValue(forKey: id)
+    }
+  }
+
+  private func reloadVisiblePolylines() {
+    let visibleOverlays = polylines.compactMap { id, overlay in
+      guard polylineStyles[id]?.visible == true else { return nil }
+      return overlay
+    }
+    if !visibleOverlays.isEmpty {
+      mapView.removeOverlays(visibleOverlays)
+    }
+    let sortedIds = polylines.keys.sorted {
+      let lhs = polylineStyles[$0]?.zIndex ?? 0
+      let rhs = polylineStyles[$1]?.zIndex ?? 0
+      if lhs == rhs { return $0 < $1 }
+      return lhs < rhs
+    }
+    for id in sortedIds {
+      guard let style = polylineStyles[id], style.visible, let overlay = polylines[id] else { continue }
+      mapView.add(overlay)
     }
   }
 

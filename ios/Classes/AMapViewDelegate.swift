@@ -235,16 +235,25 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
     }
     if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
       let renderer: MAPolylineRenderer? = {
+        if let multiLine = line as? MAMultiPolyline, style.useTexture, !style.textures.isEmpty {
+          let renderer = MAMultiTexturePolylineRenderer(multiPolyline: multiLine)
+          renderer?.strokeTextureImages = style.textures.compactMap { $0.toUIImage(registrar: registrar) }
+          return renderer
+        }
         if let multiLine = line as? MAMultiPolyline, !style.colors.isEmpty {
           let renderer = MAMultiColoredPolylineRenderer(multiPolyline: multiLine)
           renderer?.strokeColors = style.colors
-            renderer?.isGradient = style.gradient
+          renderer?.isGradient = style.gradient
           return renderer
         }
         return MAPolylineRenderer(polyline: line)
       }()
       renderer?.strokeColor = style.color
       renderer?.lineWidth = amapOverlayLineWidth(style.width)
+      renderer?.lineDashType = style.dottedLine ? kMALineDashTypeSquare : kMALineDashTypeNone
+      if style.useTexture, let image = style.texture?.toUIImage(registrar: registrar) {
+        renderer?.loadStrokeTextureImage(image)
+      }
       return renderer
     }
     if let arc = overlay as? MAArc, let style = controller.api.arcStyle(for: arc) {

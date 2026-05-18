@@ -484,6 +484,12 @@ struct Polyline {
   var visible: Bool
   var gradient: Bool
   var geodesic: Bool
+  var useTexture: Bool
+  var texture: Bitmap?
+  var textures: [Bitmap]
+  var textureIndexes: [Int]
+  var dottedLine: Bool
+  var zIndex: Double
 
   static func fromList(_ list: [Any?]) -> Polyline {
     let id = list[0] as! String
@@ -496,6 +502,19 @@ struct Polyline {
       : []
     let gradient = list.count > 6 ? list[6] as! Bool : false
     let geodesic = list.count > 7 ? list[7] as! Bool : false
+    let useTexture = list.count > 8 ? list[8] as! Bool : false
+    var texture: Bitmap? = nil
+    if list.count > 9, let textureList: [Any?] = nilOrValue(list[9]) {
+      texture = Bitmap.fromList(textureList)
+    }
+    let textures = list.count > 10
+      ? ((list[10] as? [Any?]) ?? []).map { Bitmap.fromList($0 as! [Any?]) }
+      : []
+    let textureIndexes = list.count > 11
+      ? ((list[11] as? [Any?]) ?? []).map { ($0 as! NSNumber).intValue }
+      : []
+    let dottedLine = list.count > 12 ? list[12] as! Bool : false
+    let zIndex = list.count > 13 ? (list[13] as! NSNumber).doubleValue : 0
     return Polyline(
       id: id,
       points: points,
@@ -504,7 +523,13 @@ struct Polyline {
       width: width,
       visible: visible,
       gradient: gradient,
-      geodesic: geodesic
+      geodesic: geodesic,
+      useTexture: useTexture,
+      texture: texture,
+      textures: textures,
+      textureIndexes: textureIndexes,
+      dottedLine: dottedLine,
+      zIndex: zIndex
     )
   }
 
@@ -518,6 +543,12 @@ struct Polyline {
       colors.map { $0.hex },
       gradient,
       geodesic,
+      useTexture,
+      texture?.toList(),
+      textures.map { $0.toList() },
+      textureIndexes,
+      dottedLine,
+      zIndex,
     ]
   }
 }

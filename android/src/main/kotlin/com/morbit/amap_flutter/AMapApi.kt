@@ -242,7 +242,8 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
 
   fun addPolyline(polyline: Polyline) {
     removePolyline(polyline.id)
-    amap.polylines[polyline.id] = mapView.map.addPolyline(polyline.toPolylineOptions())
+    if (polyline.points.size < 2) return
+    amap.polylines[polyline.id] = mapView.map.addPolyline(polyline.toPolylineOptions(amap.binding))
   }
 
   fun removePolyline(id: String) {

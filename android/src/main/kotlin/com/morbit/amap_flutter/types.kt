@@ -494,6 +494,12 @@ data class Polyline(
   val visible: Boolean,
   val gradient: Boolean,
   val geodesic: Boolean,
+  val useTexture: Boolean,
+  val texture: Bitmap?,
+  val textures: List<Bitmap>,
+  val textureIndexes: List<Int>,
+  val dottedLine: Boolean,
+  val zIndex: Double,
 ) {
   companion object {
     fun fromList(list: List<Any?>): Polyline {
@@ -509,7 +515,36 @@ data class Polyline(
       }
       val gradient = if (list.size > 6) list[6] as Boolean else false
       val geodesic = if (list.size > 7) list[7] as Boolean else false
-      return Polyline(id, points, color, colors, width, visible, gradient, geodesic)
+      val useTexture = if (list.size > 8) list[8] as Boolean else false
+      val texture = if (list.size > 9) (list[9] as List<Any?>?)?.let { Bitmap.fromList(it) } else null
+      val textures = if (list.size > 10) {
+        (list[10] as? List<Any?>)?.map { Bitmap.fromList(it as List<Any?>) } ?: emptyList()
+      } else {
+        emptyList()
+      }
+      val textureIndexes = if (list.size > 11) {
+        (list[11] as? List<Any?>)?.map { (it as Number).toInt() } ?: emptyList()
+      } else {
+        emptyList()
+      }
+      val dottedLine = if (list.size > 12) list[12] as Boolean else false
+      val zIndex = if (list.size > 13) (list[13] as Number).toDouble() else 0.0
+      return Polyline(
+        id,
+        points,
+        color,
+        colors,
+        width,
+        visible,
+        gradient,
+        geodesic,
+        useTexture,
+        texture,
+        textures,
+        textureIndexes,
+        dottedLine,
+        zIndex,
+      )
     }
   }
 
@@ -523,6 +558,12 @@ data class Polyline(
       colors.map { it.toArgb() },
       gradient,
       geodesic,
+      useTexture,
+      texture?.toList(),
+      textures.map { it.toList() },
+      textureIndexes,
+      dottedLine,
+      zIndex,
     )
   }
 }

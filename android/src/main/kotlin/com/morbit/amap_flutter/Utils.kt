@@ -102,7 +102,7 @@ fun Marker.toMarkerOptions(binding: FlutterPluginBinding): MarkerOptions {
     }
 }
 
-fun Polyline.toPolylineOptions(): PolylineOptions {
+fun Polyline.toPolylineOptions(binding: FlutterPluginBinding): PolylineOptions {
     return PolylineOptions().let { options ->
         options.addAll(points.map { it.toPosition() })
         options.color(color.toArgb())
@@ -113,6 +113,16 @@ fun Polyline.toPolylineOptions(): PolylineOptions {
         options.geodesic(geodesic)
         options.width(width.toFloat())
         options.visible(visible)
+        options.zIndex(zIndex.toFloat())
+        options.setDottedLine(dottedLine)
+        options.setUseTexture(useTexture)
+        texture?.toBitmapDescriptor(binding)?.let { options.setCustomTexture(it) }
+        if (textures.isNotEmpty()) {
+            options.setCustomTextureList(textures.mapNotNull { it.toBitmapDescriptor(binding) })
+        }
+        if (textureIndexes.isNotEmpty()) {
+            options.setCustomTextureIndex(textureIndexes)
+        }
         options
     }
 }
