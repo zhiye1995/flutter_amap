@@ -5,7 +5,7 @@ import 'package:flutter_amap_example/core/utils/utils.dart';
 
 final _mapCenter = Position(latitude: 39.984120, longitude: 116.307484);
 final _linePadding = EdgePadding(top: 80, right: 60, bottom: 120, left: 60);
-const _polylineTextureAsset = 'assets/polyline_texture.png';
+const _polylineTextureAsset = 'assets/polyline_texture2.png';
 const _polylineTextureAltAsset = 'assets/polyline_texture_alt.png';
 
 /// Polylines 功能：普通折线的添加、删除、样式更新，以及地图点击追加路径点。
