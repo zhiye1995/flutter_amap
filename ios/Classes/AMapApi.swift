@@ -393,9 +393,9 @@ class _AMapApi: NSObject {
   }
 
   private func reloadVisiblePolylines() {
-    let visibleOverlays = polylines.compactMap { id, overlay in
-      guard polylineStyles[id]?.visible == true else { return nil }
-      return overlay
+    let visibleOverlays: [MAPolyline] = polylines.compactMap { entry -> MAPolyline? in
+      guard polylineStyles[entry.key]?.visible == true else { return nil }
+      return entry.value
     }
     if !visibleOverlays.isEmpty {
       mapView.removeOverlays(visibleOverlays)
