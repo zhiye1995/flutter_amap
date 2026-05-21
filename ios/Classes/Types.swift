@@ -440,6 +440,7 @@ struct Marker {
   var position: Position
   /// 标记点自定义图标信息
   var bitmap: Bitmap?
+  var anchor: Anchor?
   /// InfoWindow 标题（iOS callout）
   var title: String?
   /// InfoWindow 副标题（iOS callout subtitle）
@@ -452,12 +453,21 @@ struct Marker {
     if let bitmapList: [Any?] = nilOrValue(list[2]) {
       bitmap = Bitmap.fromList(bitmapList)
     }
-    let title: String? = list.count > 3 ? (list[3] as? String) : nil
-    let snippet: String? = list.count > 4 ? (list[4] as? String) : nil
+    let anchorValue = list.count > 3 ? list[3] : nil
+    let hasAnchorSlot = list.count > 5 || anchorValue is [Any?]
+    let titleIndex = hasAnchorSlot ? 4 : 3
+    let snippetIndex = titleIndex + 1
+    var anchor: Anchor? = nil
+    if let anchorList = anchorValue as? [Any?] {
+      anchor = Anchor.fromList(anchorList)
+    }
+    let title: String? = list.count > titleIndex ? (list[titleIndex] as? String) : nil
+    let snippet: String? = list.count > snippetIndex ? (list[snippetIndex] as? String) : nil
     return Marker(
       id: id,
       position: position,
       bitmap: bitmap,
+      anchor: anchor,
       title: title,
       snippet: snippet
     )
@@ -468,6 +478,7 @@ struct Marker {
       id,
       position.toList(),
       bitmap?.toList(),
+      anchor?.toList(),
       title,
       snippet,
     ]

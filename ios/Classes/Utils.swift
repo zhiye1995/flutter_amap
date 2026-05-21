@@ -16,10 +16,12 @@ import AMapNaviKit
 class Annotation: MAAnimatedAnnotation {
   let id: String
   let bitmap: Bitmap?
+  let anchor: Anchor?
 
-  init(id: String, position: Position, bitmap: Bitmap?, title: String?, snippet: String?) {
+  init(id: String, position: Position, bitmap: Bitmap?, anchor: Anchor?, title: String?, snippet: String?) {
     self.id = id
     self.bitmap = bitmap
+    self.anchor = anchor
     super.init()
     self.coordinate = position.coordinate
     if let t = title, !t.isEmpty {
@@ -155,7 +157,7 @@ extension MapType {
 
 extension Marker {
   var annotation: Annotation {
-    return Annotation(id: id, position: position, bitmap: bitmap, title: title, snippet: snippet)
+    return Annotation(id: id, position: position, bitmap: bitmap, anchor: anchor, title: title, snippet: snippet)
   }
 }
 

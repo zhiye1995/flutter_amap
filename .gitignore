@@ -34,3 +34,6 @@ build/
 /official_demo/
 /official_example/
 official_demo\Android_3D_Demo
+
+# FVM Version Cache
+.fvm/

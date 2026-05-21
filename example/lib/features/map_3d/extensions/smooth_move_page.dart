@@ -218,6 +218,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
         asset: 'assets/car.png',
         size: Size(width: 26 * scale, height: 52 * scale),
       ),
+      anchor: Anchor(x: 0.5, y: 0.5),
       title: '平滑移动',
       snippet: '参考 Marker.moveAlong 轨迹回放',
     );

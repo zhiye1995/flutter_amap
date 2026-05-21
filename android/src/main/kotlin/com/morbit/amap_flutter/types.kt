@@ -457,6 +457,7 @@ data class Marker(
   val position: Position,
   /** 标记点自定义图标信息 */
   val bitmap: Bitmap?,
+  val anchor: Anchor? = null,
   /** InfoWindow 标题 */
   val title: String? = null,
   /** InfoWindow 副标题 */
@@ -467,9 +468,14 @@ data class Marker(
       val id = list[0] as String
       val position = Position.fromList(list[1] as List<Any?>)
       val bitmap = (list[2] as List<Any?>?)?.let { Bitmap.fromList(it) }
-      val title = if (list.size > 3) list[3] as? String else null
-      val snippet = if (list.size > 4) list[4] as? String else null
-      return Marker(id, position, bitmap, title, snippet)
+      val anchorValue = if (list.size > 3) list[3] else null
+      val hasAnchorSlot = list.size > 5 || anchorValue is List<*>
+      val titleIndex = if (hasAnchorSlot) 4 else 3
+      val snippetIndex = titleIndex + 1
+      val anchor = if (anchorValue is List<*>) Anchor.fromList(anchorValue as List<Any?>) else null
+      val title = if (list.size > titleIndex) list[titleIndex] as? String else null
+      val snippet = if (list.size > snippetIndex) list[snippetIndex] as? String else null
+      return Marker(id, position, bitmap, anchor, title, snippet)
     }
   }
 
@@ -478,6 +484,7 @@ data class Marker(
       id,
       position.toList(),
       bitmap?.toList(),
+      anchor?.toList(),
       title,
       snippet,
     )

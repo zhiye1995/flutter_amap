@@ -54,7 +54,8 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
       if let bitmap = annotation.bitmap {
         annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: annotation.id)
         annotationView.image = bitmap.toUIImage(registrar: registrar)
-        annotationView.layer.anchorPoint = CGPointMake(0.5, 1)
+        let anchor = annotation.anchor ?? Anchor(x: 0.5, y: 1)
+        annotationView.layer.anchorPoint = CGPointMake(CGFloat(anchor.x), CGFloat(anchor.y))
       } else {
         annotationView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: annotation.id)
       }

@@ -95,6 +95,7 @@ class Marker {
     required this.id,
     required this.position,
     this.bitmap,
+    this.anchor,
     this.title,
     this.snippet,
   });
@@ -108,6 +109,9 @@ class Marker {
   /// 标记点自定义图标信息
   Bitmap? bitmap;
 
+  /// Marker icon anchor. Values are usually normalized from 0 to 1.
+  Anchor? anchor;
+
   /// InfoWindow 标题（Android [MarkerOptions.title]；iOS callout `title`）
   String? title;
 
@@ -119,19 +123,28 @@ class Marker {
       id,
       position.encode(),
       bitmap?.encode(),
+      anchor?.encode(),
       title,
       snippet,
     ];
   }
 
   static Marker decode(List<Object?> result) {
+    final Object? anchorValue = result.length > 3 ? result[3] : null;
+    final bool hasAnchorSlot = result.length > 5 || anchorValue is List;
+    final int titleIndex = hasAnchorSlot ? 4 : 3;
+    final int snippetIndex = titleIndex + 1;
     return Marker(
       id: result[0]! as String,
       position: Position.decode(result[1]! as List<Object?>),
       bitmap:
           result[2] != null ? Bitmap.decode(result[2]! as List<Object?>) : null,
-      title: result.length > 3 ? result[3] as String? : null,
-      snippet: result.length > 4 ? result[4] as String? : null,
+      anchor: anchorValue is List
+          ? Anchor.decode(anchorValue.cast<Object?>())
+          : null,
+      title: result.length > titleIndex ? result[titleIndex] as String? : null,
+      snippet:
+          result.length > snippetIndex ? result[snippetIndex] as String? : null,
     );
   }
 
@@ -139,6 +152,7 @@ class Marker {
     String? id,
     Position? position,
     Bitmap? bitmap,
+    Anchor? anchor,
     String? title,
     String? snippet,
   }) {
@@ -146,6 +160,7 @@ class Marker {
       id: id ?? this.id,
       position: position ?? this.position,
       bitmap: bitmap ?? this.bitmap,
+      anchor: anchor ?? this.anchor,
       title: title ?? this.title,
       snippet: snippet ?? this.snippet,
     );
@@ -160,12 +175,13 @@ class Marker {
         id == other.id &&
         position == other.position &&
         bitmap == other.bitmap &&
+        anchor == other.anchor &&
         title == other.title &&
         snippet == other.snippet;
   }
 
   @override
-  int get hashCode => Object.hash(id, position, bitmap, title, snippet);
+  int get hashCode => Object.hash(id, position, bitmap, anchor, title, snippet);
 }
 
 /// 折线覆盖物配置。

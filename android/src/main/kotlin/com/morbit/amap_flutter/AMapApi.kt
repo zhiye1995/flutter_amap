@@ -201,24 +201,28 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   fun pauseSmoothMoveMarker(markerId: String) {
     val state = smoothMoveStates[markerId] ?: return
     if (state.paused) return
-    val smoothMarker = smoothMoveMarkers.remove(markerId) ?: return
+    val smoothMarker = smoothMoveMarkers[markerId] ?: return
     val current = smoothMarker.position?.toPosition() ?: state.points.first()
     val elapsed = System.currentTimeMillis() - state.startTimeMs
     state.pausedPosition = current
     state.remainingMs = (state.remainingMs - elapsed).coerceAtLeast(1_000L)
     state.paused = true
     smoothMarker.stopMove()
-    smoothMarker.destroy()
   }
 
   fun resumeSmoothMoveMarker(markerId: String) {
     val state = smoothMoveStates[markerId] ?: return
     if (!state.paused) return
-    val current = state.pausedPosition ?: return
-    val remainingPoints = buildRemainingSmoothMovePoints(current, state.points)
+    val smoothMarker = smoothMoveMarkers[markerId]
+    val current = state.pausedPosition ?: state.points.first()
     state.paused = false
     state.pausedPosition = null
     smoothMoveStates[markerId] = state.copy(startTimeMs = System.currentTimeMillis())
+    if (smoothMarker != null) {
+      smoothMarker.startSmoothMove()
+      return
+    }
+    val remainingPoints = buildRemainingSmoothMovePoints(current, state.points)
     startSmoothMoveSegment(markerId, state.marker.copy(position = current), remainingPoints, state.remainingMs)
   }
 
