@@ -236,7 +236,7 @@ class Polyline {
   /// 是否启用纹理贴图。
   ///
   /// Android 对应 `PolylineOptions.setUseTexture`；iOS 在 [texture] 不为空时
-  /// 调用 `MAPolylineRenderer.loadStrokeTextureImage`。iOS 启用纹理后，
+  /// 设置 `MAPolylineRenderer.strokeImage`。iOS 启用纹理后，
   /// 线颜色、端点类型和连接类型等样式由原生 SDK 忽略。
   bool useTexture;
 

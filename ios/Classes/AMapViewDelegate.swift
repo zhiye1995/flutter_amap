@@ -253,7 +253,7 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
       renderer?.lineWidth = amapOverlayLineWidth(style.width)
       renderer?.lineDashType = style.dottedLine ? kMALineDashTypeSquare : kMALineDashTypeNone
       if style.useTexture, let image = style.texture?.toUIImage(registrar: registrar) {
-        renderer?.loadStrokeTextureImage(image)
+        renderer?.strokeImage = image
       }
       return renderer
     }
