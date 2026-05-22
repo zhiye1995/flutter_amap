@@ -285,13 +285,27 @@ class _AMapApi: NSObject {
     let run: () -> Void = { [weak self] in
       guard let self = self else { return }
       self.stopSmoothMoveMarker(markerId: marker.id)
+      
+      // 过滤相邻相同的点，防止高德 SDK 计算零距离动画段时产生除零错导致动画引擎卡死挂起
+      var filteredPoints = [Position]()
+      for p in points {
+        if let last = filteredPoints.last {
+          if last.latitude == p.latitude && last.longitude == p.longitude {
+            continue
+          }
+        }
+        filteredPoints.append(p)
+      }
+      
+      guard filteredPoints.count >= 2 else { return }
+      
       let safeDuration = max(1_000, durationMs)
-      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: points, durationMs: safeDuration)
+      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: filteredPoints, durationMs: safeDuration)
       let annotation = marker.annotation
       self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
-      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: points, durationMs: safeDuration)
+      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: filteredPoints, durationMs: safeDuration)
     }
     if Thread.isMainThread {
       run()
