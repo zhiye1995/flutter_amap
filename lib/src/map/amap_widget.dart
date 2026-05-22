@@ -143,7 +143,6 @@ class AMapWidget extends StatefulWidget {
     this.onRotateChangeEnd,
     this.onPoiClick,
     this.onMarkerClick,
-    this.onSmoothMoveMarkerComplete,
     this.onMarkerDragStart,
     this.onMarkerDrag,
     this.onMarkerDragEnd,
@@ -307,9 +306,6 @@ class AMapWidget extends StatefulWidget {
 
   /// 当点击点标记时触发该回调
   final void Function(String markerId)? onMarkerClick;
-
-  /// 当平滑移动标记点移动结束时触发该回调
-  final void Function(String markerId)? onSmoothMoveMarkerComplete;
 
   /// 当开始拖动点标记时触发该回调
   final void Function(String markerId, Position position)? onMarkerDragStart;

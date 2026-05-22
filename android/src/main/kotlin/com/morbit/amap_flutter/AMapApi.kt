@@ -237,13 +237,6 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     marker.bitmap?.toBitmapDescriptor(amap.binding)?.let { smoothMarker.setDescriptor(it) }
     smoothMarker.setPoints(points.map { it.toPosition() })
     smoothMarker.setTotalDuration((durationMs.coerceAtLeast(1_000L) / 1_000L).toInt())
-    smoothMarker.setMoveListener(object : SmoothMoveMarker.MoveListener {
-      override fun move(distance: Double) {
-        if (distance == 0.0) {
-          amap.controller.onSmoothMoveMarkerComplete(markerId)
-        }
-      }
-    })
     smoothMoveMarkers[markerId] = smoothMarker
     smoothMarker.startSmoothMove()
   }

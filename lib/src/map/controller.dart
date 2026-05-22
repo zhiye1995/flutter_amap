@@ -100,8 +100,6 @@ class AMapController {
             _aMapFlutter.onPoiClick?.call(event.value);
           case MarkerClickEvent():
             _aMapFlutter.onMarkerClick?.call(event.value);
-          case SmoothMoveMarkerCompleteEvent():
-            _aMapFlutter.onSmoothMoveMarkerComplete?.call(event.value);
           case MarkerDragStartEvent():
             _aMapFlutter.onMarkerDragStart?.call(event.value, event.position);
           case MarkerDragEvent():

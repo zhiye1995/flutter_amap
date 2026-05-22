@@ -37,7 +37,6 @@ class _AMapApi: NSObject {
   let mapView: MAMapView
   let mapInitConfig: MapInitConfig?
   weak var mapViewDelegate: AMapViewDelegate?
-  weak var controller: AMapController?
   var markers = [String: Annotation]()
   var markerIds = [Int: String]()
   var polylines = [String: MAPolyline]()
@@ -286,27 +285,13 @@ class _AMapApi: NSObject {
     let run: () -> Void = { [weak self] in
       guard let self = self else { return }
       self.stopSmoothMoveMarker(markerId: marker.id)
-      
-      // 过滤相邻相同的点，防止高德 SDK 计算零距离动画段时产生除零错导致动画引擎卡死挂起
-      var filteredPoints = [Position]()
-      for p in points {
-        if let last = filteredPoints.last {
-          if last.latitude == p.latitude && last.longitude == p.longitude {
-            continue
-          }
-        }
-        filteredPoints.append(p)
-      }
-      
-      guard filteredPoints.count >= 2 else { return }
-      
       let safeDuration = max(1_000, durationMs)
-      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: filteredPoints, durationMs: safeDuration)
+      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: points, durationMs: safeDuration)
       let annotation = marker.annotation
       self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
-      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: filteredPoints, durationMs: safeDuration)
+      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: points, durationMs: safeDuration)
     }
     if Thread.isMainThread {
       run()
@@ -367,14 +352,11 @@ class _AMapApi: NSObject {
       withKeyCoordinates: &coordinates,
       count: UInt(coordinates.count),
       withDuration: duration,
-      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] isFinished in
+      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
         guard let self = self, let annotation = annotation else { return }
         annotation.coordinate = endCoordinate
         self.smoothMoveAnnotations[markerId] = annotation
         self.smoothMoveStates.removeValue(forKey: markerId)
-        if isFinished {
-          self.controller?.onSmoothMoveMarkerComplete(markerId: markerId)
-        }
       }
   }
 
