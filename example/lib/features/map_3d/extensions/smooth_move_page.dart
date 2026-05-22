@@ -46,13 +46,8 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   var _paused = false;
   var _showInitialMarker = true;
 
-  Timer? _moveTimer;
-  Duration _remainingDuration = _duration;
-  DateTime? _lastStartTime;
-
   @override
   void dispose() {
-    _moveTimer?.cancel();
     _controller?.stopSmoothMoveMarker(_markerId);
     super.dispose();
   }
@@ -79,6 +74,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
               },
               markers: _markers,
               onMapCreated: _onMapCreated,
+              onSmoothMoveMarkerComplete: _onSmoothMoveMarkerComplete,
             ),
           ),
           SafeArea(top: false, child: _buildPanel()),
@@ -167,9 +163,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   Future<void> _start() async {
     final controller = _controller;
     if (controller == null) return;
-    _moveTimer?.cancel();
-    _remainingDuration = _duration;
-    _lastStartTime = DateTime.now();
 
     setState(() => _showInitialMarker = false);
     await controller.startSmoothMoveMarker(
@@ -183,7 +176,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
       _paused = false;
     });
     context.snackBar('已开始平滑移动');
-    _moveTimer = Timer(_remainingDuration, _onMoveCompleted);
   }
 
   Future<void> _pause() async {
@@ -191,14 +183,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (controller == null) return;
     await controller.pauseSmoothMoveMarker(_markerId);
     if (!mounted) return;
-
-    _moveTimer?.cancel();
-    final lastStartTime = _lastStartTime;
-    if (lastStartTime != null) {
-      final elapsed = DateTime.now().difference(lastStartTime);
-      final remaining = _remainingDuration - elapsed;
-      _remainingDuration = remaining < Duration.zero ? Duration.zero : remaining;
-    }
 
     setState(() => _paused = true);
     context.snackBar('已暂停平滑移动');
@@ -210,12 +194,8 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.resumeSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    _moveTimer?.cancel();
-    _lastStartTime = DateTime.now();
-
     setState(() => _paused = false);
     context.snackBar('已继续平滑移动');
-    _moveTimer = Timer(_remainingDuration, _onMoveCompleted);
   }
 
   Future<void> _stop() async {
@@ -223,9 +203,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (controller == null) return;
     await controller.stopSmoothMoveMarker(_markerId);
     if (!mounted) return;
-
-    _moveTimer?.cancel();
-    _remainingDuration = _duration;
 
     setState(() {
       _moving = false;
@@ -235,14 +212,14 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     context.snackBar('已停止平滑移动');
   }
 
-  void _onMoveCompleted() {
-    _moveTimer = null;
-    if (mounted) {
+  void _onSmoothMoveMarkerComplete(String markerId) {
+    if (markerId == _markerId && mounted) {
       setState(() {
         _moving = false;
         _paused = false;
         _showInitialMarker = true;
       });
+      context.snackBar('平滑移动已完成');
     }
   }
 

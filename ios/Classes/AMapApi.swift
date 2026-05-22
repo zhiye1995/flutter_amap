@@ -37,6 +37,7 @@ class _AMapApi: NSObject {
   let mapView: MAMapView
   let mapInitConfig: MapInitConfig?
   weak var mapViewDelegate: AMapViewDelegate?
+  weak var controller: AMapController?
   var markers = [String: Annotation]()
   var markerIds = [Int: String]()
   var polylines = [String: MAPolyline]()
@@ -366,11 +367,14 @@ class _AMapApi: NSObject {
       withKeyCoordinates: &coordinates,
       count: UInt(coordinates.count),
       withDuration: duration,
-      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
+      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] isFinished in
         guard let self = self, let annotation = annotation else { return }
         annotation.coordinate = endCoordinate
         self.smoothMoveAnnotations[markerId] = annotation
         self.smoothMoveStates.removeValue(forKey: markerId)
+        if isFinished {
+          self.controller?.onSmoothMoveMarkerComplete(markerId: markerId)
+        }
       }
   }
 

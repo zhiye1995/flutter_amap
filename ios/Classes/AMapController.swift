@@ -321,6 +321,13 @@ class AMapController: NSObject {
     }
   }
 
+  /// 当平滑移动标记点移动结束时触发该回调
+  func onSmoothMoveMarkerComplete(markerId: String) {
+    channel.invokeMethod("onSmoothMoveMarkerComplete", arguments: [
+      "markerId": markerId,
+    ] as [String: Any])
+  }
+
   /// 当开始拖动点标记时触发该回调
   func onMarkerDragStart(markerId: String, position: Position) {
     channel.invokeMethod("onMarkerDragStart", arguments: [

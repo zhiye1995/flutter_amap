@@ -116,6 +116,11 @@ class MarkerClickEvent extends MapEvent<String> {
   MarkerClickEvent(super.mapId, super.markerId);
 }
 
+/// 平滑移动标记点结束事件
+class SmoothMoveMarkerCompleteEvent extends MapEvent<String> {
+  SmoothMoveMarkerCompleteEvent(super.mapId, super.markerId);
+}
+
 /// 开始拖动标记点事件
 class MarkerDragStartEvent extends _PositionedMapEvent<String> {
   MarkerDragStartEvent(super.mapId, super.latLng, super.markerId);

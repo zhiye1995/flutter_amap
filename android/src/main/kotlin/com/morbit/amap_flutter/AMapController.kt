@@ -307,6 +307,16 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
     )
   }
 
+  /// 当平滑移动标记点移动结束时触发该回调
+  fun onSmoothMoveMarkerComplete(markerId: String) {
+    channel.invokeMethod(
+      "onSmoothMoveMarkerComplete",
+      mapOf(
+        "markerId" to markerId,
+      ),
+    )
+  }
+
   /// 当开始拖动点标记时触发该回调（Android Only）
   fun onMarkerDragStart(markerId: String, position: Position) {
     channel.invokeMethod(
