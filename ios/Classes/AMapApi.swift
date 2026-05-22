@@ -49,6 +49,7 @@ class _AMapApi: NSObject {
   var polygonStyles = [String: Polygon]()
   private var markerAnimationTokens = [String: Int]()
   private var smoothMoveStates = [String: SmoothMoveState]()
+  private var smoothMoveAnnotations = [String: Annotation]()
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -287,7 +288,7 @@ class _AMapApi: NSObject {
       let safeDuration = max(1_000, durationMs)
       self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: points, durationMs: safeDuration)
       let annotation = marker.annotation
-      self.markers[marker.id] = annotation
+      self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
       self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: points, durationMs: safeDuration)
@@ -300,21 +301,21 @@ class _AMapApi: NSObject {
   }
 
   func stopSmoothMoveMarker(markerId: String) {
-    guard let annotation = markers[markerId] else { return }
+    guard let annotation = smoothMoveAnnotations[markerId] else { return }
     if let moveAnimations = annotation.allMoveAnimations() {
       for item in moveAnimations {
         item.cancel()
       }
     }
     mapView.removeAnnotation(annotation)
-    markers.removeValue(forKey: markerId)
+    smoothMoveAnnotations.removeValue(forKey: markerId)
     markerIds.removeValue(forKey: annotation.hash)
     smoothMoveStates.removeValue(forKey: markerId)
   }
 
   func pauseSmoothMoveMarker(markerId: String) {
     guard let state = smoothMoveStates[markerId], !state.paused else { return }
-    guard let annotation = markers[markerId] else { return }
+    guard let annotation = smoothMoveAnnotations[markerId] else { return }
     let elapsedMs = Int(Date().timeIntervalSince(state.startTime) * 1000)
     state.remainingMs = max(1_000, state.remainingMs - elapsedMs)
     state.pausedPosition = annotation.coordinate.position
@@ -328,7 +329,7 @@ class _AMapApi: NSObject {
 
   func resumeSmoothMoveMarker(markerId: String) {
     guard let state = smoothMoveStates[markerId], state.paused else { return }
-    guard let annotation = markers[markerId], let current = state.pausedPosition else { return }
+    guard let annotation = smoothMoveAnnotations[markerId], let current = state.pausedPosition else { return }
     let remainingPoints = buildRemainingSmoothMovePoints(current: current, points: state.points)
     state.paused = false
     state.pausedPosition = nil
@@ -354,7 +355,7 @@ class _AMapApi: NSObject {
       withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
         guard let self = self, let annotation = annotation else { return }
         annotation.coordinate = endCoordinate
-        self.markers[markerId] = annotation
+        self.smoothMoveAnnotations[markerId] = annotation
         self.smoothMoveStates.removeValue(forKey: markerId)
       }
   }
