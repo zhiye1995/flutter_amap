@@ -345,20 +345,17 @@ class _AMapApi: NSObject {
     guard points.count >= 2 else { return }
     var coordinates = points.map { $0.coordinate }
     annotation.coordinate = coordinates[0]
-    var segmentCoordinates = Array(coordinates[1...])
-    let endCoordinate = segmentCoordinates[segmentCoordinates.count - 1]
+    coordinates.removeFirst()
+    let endCoordinate = coordinates[coordinates.count - 1]
     let duration = max(1.0, Double(durationMs) / 1000.0)
     annotation.addMoveAnimation(
-      withKeyCoordinates: &segmentCoordinates,
-      count: UInt(segmentCoordinates.count),
+      withKeyCoordinates: &coordinates,
+      count: UInt(coordinates.count),
       withDuration: duration,
-      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] isFinished in
+      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
         guard let self = self, let annotation = annotation else { return }
-        guard isFinished, self.smoothMoveAnnotations[markerId] === annotation else { return }
         annotation.coordinate = endCoordinate
-        self.mapView.removeAnnotation(annotation)
-        self.smoothMoveAnnotations.removeValue(forKey: markerId)
-        self.markerIds.removeValue(forKey: annotation.hash)
+        self.smoothMoveAnnotations[markerId] = annotation
         self.smoothMoveStates.removeValue(forKey: markerId)
       }
   }
