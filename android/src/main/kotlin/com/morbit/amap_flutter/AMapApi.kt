@@ -193,6 +193,11 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   fun stopSmoothMoveMarker(markerId: String) {
     smoothMoveMarkers.remove(markerId)?.let {
       it.stopMove()
+      try {
+        it.marker?.remove()
+      } catch (e: Exception) {
+        // ignore
+      }
       it.destroy()
     }
     smoothMoveStates.remove(markerId)
