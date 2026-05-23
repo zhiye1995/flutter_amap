@@ -198,7 +198,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
-  /// 启动点标记平滑移动（Android `SmoothMoveMarker`；iOS `MAAnimatedAnnotation`）。
+  /// 启动点标记平滑移动（Android `SmoothMoveMarker`；iOS 原生计时插值）。
   Future<void> startSmoothMoveMarker(
     Marker marker,
     List<Position> points,

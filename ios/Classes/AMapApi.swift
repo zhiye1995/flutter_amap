@@ -17,17 +17,20 @@ private class SmoothMoveState {
   let marker: Marker
   let points: [Position]
   let durationMs: Int
+  let segmentDistances: [Double]
+  let totalDistance: Double
   var startTime: Date
-  var remainingMs: Int
-  var pausedPosition: Position?
+  var elapsedMs: Int
   var paused: Bool
 
-  init(marker: Marker, points: [Position], durationMs: Int) {
+  init(marker: Marker, points: [Position], durationMs: Int, segmentDistances: [Double], totalDistance: Double) {
     self.marker = marker
     self.points = points
     self.durationMs = durationMs
+    self.segmentDistances = segmentDistances
+    self.totalDistance = totalDistance
     self.startTime = Date()
-    self.remainingMs = durationMs
+    self.elapsedMs = 0
     self.paused = false
   }
 }
@@ -50,12 +53,17 @@ class _AMapApi: NSObject {
   private var markerAnimationTokens = [String: Int]()
   private var smoothMoveStates = [String: SmoothMoveState]()
   private var smoothMoveAnnotations = [String: Annotation]()
+  private var smoothMoveDisplayLink: CADisplayLink?
   var onSmoothMoveMarkerCompleted: ((String, Position) -> Void)?
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
     self.mapView = mapView
     self.mapInitConfig = mapInitConfig
+  }
+
+  deinit {
+    smoothMoveDisplayLink?.invalidate()
   }
 
   func initMap() {
@@ -289,13 +297,21 @@ class _AMapApi: NSObject {
       guard movePoints.count >= 2 else { return }
       self.stopSmoothMoveMarker(markerId: marker.id)
       let safeDuration = max(1_000, durationMs)
-      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: movePoints, durationMs: safeDuration)
+      let segmentDistances = self.smoothMoveSegmentDistances(movePoints)
+      let totalDistance = segmentDistances.reduce(0.0, +)
+      guard totalDistance > 0 else { return }
+      self.smoothMoveStates[marker.id] = SmoothMoveState(
+        marker: marker,
+        points: movePoints,
+        durationMs: safeDuration,
+        segmentDistances: segmentDistances,
+        totalDistance: totalDistance)
       let annotation = marker.annotation
       annotation.coordinate = movePoints[0].coordinate
       self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
-      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: movePoints, durationMs: safeDuration)
+      self.ensureSmoothMoveDisplayLink()
     }
     if Thread.isMainThread {
       run()
@@ -315,57 +331,111 @@ class _AMapApi: NSObject {
     smoothMoveAnnotations.removeValue(forKey: markerId)
     markerIds.removeValue(forKey: annotation.hash)
     smoothMoveStates.removeValue(forKey: markerId)
+    stopSmoothMoveDisplayLinkIfIdle()
   }
 
   func pauseSmoothMoveMarker(markerId: String) {
     guard let state = smoothMoveStates[markerId], !state.paused else { return }
-    guard let annotation = smoothMoveAnnotations[markerId] else { return }
-    let elapsedMs = Int(Date().timeIntervalSince(state.startTime) * 1000)
-    state.remainingMs = max(1, state.remainingMs - elapsedMs)
-    state.pausedPosition = annotation.coordinate.position
+    state.elapsedMs = currentSmoothMoveElapsedMs(state)
     state.paused = true
-    if let moveAnimations = annotation.allMoveAnimations() {
-      for item in moveAnimations {
-        item.cancel()
-      }
-    }
+    stopSmoothMoveDisplayLinkIfIdle()
   }
 
   func resumeSmoothMoveMarker(markerId: String) {
     guard let state = smoothMoveStates[markerId], state.paused else { return }
-    guard let annotation = smoothMoveAnnotations[markerId], let current = state.pausedPosition else { return }
-    let remainingPoints = buildRemainingSmoothMovePoints(current: current, points: state.points)
+    guard let annotation = smoothMoveAnnotations[markerId] else { return }
     state.paused = false
-    state.pausedPosition = nil
     state.startTime = Date()
-    startSmoothMoveSegment(
-      markerId: markerId,
-      annotation: annotation,
-      points: remainingPoints,
-      durationMs: state.remainingMs)
+    annotation.coordinate = smoothMovePosition(for: state, elapsedMs: state.elapsedMs).coordinate
+    ensureSmoothMoveDisplayLink()
   }
 
-  private func startSmoothMoveSegment(markerId: String, annotation: Annotation, points: [Position], durationMs: Int) {
-    guard points.count >= 2 else { return }
-    var coordinates = points.map { $0.coordinate }
-    annotation.coordinate = coordinates[0]
-    coordinates.removeFirst()
-    let endCoordinate = coordinates[coordinates.count - 1]
-    // MAAnimatedAnnotation applies duration to each coordinate hop. Split the
-    // requested total duration so iOS matches Android SmoothMoveMarker.
-    let duration = max(0.001, Double(durationMs) / 1000.0 / Double(coordinates.count))
-    annotation.addMoveAnimation(
-      withKeyCoordinates: &coordinates,
-      count: UInt(coordinates.count),
-      withDuration: duration,
-      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] finished in
-        guard finished else { return }
-        guard let self = self, let annotation = annotation else { return }
-        annotation.coordinate = endCoordinate
-        self.smoothMoveAnnotations[markerId] = annotation
-        self.smoothMoveStates.removeValue(forKey: markerId)
-        self.onSmoothMoveMarkerCompleted?(markerId, endCoordinate.position)
+  private func ensureSmoothMoveDisplayLink() {
+    guard smoothMoveDisplayLink == nil else { return }
+    let displayLink = CADisplayLink(target: self, selector: #selector(handleSmoothMoveFrame(_:)))
+    displayLink.add(to: .main, forMode: .common)
+    smoothMoveDisplayLink = displayLink
+  }
+
+  private func stopSmoothMoveDisplayLinkIfIdle() {
+    if smoothMoveStates.values.contains(where: { !$0.paused }) { return }
+    smoothMoveDisplayLink?.invalidate()
+    smoothMoveDisplayLink = nil
+  }
+
+  @objc private func handleSmoothMoveFrame(_ displayLink: CADisplayLink) {
+    var completedMarkerIds = [String]()
+
+    for (markerId, state) in smoothMoveStates {
+      guard !state.paused else { continue }
+      guard let annotation = smoothMoveAnnotations[markerId] else {
+        completedMarkerIds.append(markerId)
+        continue
       }
+
+      let elapsedMs = currentSmoothMoveElapsedMs(state)
+      if elapsedMs >= state.durationMs {
+        guard let endPosition = state.points.last else {
+          completedMarkerIds.append(markerId)
+          continue
+        }
+        annotation.coordinate = endPosition.coordinate
+        completedMarkerIds.append(markerId)
+      } else {
+        annotation.coordinate = smoothMovePosition(for: state, elapsedMs: elapsedMs).coordinate
+      }
+    }
+
+    for markerId in completedMarkerIds {
+      guard let state = smoothMoveStates.removeValue(forKey: markerId) else { continue }
+      guard let endPosition = state.points.last else { continue }
+      onSmoothMoveMarkerCompleted?(markerId, endPosition)
+    }
+
+    stopSmoothMoveDisplayLinkIfIdle()
+  }
+
+  private func currentSmoothMoveElapsedMs(_ state: SmoothMoveState) -> Int {
+    if state.paused { return state.elapsedMs }
+    let runningMs = Int(Date().timeIntervalSince(state.startTime) * 1000)
+    return min(state.durationMs, state.elapsedMs + runningMs)
+  }
+
+  private func smoothMovePosition(for state: SmoothMoveState, elapsedMs: Int) -> Position {
+    guard state.totalDistance > 0 else {
+      return state.points.last ?? state.marker.position
+    }
+    if elapsedMs <= 0 { return state.points[0] }
+    if elapsedMs >= state.durationMs {
+      return state.points.last ?? state.points[0]
+    }
+
+    let progress = Double(elapsedMs) / Double(state.durationMs)
+    let targetDistance = state.totalDistance * progress
+    var traveledDistance = 0.0
+
+    for index in state.segmentDistances.indices {
+      let segmentDistance = state.segmentDistances[index]
+      if segmentDistance <= 0 { continue }
+      let nextDistance = traveledDistance + segmentDistance
+      if targetDistance <= nextDistance {
+        let ratio = (targetDistance - traveledDistance) / segmentDistance
+        return interpolate(
+          from: state.points[index],
+          to: state.points[index + 1],
+          ratio: ratio)
+      }
+      traveledDistance = nextDistance
+    }
+
+    return state.points.last ?? state.points[0]
+  }
+
+  private func interpolate(from start: Position, to end: Position, ratio: Double) -> Position {
+    let safeRatio = min(1.0, max(0.0, ratio))
+    return Position(
+      latitude: start.latitude + (end.latitude - start.latitude) * safeRatio,
+      longitude: start.longitude + (end.longitude - start.longitude) * safeRatio)
   }
 
   private func compactSmoothMovePoints(_ points: [Position]) -> [Position] {
@@ -382,12 +452,11 @@ class _AMapApi: NSObject {
     return compacted
   }
 
-  private func buildRemainingSmoothMovePoints(current: Position, points: [Position]) -> [Position] {
-    let nearestIndex = points.indices.min { lhs, rhs in
-      distance(from: current, to: points[lhs]) < distance(from: current, to: points[rhs])
-    } ?? 0
-    let startIndex = min(nearestIndex + 1, points.count - 1)
-    return [current] + points[startIndex..<points.count]
+  private func smoothMoveSegmentDistances(_ points: [Position]) -> [Double] {
+    guard points.count >= 2 else { return [] }
+    return points.indices.dropLast().map { index in
+      calculateLineDistance(start: points[index], end: points[index + 1])
+    }
   }
 
   private func distance(from start: Position, to end: Position) -> Double {

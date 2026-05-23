@@ -189,7 +189,7 @@ class AMapController {
 
   /// 沿一组轨迹点平滑移动点标记。
   ///
-  /// Android 使用高德官方 `SmoothMoveMarker`；iOS 使用 `MAAnimatedAnnotation` 的路径移动动画。
+  /// Android 使用高德官方 `SmoothMoveMarker`；iOS 使用原生计时插值驱动路径移动。
   Future<void> startSmoothMoveMarker({
     required Marker marker,
     required List<Position> points,
