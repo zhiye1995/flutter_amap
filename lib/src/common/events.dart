@@ -131,6 +131,15 @@ class MarkerDragEndEvent extends _PositionedMapEvent<String> {
   MarkerDragEndEvent(super.mapId, super.latLng, super.markerId);
 }
 
+/// 平滑移动 Marker 完成事件
+class SmoothMoveMarkerCompleteEvent extends _PositionedMapEvent<String> {
+  SmoothMoveMarkerCompleteEvent(
+    super.mapId,
+    super.position,
+    super.markerId,
+  );
+}
+
 /// 用户位置改变事件
 class UserLocationChangeEvent extends MapEvent<Location> {
   UserLocationChangeEvent(super.mapId, super.location);

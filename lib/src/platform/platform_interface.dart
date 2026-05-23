@@ -122,6 +122,12 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     return _events(mapId).whereType<MarkerDragEndEvent>();
   }
 
+  Stream<SmoothMoveMarkerCompleteEvent> onSmoothMoveMarkerCompleted({
+    required int mapId,
+  }) {
+    return _events(mapId).whereType<SmoothMoveMarkerCompleteEvent>();
+  }
+
   Stream<UserLocationChangeEvent> onUserLocationChange({required int mapId}) {
     return _events(mapId).whereType<UserLocationChangeEvent>();
   }

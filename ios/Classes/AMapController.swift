@@ -12,6 +12,9 @@ class AMapController: NSObject {
       codec: AMapCodec.shared
     )
     super.init()
+    api.onSmoothMoveMarkerCompleted = { [weak self] markerId, position in
+      self?.onSmoothMoveMarkerCompleted(markerId: markerId, position: position)
+    }
     channel.setMethodCallHandler { [weak self] (call, result) in
       self?.onMethodCall(call: call, result: result)
     }
@@ -340,6 +343,14 @@ class AMapController: NSObject {
   /// 当拖动点标记完成时触发该回调
   func onMarkerDragEnd(markerId: String, position: Position) {
     channel.invokeMethod("onMarkerDragEnd", arguments: [
+      "markerId": markerId,
+      "position": position,
+    ] as [String: Any])
+  }
+
+  /// 平滑移动 Marker 完成时触发该回调
+  func onSmoothMoveMarkerCompleted(markerId: String, position: Position) {
+    channel.invokeMethod("onSmoothMoveMarkerCompleted", arguments: [
       "markerId": markerId,
       "position": position,
     ] as [String: Any])

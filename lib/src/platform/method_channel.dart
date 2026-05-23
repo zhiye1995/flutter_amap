@@ -218,6 +218,14 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
           arguments["markerId"] as String,
         ));
         break;
+      case "onSmoothMoveMarkerCompleted":
+        final Map<String, Object?> arguments = _getArgumentDictionary(call);
+        mapEventStreamController.add(SmoothMoveMarkerCompleteEvent(
+          mapId,
+          arguments["position"] as Position,
+          arguments["markerId"] as String,
+        ));
+        break;
       case "onUserLocationChange":
         final Map<String, Object?> arguments = _getArgumentDictionary(call);
         mapEventStreamController.add(UserLocationChangeEvent(

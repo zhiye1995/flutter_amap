@@ -14,6 +14,9 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
       "plugins.flutter.dev/amap_$viewId",
       StandardMethodCodec(AMapApiCodec),
     )
+    api.setSmoothMoveMarkerCompletedListener { markerId, position ->
+      onSmoothMoveMarkerCompleted(markerId, position)
+    }
     channel.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
       this.onMethodCall(call, result)
     }
@@ -333,6 +336,17 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
   fun onMarkerDragEnd(markerId: String, position: Position) {
     channel.invokeMethod(
       "onMarkerDragEnd",
+      mapOf(
+        "markerId" to markerId,
+        "position" to position,
+      ),
+    )
+  }
+
+  /// 平滑移动 Marker 完成时触发该回调
+  fun onSmoothMoveMarkerCompleted(markerId: String, position: Position) {
+    channel.invokeMethod(
+      "onSmoothMoveMarkerCompleted",
       mapOf(
         "markerId" to markerId,
         "position" to position,

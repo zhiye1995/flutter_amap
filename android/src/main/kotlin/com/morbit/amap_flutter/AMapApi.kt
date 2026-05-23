@@ -25,6 +25,7 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   private val markerAnimationTokens = mutableMapOf<String, Int>()
   private val smoothMoveMarkers = mutableMapOf<String, SmoothMoveMarker>()
   private val smoothMoveStates = mutableMapOf<String, SmoothMoveState>()
+  private var smoothMoveMarkerCompletedListener: ((String, Position) -> Unit)? = null
 
   private data class SmoothMoveState(
     val marker: Marker,
@@ -34,7 +35,12 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     var remainingMs: Long,
     var pausedPosition: Position? = null,
     var paused: Boolean = false,
+    var completed: Boolean = false,
   )
+
+  fun setSmoothMoveMarkerCompletedListener(listener: (String, Position) -> Unit) {
+    smoothMoveMarkerCompletedListener = listener
+  }
 
   fun initMap() {
     // 处理仅设置 zoom/tilt/bearing 但不传 position 的情况：
@@ -237,6 +243,19 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     marker.bitmap?.toBitmapDescriptor(amap.binding)?.let { smoothMarker.setDescriptor(it) }
     smoothMarker.setPoints(points.map { it.toPosition() })
     smoothMarker.setTotalDuration((durationMs.coerceAtLeast(1_000L) / 1_000L).toInt())
+    smoothMarker.setMoveListener(object : SmoothMoveMarker.MoveListener {
+      override fun move(distance: Double) {
+        if (distance != 0.0) return
+        val state = smoothMoveStates[markerId] ?: return
+        if (state.paused || state.completed) return
+        state.completed = true
+        smoothMoveStates.remove(markerId)
+        val position = smoothMarker.position?.toPosition() ?: points.last()
+        mapView.post {
+          smoothMoveMarkerCompletedListener?.invoke(markerId, position)
+        }
+      }
+    })
     smoothMoveMarkers[markerId] = smoothMarker
     smoothMarker.startSmoothMove()
   }

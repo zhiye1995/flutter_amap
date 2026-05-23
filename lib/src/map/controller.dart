@@ -25,6 +25,11 @@ class AMapController {
   final List<StreamSubscription<dynamic>> _subscriptions =
       <StreamSubscription<dynamic>>[];
 
+  Stream<SmoothMoveMarkerCompleteEvent> get onSmoothMoveMarkerCompleted =>
+      AMapFlutterPlatformInterface.instance.onSmoothMoveMarkerCompleted(
+        mapId: mapId,
+      );
+
   void _listen<T extends Object?>(Stream<T> stream, void Function(T) onData) {
     _subscriptions.add(stream.listen(onData));
   }

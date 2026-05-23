@@ -50,6 +50,7 @@ class _AMapApi: NSObject {
   private var markerAnimationTokens = [String: Int]()
   private var smoothMoveStates = [String: SmoothMoveState]()
   private var smoothMoveAnnotations = [String: Annotation]()
+  var onSmoothMoveMarkerCompleted: ((String, Position) -> Void)?
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -352,11 +353,13 @@ class _AMapApi: NSObject {
       withKeyCoordinates: &coordinates,
       count: UInt(coordinates.count),
       withDuration: duration,
-      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] _ in
+      withName: "flutter_amap_smooth_move") { [weak self, weak annotation] finished in
+        guard finished else { return }
         guard let self = self, let annotation = annotation else { return }
         annotation.coordinate = endCoordinate
         self.smoothMoveAnnotations[markerId] = annotation
         self.smoothMoveStates.removeValue(forKey: markerId)
+        self.onSmoothMoveMarkerCompleted?(markerId, endCoordinate.position)
       }
   }
 

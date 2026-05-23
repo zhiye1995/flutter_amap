@@ -44,15 +44,15 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   var _ready = false;
   var _moving = false;
   var _paused = false;
-  var _showInitialMarker = true;
+  var _showStaticMarker = true;
 
-  Timer? _moveTimer;
+  StreamSubscription<SmoothMoveMarkerCompleteEvent>? _smoothMoveCompletedSub;
   Duration _remainingDuration = _duration;
   DateTime? _lastStartTime;
 
   @override
   void dispose() {
-    _moveTimer?.cancel();
+    _smoothMoveCompletedSub?.cancel();
     _controller?.stopSmoothMoveMarker(_markerId);
     super.dispose();
   }
@@ -88,8 +88,8 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   }
 
   Set<Marker> get _markers {
-    if (!_showInitialMarker) return const <Marker>{};
-    return <Marker>{_buildCarMarker()};
+    if (!_showStaticMarker) return const <Marker>{};
+    return <Marker>{_buildCarMarker(_points.first)};
   }
 
   Widget _buildPanel() {
@@ -154,6 +154,12 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
 
   Future<void> _onMapCreated(AMapController controller) async {
     _controller = controller;
+    await _smoothMoveCompletedSub?.cancel();
+    _smoothMoveCompletedSub = controller.onSmoothMoveMarkerCompleted.listen((
+      event,
+    ) {
+      if (event.value == _markerId) _onMoveCompleted();
+    });
     await controller.waitForMapCompleted();
     if (!mounted || _controller != controller) return;
     controller.moveCameraToFitPosition(
@@ -167,23 +173,21 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   Future<void> _start() async {
     final controller = _controller;
     if (controller == null) return;
-    _moveTimer?.cancel();
     _remainingDuration = _duration;
-    _lastStartTime = DateTime.now();
 
-    setState(() => _showInitialMarker = false);
+    setState(() => _showStaticMarker = false);
     await controller.startSmoothMoveMarker(
-      marker: _buildCarMarker(),
+      marker: _buildCarMarker(_points.first),
       points: _points,
       duration: _duration,
     );
     if (!mounted) return;
+    _lastStartTime = DateTime.now();
     setState(() {
       _moving = true;
       _paused = false;
     });
     context.snackBar('已开始平滑移动');
-    _moveTimer = Timer(_remainingDuration, _onMoveCompleted);
   }
 
   Future<void> _pause() async {
@@ -192,12 +196,13 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.pauseSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    _moveTimer?.cancel();
     final lastStartTime = _lastStartTime;
     if (lastStartTime != null) {
       final elapsed = DateTime.now().difference(lastStartTime);
       final remaining = _remainingDuration - elapsed;
-      _remainingDuration = remaining < Duration.zero ? Duration.zero : remaining;
+      _remainingDuration = remaining < Duration.zero
+          ? Duration.zero
+          : remaining;
     }
 
     setState(() => _paused = true);
@@ -210,12 +215,10 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.resumeSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    _moveTimer?.cancel();
     _lastStartTime = DateTime.now();
 
     setState(() => _paused = false);
     context.snackBar('已继续平滑移动');
-    _moveTimer = Timer(_remainingDuration, _onMoveCompleted);
   }
 
   Future<void> _stop() async {
@@ -224,33 +227,35 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.stopSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    _moveTimer?.cancel();
     _remainingDuration = _duration;
+    _lastStartTime = null;
 
     setState(() {
       _moving = false;
       _paused = false;
-      _showInitialMarker = true;
+      _showStaticMarker = true;
     });
     context.snackBar('已停止平滑移动');
   }
 
   void _onMoveCompleted() {
-    _moveTimer = null;
+    if (!_moving) return;
+    _remainingDuration = _duration;
+    _lastStartTime = null;
     if (mounted) {
       setState(() {
         _moving = false;
         _paused = false;
-        _showInitialMarker = true;
+        _showStaticMarker = false;
       });
     }
   }
 
-  Marker _buildCarMarker() {
+  Marker _buildCarMarker(Position position) {
     const scale = 1.7;
     return Marker(
       id: _markerId,
-      position: _points.first,
+      position: position,
       bitmap: Bitmap(
         asset: 'assets/car.png',
         size: Size(width: 26 * scale, height: 52 * scale),
