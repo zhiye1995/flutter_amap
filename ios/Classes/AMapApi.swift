@@ -35,6 +35,12 @@ private class SmoothMoveState {
   }
 }
 
+private struct SmoothMoveFrame {
+  let position: Position
+  let directionStart: Position
+  let directionEnd: Position
+}
+
 class _AMapApi: NSObject {
   let registrar: FlutterPluginRegistrar
   let mapView: MAMapView
@@ -308,6 +314,7 @@ class _AMapApi: NSObject {
         totalDistance: totalDistance)
       let annotation = marker.annotation
       annotation.coordinate = movePoints[0].coordinate
+      annotation.movingDirection = self.bearing(from: movePoints[0], to: movePoints[1])
       self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
@@ -346,7 +353,9 @@ class _AMapApi: NSObject {
     guard let annotation = smoothMoveAnnotations[markerId] else { return }
     state.paused = false
     state.startTime = Date()
-    annotation.coordinate = smoothMovePosition(for: state, elapsedMs: state.elapsedMs).coordinate
+    let frame = smoothMoveFrame(for: state, elapsedMs: state.elapsedMs)
+    annotation.coordinate = frame.position.coordinate
+    updateSmoothMoveDirection(annotation: annotation, from: frame.directionStart, to: frame.directionEnd)
     ensureSmoothMoveDisplayLink()
   }
 
@@ -375,14 +384,14 @@ class _AMapApi: NSObject {
 
       let elapsedMs = currentSmoothMoveElapsedMs(state)
       if elapsedMs >= state.durationMs {
-        guard let endPosition = state.points.last else {
-          completedMarkerIds.append(markerId)
-          continue
-        }
-        annotation.coordinate = endPosition.coordinate
+        let frame = smoothMoveFrame(for: state, elapsedMs: state.durationMs)
+        annotation.coordinate = frame.position.coordinate
+        updateSmoothMoveDirection(annotation: annotation, from: frame.directionStart, to: frame.directionEnd)
         completedMarkerIds.append(markerId)
       } else {
-        annotation.coordinate = smoothMovePosition(for: state, elapsedMs: elapsedMs).coordinate
+        let frame = smoothMoveFrame(for: state, elapsedMs: elapsedMs)
+        annotation.coordinate = frame.position.coordinate
+        updateSmoothMoveDirection(annotation: annotation, from: frame.directionStart, to: frame.directionEnd)
       }
     }
 
@@ -401,13 +410,24 @@ class _AMapApi: NSObject {
     return min(state.durationMs, state.elapsedMs + runningMs)
   }
 
-  private func smoothMovePosition(for state: SmoothMoveState, elapsedMs: Int) -> Position {
-    guard state.totalDistance > 0 else {
-      return state.points.last ?? state.marker.position
+  private func smoothMoveFrame(for state: SmoothMoveState, elapsedMs: Int) -> SmoothMoveFrame {
+    let points = state.points
+    let lastSegmentStartIndex = max(0, points.count - 2)
+
+    guard state.totalDistance > 0, points.count >= 2 else {
+      let position = points.last ?? state.marker.position
+      return SmoothMoveFrame(position: position, directionStart: position, directionEnd: position)
     }
-    if elapsedMs <= 0 { return state.points[0] }
+
+    if elapsedMs <= 0 {
+      return SmoothMoveFrame(position: points[0], directionStart: points[0], directionEnd: points[1])
+    }
+
     if elapsedMs >= state.durationMs {
-      return state.points.last ?? state.points[0]
+      return SmoothMoveFrame(
+        position: points[points.count - 1],
+        directionStart: points[lastSegmentStartIndex],
+        directionEnd: points[points.count - 1])
     }
 
     let progress = Double(elapsedMs) / Double(state.durationMs)
@@ -420,15 +440,22 @@ class _AMapApi: NSObject {
       let nextDistance = traveledDistance + segmentDistance
       if targetDistance <= nextDistance {
         let ratio = (targetDistance - traveledDistance) / segmentDistance
-        return interpolate(
+        let position = interpolate(
           from: state.points[index],
           to: state.points[index + 1],
           ratio: ratio)
+        return SmoothMoveFrame(
+          position: position,
+          directionStart: state.points[index],
+          directionEnd: state.points[index + 1])
       }
       traveledDistance = nextDistance
     }
 
-    return state.points.last ?? state.points[0]
+    return SmoothMoveFrame(
+      position: points[points.count - 1],
+      directionStart: points[lastSegmentStartIndex],
+      directionEnd: points[points.count - 1])
   }
 
   private func interpolate(from start: Position, to end: Position, ratio: Double) -> Position {
@@ -436,6 +463,30 @@ class _AMapApi: NSObject {
     return Position(
       latitude: start.latitude + (end.latitude - start.latitude) * safeRatio,
       longitude: start.longitude + (end.longitude - start.longitude) * safeRatio)
+  }
+
+  private func updateSmoothMoveDirection(annotation: Annotation, from start: Position, to end: Position) {
+    if distance(from: start, to: end) <= 0 { return }
+    annotation.movingDirection = bearing(from: start, to: end)
+
+    guard let view = mapView.view(for: annotation) else { return }
+    let startPoint = mapView.convert(start.coordinate, toPointTo: mapView)
+    let endPoint = mapView.convert(end.coordinate, toPointTo: mapView)
+    let dx = Double(endPoint.x - startPoint.x)
+    let dy = Double(endPoint.y - startPoint.y)
+    if hypot(dx, dy) <= 0.5 { return }
+
+    view.transform = CGAffineTransform(rotationAngle: CGFloat(atan2(dx, -dy)))
+  }
+
+  private func bearing(from start: Position, to end: Position) -> CLLocationDirection {
+    let lat1 = start.latitude * Double.pi / 180.0
+    let lat2 = end.latitude * Double.pi / 180.0
+    let deltaLon = (end.longitude - start.longitude) * Double.pi / 180.0
+    let y = sin(deltaLon) * cos(lat2)
+    let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(deltaLon)
+    let degrees = atan2(y, x) * 180.0 / Double.pi
+    return fmod(degrees + 360.0, 360.0)
   }
 
   private func compactSmoothMovePoints(_ points: [Position]) -> [Position] {
