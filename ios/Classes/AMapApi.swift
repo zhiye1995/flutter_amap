@@ -285,14 +285,17 @@ class _AMapApi: NSObject {
     guard points.count >= 2 else { return }
     let run: () -> Void = { [weak self] in
       guard let self = self else { return }
+      let movePoints = self.compactSmoothMovePoints(points)
+      guard movePoints.count >= 2 else { return }
       self.stopSmoothMoveMarker(markerId: marker.id)
       let safeDuration = max(1_000, durationMs)
-      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: points, durationMs: safeDuration)
+      self.smoothMoveStates[marker.id] = SmoothMoveState(marker: marker, points: movePoints, durationMs: safeDuration)
       let annotation = marker.annotation
+      annotation.coordinate = movePoints[0].coordinate
       self.smoothMoveAnnotations[marker.id] = annotation
       self.markerIds[annotation.hash] = marker.id
       self.mapView.addAnnotation(annotation)
-      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: points, durationMs: safeDuration)
+      self.startSmoothMoveSegment(markerId: marker.id, annotation: annotation, points: movePoints, durationMs: safeDuration)
     }
     if Thread.isMainThread {
       run()
@@ -318,7 +321,7 @@ class _AMapApi: NSObject {
     guard let state = smoothMoveStates[markerId], !state.paused else { return }
     guard let annotation = smoothMoveAnnotations[markerId] else { return }
     let elapsedMs = Int(Date().timeIntervalSince(state.startTime) * 1000)
-    state.remainingMs = max(1_000, state.remainingMs - elapsedMs)
+    state.remainingMs = max(1, state.remainingMs - elapsedMs)
     state.pausedPosition = annotation.coordinate.position
     state.paused = true
     if let moveAnimations = annotation.allMoveAnimations() {
@@ -348,7 +351,9 @@ class _AMapApi: NSObject {
     annotation.coordinate = coordinates[0]
     coordinates.removeFirst()
     let endCoordinate = coordinates[coordinates.count - 1]
-    let duration = max(1.0, Double(durationMs) / 1000.0)
+    // MAAnimatedAnnotation applies duration to each coordinate hop. Split the
+    // requested total duration so iOS matches Android SmoothMoveMarker.
+    let duration = max(0.001, Double(durationMs) / 1000.0 / Double(coordinates.count))
     annotation.addMoveAnimation(
       withKeyCoordinates: &coordinates,
       count: UInt(coordinates.count),
@@ -361,6 +366,20 @@ class _AMapApi: NSObject {
         self.smoothMoveStates.removeValue(forKey: markerId)
         self.onSmoothMoveMarkerCompleted?(markerId, endCoordinate.position)
       }
+  }
+
+  private func compactSmoothMovePoints(_ points: [Position]) -> [Position] {
+    var compacted = [Position]()
+    for point in points {
+      guard let last = compacted.last else {
+        compacted.append(point)
+        continue
+      }
+      if distance(from: last, to: point) > 0 {
+        compacted.append(point)
+      }
+    }
+    return compacted
   }
 
   private func buildRemainingSmoothMovePoints(current: Position, points: [Position]) -> [Position] {
