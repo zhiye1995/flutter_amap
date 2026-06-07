@@ -2,7 +2,9 @@
 
 本项目由 [amap_flutter](https://pub.dev/packages/amap_flutter) 原作者改编而来，目标是在 Flutter 中统一接入高德地图、搜索、定位、路线规划与导航能力，支持 Android、iOS 。
 
-![33](docs/images/33.png)
+![33](docs/images/1.png)
+![33](docs/images/2.png)
+![33](docs/images/3.png)
 
 官方文档：
 

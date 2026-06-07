@@ -5,7 +5,7 @@ import 'package:flutter_amap_example/core/utils/utils.dart';
 
 final _mapCenter = Position(latitude: 39.984120, longitude: 116.307484);
 final _linePadding = EdgePadding(top: 80, right: 60, bottom: 120, left: 60);
-const _polylineTextureAsset = 'assets/polyline_texture.png';
+const _polylineTextureAsset = 'assets/texture_green.png';
 const _polylineTextureAltAsset = 'assets/polyline_texture_alt.png';
 
 /// Polylines 功能：普通折线的添加、删除、样式更新，以及地图点击追加路径点。
@@ -20,11 +20,13 @@ class PolylinesPage extends StatefulWidget {
 
 class _PolylinesPageState extends State<PolylinesPage> {
   static const _lineId = 'polyline_basic_demo';
+  static const _minLineWidth = 4.0;
+  static const _maxLineWidth = 30.0;
 
   AMapController? _controller;
   var _ready = false;
   var _visible = true;
-  var _wide = false;
+  var _lineWidth = 10.0;
   var _red = false;
   var _points = <Position>[
     Position(latitude: 39.984080, longitude: 116.305260),
@@ -54,6 +56,14 @@ class _PolylinesPageState extends State<PolylinesPage> {
             top: false,
             child: _Panel(
               title: _ready ? '点地图追加折线节点，当前 ${_points.length} 个点。' : '地图加载中...',
+              footer: _LineWidthSlider(
+                value: _lineWidth,
+                min: _minLineWidth,
+                max: _maxLineWidth,
+                enabled: _ready && _visible,
+                onChanged: (value) => setState(() => _lineWidth = value),
+                onChangeEnd: _setLineWidth,
+              ),
               children: [
                 FilledButton(
                   onPressed: !_ready ? null : _toggleVisible,
@@ -61,7 +71,7 @@ class _PolylinesPageState extends State<PolylinesPage> {
                 ),
                 FilledButton(
                   onPressed: !_ready || !_visible ? null : _toggleWidth,
-                  child: Text(_wide ? '细线' : '粗线'),
+                  child: Text(_lineWidth > 14 ? '细线' : '粗线'),
                 ),
                 FilledButton(
                   onPressed: !_ready || !_visible ? null : _toggleColor,
@@ -103,7 +113,7 @@ class _PolylinesPageState extends State<PolylinesPage> {
         id: _lineId,
         points: _points,
         color: _red ? const Color(0xFFE53935) : const Color(0xFF1976D2),
-        width: _wide ? 18 : 10,
+        width: _lineWidth,
       ),
     );
   }
@@ -133,7 +143,12 @@ class _PolylinesPageState extends State<PolylinesPage> {
   }
 
   Future<void> _toggleWidth() async {
-    setState(() => _wide = !_wide);
+    setState(() => _lineWidth = _lineWidth > 14 ? 10 : 18);
+    await _replaceLine();
+  }
+
+  Future<void> _setLineWidth(double value) async {
+    setState(() => _lineWidth = value);
     await _replaceLine();
   }
 
@@ -145,7 +160,7 @@ class _PolylinesPageState extends State<PolylinesPage> {
   Future<void> _reset() async {
     setState(() {
       _visible = true;
-      _wide = false;
+      _lineWidth = 10;
       _red = false;
       _points = <Position>[
         Position(latitude: 39.984080, longitude: 116.305260),
@@ -274,11 +289,14 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
   static const _multiTextureId = 'polyline_style_multi_texture';
   static const _zBackId = 'polyline_style_z_back';
   static const _zFrontId = 'polyline_style_z_front';
+  static const _minLineWidth = 4.0;
+  static const _maxLineWidth = 30.0;
 
   AMapController? _controller;
   var _ready = false;
   var _useTexture = true;
   var _frontOnTop = true;
+  var _lineWidth = 18.0;
 
   final _dottedPoints = <Position>[
     Position(latitude: 39.985130, longitude: 116.303780),
@@ -341,6 +359,14 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
               title: _useTexture
                   ? '纹理线启用中；iOS 仅 3D 地图支持，纹理会覆盖颜色样式。'
                   : '纹理线关闭后展示普通线，虚线和 zIndex 仍生效。',
+              footer: _LineWidthSlider(
+                value: _lineWidth,
+                min: _minLineWidth,
+                max: _maxLineWidth,
+                enabled: _ready,
+                onChanged: (value) => setState(() => _lineWidth = value),
+                onChangeEnd: _setLineWidth,
+              ),
               children: [
                 const _LegendDot(color: Color(0xFF7B1FA2), label: '虚线'),
                 const _LegendDot(color: Color(0xFF00897B), label: '单纹理'),
@@ -391,7 +417,7 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         id: _dottedId,
         points: _dottedPoints,
         color: const Color(0xFF7B1FA2),
-        width: 12,
+        width: _lineWidth,
         dottedLine: true,
         zIndex: 1,
       ),
@@ -401,7 +427,7 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         id: _textureId,
         points: _texturePoints,
         color: const Color(0xFF00897B),
-        width: 18,
+        width: _lineWidth,
         useTexture: _useTexture,
         texture: _useTexture
             ? Bitmap(
@@ -417,7 +443,7 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         id: _multiTextureId,
         points: _multiTexturePoints,
         color: const Color(0xFFFF8F00),
-        width: 18,
+        width: _lineWidth,
         useTexture: _useTexture,
         textures: _useTexture
             ? <Bitmap>[
@@ -440,7 +466,7 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         id: _zBackId,
         points: _zBackPoints,
         color: const Color(0xFFE53935),
-        width: 18,
+        width: _lineWidth,
         zIndex: _frontOnTop ? 4 : 6,
       ),
     );
@@ -449,10 +475,15 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         id: _zFrontId,
         points: _zFrontPoints,
         color: const Color(0xFF1976D2),
-        width: 10,
+        width: _lineWidth,
         zIndex: _frontOnTop ? 6 : 4,
       ),
     );
+  }
+
+  Future<void> _setLineWidth(double value) async {
+    setState(() => _lineWidth = value);
+    await _draw();
   }
 
   Future<void> _toggleTexture() async {
@@ -837,10 +868,11 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.children});
+  const _Panel({required this.title, required this.children, this.footer});
 
   final String title;
   final List<Widget> children;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -863,8 +895,53 @@ class _Panel extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: children,
           ),
+          if (footer != null) ...[const SizedBox(height: 8), footer!],
         ],
       ),
+    );
+  }
+}
+
+class _LineWidthSlider extends StatelessWidget {
+  const _LineWidthSlider({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.enabled,
+    required this.onChanged,
+    required this.onChangeEnd,
+  });
+
+  final double value;
+  final double min;
+  final double max;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final valueText = '${value.round()} px';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text('线条宽度', style: Theme.of(context).textTheme.bodySmall),
+            const Spacer(),
+            Text(valueText, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: (max - min).round(),
+          label: valueText,
+          onChanged: enabled ? onChanged : null,
+          onChangeEnd: enabled ? onChangeEnd : null,
+        ),
+      ],
     );
   }
 }
