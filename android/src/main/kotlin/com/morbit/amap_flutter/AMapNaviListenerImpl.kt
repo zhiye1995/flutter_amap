@@ -31,6 +31,12 @@ class AMapNaviListenerImpl : AMapNaviListener {
     /** 转向图标 PNG 字节缓存：同一个 iconType 只编码一次 */
     private val iconPngCache: MutableMap<Int, ByteArray> = mutableMapOf()
 
+    /** 每次新导航会话开始前重置会话内去重状态，保留 EventChannel 连接。 */
+    fun resetSessionState() {
+        lastIconType = Int.MIN_VALUE
+        iconPngCache.clear()
+    }
+
     /**
      * 导航初始化失败回调
      * 当导航引擎初始化失败时触发

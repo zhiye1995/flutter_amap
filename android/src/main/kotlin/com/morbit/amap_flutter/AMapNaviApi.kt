@@ -131,6 +131,9 @@ class AMapNaviApi {
         }
 
         private fun startNavigation(context: Context, call: MethodCall) {
+            stopCruiseModeInternal()
+            cleanupNaviSession(exitRouteActivity = false, reason = "startNavigation")
+
             // 隐私合规检查
             NaviSetting.updatePrivacyShow(context, true, true)
             NaviSetting.updatePrivacyAgree(context, true)
@@ -163,6 +166,7 @@ class AMapNaviApi {
             // 初始化 AMapNavi
             aMapNavi = AMapNavi.getInstance(context)
             aMapNavi?.setUseInnerVoice(true)
+            naviListener?.resetSessionState()
 
             // 设置车辆信息
             val carInfo = AMapCarInfo()
@@ -309,13 +313,35 @@ class AMapNaviApi {
         private fun stopNavigation() {
             try {
                 stopCruiseModeInternal()
-                detachNaviListener()
-                AmapNaviPage.getInstance().exitRouteActivity()
-                AMapNavi.destroy()
-                aMapNavi = null
-                aimlessListenerAttached = false
+                cleanupNaviSession(exitRouteActivity = true, reason = "stopNavigation")
             } catch (e: Exception) {
                 Log.e(TAG, "stopNavigation error", e)
+            }
+        }
+
+        private fun cleanupNaviSession(exitRouteActivity: Boolean, reason: String) {
+            Log.i(TAG, "cleanupNaviSession: reason=$reason, exitRouteActivity=$exitRouteActivity")
+
+            detachNaviListener()
+
+            if (exitRouteActivity) {
+                try {
+                    AmapNaviPage.getInstance().exitRouteActivity()
+                } catch (e: Exception) {
+                    Log.e(TAG, "cleanupNaviSession exitRouteActivity error", e)
+                }
+            }
+
+            try {
+                AMapNavi.destroy()
+            } catch (e: Exception) {
+                Log.e(TAG, "cleanupNaviSession destroy error", e)
+            } finally {
+                aMapNavi = null
+                naviListenerAttached = false
+                aimlessListener = null
+                aimlessListenerAttached = false
+                cruiseAttachedNaviListener = false
             }
         }
 
@@ -380,15 +406,28 @@ class AMapNaviApi {
         }
 
         private fun attachNaviListener() {
-            if (naviListenerAttached) return
+            val navi = aMapNavi
+            if (navi == null) {
+                naviListenerAttached = false
+                Log.w(TAG, "attachNaviListener skipped: AMapNavi is null")
+                return
+            }
             naviListener?.let { listener ->
-                aMapNavi?.addAMapNaviListener(listener)
+                try {
+                    navi.removeAMapNaviListener(listener)
+                } catch (e: Exception) {
+                    Log.e(TAG, "attachNaviListener remove stale listener error", e)
+                }
+                navi.addAMapNaviListener(listener)
                 naviListenerAttached = true
+                Log.i(TAG, "attachNaviListener: attached")
             }
         }
 
         private fun detachNaviListener() {
-            if (!naviListenerAttached) return
+            if (!naviListenerAttached) {
+                return
+            }
             try {
                 naviListener?.let { listener ->
                     aMapNavi?.removeAMapNaviListener(listener)
@@ -457,6 +496,7 @@ class AMapNaviApi {
                     "exitCode" to type
                 )
             )
+            cleanupNaviSession(exitRouteActivity = false, reason = "onExitPage")
         }
 
         override fun onStrategyChanged(strategy: Int) {
