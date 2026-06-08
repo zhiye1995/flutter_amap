@@ -498,12 +498,7 @@ class AMapSearchApi: NSObject {
     }
 
     private func drivingShowFieldType() -> AMapDrivingRouteShowFieldType {
-        let rawValue = AMapDrivingRouteShowFieldType.cost.rawValue
-            | AMapDrivingRouteShowFieldType.tmcs.rawValue
-            | AMapDrivingRouteShowFieldType.navi.rawValue
-            | AMapDrivingRouteShowFieldType.cities.rawValue
-            | AMapDrivingRouteShowFieldType.polyline.rawValue
-        return AMapDrivingRouteShowFieldType(rawValue: rawValue)!
+        return [.cost, .tmcs, .navi, .cities, .polyline]
     }
 
     private func drivingV2Strategy(_ strategy: Int?) -> Int {
