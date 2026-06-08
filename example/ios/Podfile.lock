@@ -1,16 +1,16 @@
 PODS:
-  - AMapFoundation (1.8.2)
-  - AMapLocation (2.11.0):
-    - AMapFoundation (>= 1.8.0)
-  - AMapNavi (10.1.600):
-    - AMapFoundation (>= 1.8.2)
-  - AMapSearch (9.7.4):
-    - AMapFoundation (>= 1.8.0)
+  - AMapFoundation (1.9.0)
+  - AMapLocation (2.12.0):
+    - AMapFoundation (>= 1.9.0)
+  - AMapNavi (11.1.200):
+    - AMapFoundation (>= 1.8.7)
+  - AMapSearch (9.8.0):
+    - AMapFoundation (>= 1.9.0)
   - Flutter (1.0.0)
   - flutter_amap (0.0.1):
-    - AMapLocation (= 2.11.0)
-    - AMapNavi (= 10.1.600)
-    - AMapSearch (= 9.7.4)
+    - AMapLocation (= 2.12.0)
+    - AMapNavi (= 11.1.200)
+    - AMapSearch (= 9.8.0)
     - Flutter
   - saver_gallery (0.0.1):
     - Flutter
@@ -36,12 +36,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/saver_gallery/ios"
 
 SPEC CHECKSUMS:
-  AMapFoundation: 9885c48fc3a78fdfb84a0299a2293e56ea3c9fec
-  AMapLocation: 8c46dbe995333ad6cae147d54a7307a577020be0
-  AMapNavi: 86bc5bd0100d2fb6a705d608c06b7e1299bd4d56
-  AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
+  AMapFoundation: 5f01fcabd1e591967e52178d2d96dac843396285
+  AMapLocation: 51549dc73f5bfa8806c33857ad2079fa6215bb49
+  AMapNavi: 1ab847368e406bed60b56525a583554557c4333d
+  AMapSearch: ec339fc3cf772d5ff657f02397888391b4b1bde8
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_amap: 62b3142a99cef9e976029339181137a8d5f80779
+  flutter_amap: 41afed66057be698bd7a720d73cd26272b25d801
   saver_gallery: 76172dc4bf6b40e66d694948ada9ff402304dd87
 
 PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694

@@ -19,7 +19,7 @@ This is amap flutter plugin
   s.dependency 'AMapNavi', '= 11.1.200'
   s.dependency 'AMapSearch', '= 9.8.0'
   s.dependency 'AMapLocation', '= 2.12.0'
-  s.platform = :ios, '12.0'4
+  s.platform = :ios, '12.0'
   s.static_framework = true
 
   # Flutter.framework does not contain a i386 slice.
