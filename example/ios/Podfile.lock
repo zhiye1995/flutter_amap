@@ -8,9 +8,9 @@ PODS:
     - AMapFoundation (>= 1.8.0)
   - Flutter (1.0.0)
   - flutter_amap (0.0.1):
-    - AMapLocation
-    - AMapNavi
-    - AMapSearch
+    - AMapLocation (= 2.11.0)
+    - AMapNavi (= 10.1.600)
+    - AMapSearch (= 9.7.4)
     - Flutter
   - saver_gallery (0.0.1):
     - Flutter
@@ -41,7 +41,7 @@ SPEC CHECKSUMS:
   AMapNavi: 86bc5bd0100d2fb6a705d608c06b7e1299bd4d56
   AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_amap: ab369f221ae8781ff1987765dc3b68dc0fcc2e39
+  flutter_amap: 62b3142a99cef9e976029339181137a8d5f80779
   saver_gallery: 76172dc4bf6b40e66d694948ada9ff402304dd87
 
 PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694

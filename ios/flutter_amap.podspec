@@ -16,10 +16,10 @@ This is amap flutter plugin
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
 #   s.dependency 'AMap3DMap'
-  s.dependency 'AMapNavi'
-  s.dependency 'AMapSearch'
-  s.dependency 'AMapLocation'
-  s.platform = :ios, '12.0'
+  s.dependency 'AMapNavi', '= 11.1.200'
+  s.dependency 'AMapSearch', '= 9.8.0'
+  s.dependency 'AMapLocation', '= 2.12.0'
+  s.platform = :ios, '12.0'4
   s.static_framework = true
 
   # Flutter.framework does not contain a i386 slice.
