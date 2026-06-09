@@ -29,6 +29,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
 
+    <!--
+                android:taskAffinity=""
+
+    -->
     <application
             android:label="amap_flutter_example"
             android:name="${applicationName}"
@@ -37,7 +41,6 @@
                 android:name=".MainActivity"
                 android:exported="true"
                 android:launchMode="singleTop"
-                android:taskAffinity=""
                 android:theme="@style/LaunchTheme"
                 android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
                 android:hardwareAccelerated="true"
