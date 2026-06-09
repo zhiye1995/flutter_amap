@@ -61,7 +61,8 @@ android {
 
 //        implementation 'com.amap.api:navi-3dmap-location-search:latest.integration'
 //        implementation 'com.amap.api:navi-3dmap-location-search:10.1.600_3dmap10.1.600_loc6.5.1_sea9.7.4'
-        implementation 'com.amap.api:navi-3dmap-location-search:11.1.200_3dmap11.1.200_loc11.1.200_sea9.7.4'
+//        implementation 'com.amap.api:navi-3dmap-location-search:11.1.200_3dmap11.1.200_loc11.1.200_sea9.7.4'
+        implementation 'com.amap.api:navi-3dmap-location-search:11.1.001_3dmap11.1.001_loc11.1.001_sea9.7.4'
 //        implementation 'com.amap.api:navi-3dmap-location-search:11.2.000_3dmap11.2.000_loc11.2.000_sea9.8.0'
 
 
