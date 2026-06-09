@@ -124,7 +124,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.4"
+    version: "1.0.6"
   flutter_easyloading:
     dependency: "direct main"
     description:
@@ -395,10 +395,10 @@ packages:
     dependency: "direct main"
     description:
       name: saver_gallery
-      sha256: "35f838453cbf17d4b710d0783ced0d2c9aeb79a607f290684b9c3c798c22beb8"
+      sha256: dcecd87113ffcb0eb467bb0ef5ed8f6dd894e26ff3dfd5822624281e7d2cb894
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "3.0.10"
+    version: "5.1.0"
   shared_preferences:
     dependency: transitive
     description:

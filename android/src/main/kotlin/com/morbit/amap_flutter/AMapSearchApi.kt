@@ -19,6 +19,7 @@ import com.amap.api.services.help.InputtipsQuery
 import com.amap.api.services.help.Tip
 import com.amap.api.services.poisearch.PoiResultV2
 import com.amap.api.services.poisearch.PoiSearchV2
+//import com.amap.api.services.poisearch.VisualSearchResult
 import com.amap.api.services.route.BusRouteResult
 import com.amap.api.services.route.DrivePath
 import com.amap.api.services.route.DriveRouteResult
@@ -331,6 +332,10 @@ class AMapSearchApi {
                 override fun onPoiItemSearched(poiItem: PoiItemV2?, resultCode: Int) {
                     // 单个 POI 详情搜索回调，这里不处理
                 }
+
+//                override fun onVisualSearched(visualSearchResult: VisualSearchResult?, resultCode: Int) {
+//                    // 视觉搜索回调，这里不处理
+//                }
             })
 
             // 发起异步搜索
@@ -393,6 +398,10 @@ class AMapSearchApi {
                 override fun onPoiItemSearched(poiItem: PoiItemV2?, resultCode: Int) {
                     // 单个 POI 详情搜索回调，这里不处理
                 }
+
+//                override fun onVisualSearched(visualSearchResult: VisualSearchResult?, resultCode: Int) {
+//                    // 视觉搜索回调，这里不处理
+//                }
             })
 
             poiSearch.searchPOIAsyn()
@@ -467,6 +476,10 @@ class AMapSearchApi {
                 override fun onPoiItemSearched(poiItem: PoiItemV2?, resultCode: Int) {
                     // 单个 POI 详情搜索回调，这里不处理
                 }
+
+//                override fun onVisualSearched(visualSearchResult: VisualSearchResult?, resultCode: Int) {
+//                    // 视觉搜索回调，这里不处理
+//                }
             })
 
             poiSearch.searchPOIAsyn()
@@ -1325,4 +1338,3 @@ class AMapSearchApi {
         }
     }
 }
-
