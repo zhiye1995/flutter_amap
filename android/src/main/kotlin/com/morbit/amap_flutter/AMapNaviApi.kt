@@ -39,6 +39,8 @@ class AMapNaviApi {
         private var naviListenerAttached: Boolean = false
         private var aimlessListenerAttached: Boolean = false
         private var cruiseAttachedNaviListener: Boolean = false
+        private var naviComponentActive: Boolean = false
+        private var cleaningNaviSession: Boolean = false
 
         /** 当前是否处于智能巡航（用于 stopNavigation 前先 stopAimlessMode） */
         private var cruiseActive: Boolean = false
@@ -87,6 +89,8 @@ class AMapNaviApi {
             naviListenerAttached = false
             aimlessListenerAttached = false
             cruiseAttachedNaviListener = false
+            naviComponentActive = false
+            cleaningNaviSession = false
         }
 
         private fun handleMethodCall(context: Context, call: MethodCall, result: MethodChannel.Result) {
@@ -132,7 +136,17 @@ class AMapNaviApi {
 
         private fun startNavigation(context: Context, call: MethodCall) {
             stopCruiseModeInternal()
-            cleanupNaviSession(exitRouteActivity = false, reason = "startNavigation")
+            if (naviComponentActive) {
+                Log.w(TAG, "startNavigation requested while previous component is still active")
+                requestExitRouteActivity("startNavigation")
+                clearNaviComponentSessionState("startNavigation active preflight")
+            } else {
+                cleanupNaviSession(
+                    exitRouteActivity = false,
+                    destroyNavi = true,
+                    reason = "startNavigation"
+                )
+            }
 
             // 隐私合规检查
             NaviSetting.updatePrivacyShow(context, true, true)
@@ -165,7 +179,6 @@ class AMapNaviApi {
 
             // 初始化 AMapNavi
             aMapNavi = AMapNavi.getInstance(context)
-            aMapNavi?.setUseInnerVoice(true)
             naviListener?.resetSessionState()
 
             // 设置车辆信息
@@ -187,7 +200,6 @@ class AMapNaviApi {
             vehicleInfo?.get("vehicleId")?.toString()?.takeIf { it.isNotEmpty() }?.let { carInfo.carNumber = it }
             carNumber?.let { carInfo.carNumber = it }
             motorcycleCC?.let { carInfo.motorcycleCC = it }
-            aMapNavi?.setCarInfo(carInfo)
 
             // 添加导航监听器
             attachNaviListener()
@@ -247,6 +259,8 @@ class AMapNaviApi {
                 naviType,
                 pageType
             ).setUseInnerVoice(true)
+                .setNeedDestroyDriveManagerInstanceWhenNaviExit(true)
+                .setCarInfo(carInfo)
             if (naviType == AmapNaviType.DRIVER) {
                 params.tryCall("setMultipleRouteNaviMode", multipleRoute)
                 params.tryCall("setRouteStrategy", drivingStrategy)
@@ -259,12 +273,22 @@ class AMapNaviApi {
 
             // 启动导航页面
             val launchContext: Context = activityRef ?: context
-            AmapNaviPage.getInstance().showRouteActivity(
-                launchContext,
-                params,
-                NaviInfoCallbackImpl(),
-                AMapFlutterRouteActivity::class.java
-            )
+            try {
+                naviComponentActive = true
+                AmapNaviPage.getInstance().showRouteActivity(
+                    launchContext,
+                    params,
+                    NaviInfoCallbackImpl(),
+                    AMapFlutterRouteActivity::class.java
+                )
+            } catch (e: Exception) {
+                cleanupNaviSession(
+                    exitRouteActivity = false,
+                    destroyNavi = true,
+                    reason = "startNavigation showRouteActivity failed"
+                )
+                throw e
+            }
         }
 
         private fun applyCarInfo(carInfo: AMapCarInfo, info: Map<String, Any?>?) {
@@ -313,36 +337,95 @@ class AMapNaviApi {
         private fun stopNavigation() {
             try {
                 stopCruiseModeInternal()
-                cleanupNaviSession(exitRouteActivity = true, reason = "stopNavigation")
+                if (naviComponentActive) {
+                    val didRequestExit = requestExitRouteActivity("stopNavigation")
+                    clearNaviComponentSessionState("stopNavigation")
+                    if (!didRequestExit) {
+                        cleanupNaviSession(
+                            exitRouteActivity = false,
+                            destroyNavi = true,
+                            reason = "stopNavigation fallback"
+                        )
+                    }
+                } else {
+                    cleanupNaviSession(
+                        exitRouteActivity = false,
+                        destroyNavi = true,
+                        reason = "stopNavigation fallback"
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "stopNavigation error", e)
             }
         }
 
-        private fun cleanupNaviSession(exitRouteActivity: Boolean, reason: String) {
-            Log.i(TAG, "cleanupNaviSession: reason=$reason, exitRouteActivity=$exitRouteActivity")
-
-            detachNaviListener()
-
-            if (exitRouteActivity) {
-                try {
-                    AmapNaviPage.getInstance().exitRouteActivity()
-                } catch (e: Exception) {
-                    Log.e(TAG, "cleanupNaviSession exitRouteActivity error", e)
-                }
+        private fun cleanupNaviSession(
+            exitRouteActivity: Boolean,
+            destroyNavi: Boolean,
+            reason: String
+        ) {
+            if (cleaningNaviSession) {
+                Log.i(TAG, "cleanupNaviSession skipped: already cleaning, reason=$reason")
+                return
             }
+            cleaningNaviSession = true
+            Log.i(
+                TAG,
+                "cleanupNaviSession: reason=$reason, " +
+                        "exitRouteActivity=$exitRouteActivity, destroyNavi=$destroyNavi"
+            )
 
             try {
-                AMapNavi.destroy()
-            } catch (e: Exception) {
-                Log.e(TAG, "cleanupNaviSession destroy error", e)
+                if (exitRouteActivity && naviComponentActive) {
+                    requestExitRouteActivity(reason)
+                }
+                if (destroyNavi) {
+                    detachNaviListener()
+                    try {
+                        aMapNavi?.stopNavi()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "cleanupNaviSession stopNavi error", e)
+                    }
+                    try {
+                        AMapNavi.destroy()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "cleanupNaviSession destroy error", e)
+                    }
+                }
             } finally {
-                aMapNavi = null
-                naviListenerAttached = false
+                if (destroyNavi || exitRouteActivity) {
+                    clearNaviComponentSessionState(reason)
+                }
+                cleaningNaviSession = false
+            }
+        }
+
+        private fun requestExitRouteActivity(reason: String): Boolean {
+            return try {
+                Log.i(TAG, "requestExitRouteActivity: reason=$reason")
+                AmapNaviPage.getInstance().exitRouteActivity()
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "requestExitRouteActivity error: reason=$reason", e)
+                false
+            }
+        }
+
+        private fun clearNaviComponentSessionState(reason: String) {
+            Log.i(TAG, "clearNaviComponentSessionState: reason=$reason")
+            aMapNavi = null
+            naviComponentActive = false
+            naviListenerAttached = false
+            if (!cruiseActive) {
                 aimlessListener = null
                 aimlessListenerAttached = false
                 cruiseAttachedNaviListener = false
             }
+        }
+
+        private fun releaseNaviAfterComponentExit(reason: String) {
+            Log.i(TAG, "releaseNaviAfterComponentExit: reason=$reason")
+            clearNaviComponentSessionState(reason)
         }
 
         private fun startCruiseMode(context: Context, call: MethodCall) {
@@ -496,7 +579,7 @@ class AMapNaviApi {
                     "exitCode" to type
                 )
             )
-            cleanupNaviSession(exitRouteActivity = false, reason = "onExitPage")
+            releaseNaviAfterComponentExit("onExitPage")
         }
 
         override fun onStrategyChanged(strategy: Int) {

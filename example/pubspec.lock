@@ -124,7 +124,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.7"
+    version: "1.0.9"
   flutter_easyloading:
     dependency: "direct main"
     description:

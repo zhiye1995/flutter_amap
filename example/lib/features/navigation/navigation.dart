@@ -35,17 +35,21 @@ class _NavigationPageState extends State<NavigationPage> {
   NaviPageType _pageType = NaviPageType.route;
 
   // 目的地坐标（示例：重庆茶园） 106.489462,29.437589
-  final TextEditingController _latController =
-      TextEditingController(text: '29.437589');
-  final TextEditingController _lngController =
-      TextEditingController(text: '106.489462');
-  final TextEditingController _nameController =
-      TextEditingController(text: '春晖十里');
+  final TextEditingController _latController = TextEditingController(
+    text: '29.437589',
+  );
+  final TextEditingController _lngController = TextEditingController(
+    text: '106.489462',
+  );
+  final TextEditingController _nameController = TextEditingController(
+    text: '春晖十里',
+  );
   final TextEditingController _carNumberController = TextEditingController();
 
   // 导航状态
   NaviInfo? _lastNaviInfo;
   NaviLocation? _lastNaviLocation;
+  bool _isStartingNavigation = false;
   final List<String> _eventLogs = [];
 
   // 收集的转向图标：md5Hash -> CollectedIcon（使用 MD5 去重，同一 iconType 可能有多种图标）
@@ -75,8 +79,9 @@ class _NavigationPageState extends State<NavigationPage> {
           if (isNewType) {
             _allIconTypes.add(info.iconType);
             _addLog(
-                '📌 发现新 iconType: ${info.iconType} (${_getIconTypeName(info.iconType)}), '
-                '已发现 ${_allIconTypes.length} 种类型');
+              '📌 发现新 iconType: ${info.iconType} (${_getIconTypeName(info.iconType)}), '
+              '已发现 ${_allIconTypes.length} 种类型',
+            );
           }
         }
 
@@ -101,25 +106,28 @@ class _NavigationPageState extends State<NavigationPage> {
                 .length;
 
             _addLog(
-                '🎨 收集到新图标: iconType=${info.iconType} (${_getIconTypeName(info.iconType)}), '
-                '该类型第 $sameTypeCount 种变体, MD5=${iconMd5.substring(0, 8)}..., '
-                '总计 ${_collectedIcons.length} 个图标');
+              '🎨 收集到新图标: iconType=${info.iconType} (${_getIconTypeName(info.iconType)}), '
+              '该类型第 $sameTypeCount 种变体, MD5=${iconMd5.substring(0, 8)}..., '
+              '总计 ${_collectedIcons.length} 个图标',
+            );
           }
         }
 
         setState(() {
           _lastNaviInfo = info;
         });
-        _addLog('========================================= \n'
-            '📍 导航信息更新:\n'
-            '  当前道路: ${info.currentRoadName ?? "未知"}\n'
-            '  下一路段: ${info.nextRoadName}\n'
-            '  转向类型: ${info.iconType}--${_getIconTypeName(info.iconType)}\n'
-            '  当前路段剩余: ${_formatDistance(info.curStepRetainDistance)} / ${_formatTime(info.curStepRetainTime ?? 0)}\n'
-            '  全程剩余: ${_formatDistance(info.pathRetainDistance)} / ${_formatTime(info.pathRetainTime)}\n'
-            '  红绿灯: ${info.routeRemainLightCount ?? 0}个\n'
-            '  进度: Step=${info.curStep ?? 0}, Link=${info.curLink ?? 0}, Point=${info.curPoint ?? 0}\n'
-            '==========================================');
+        _addLog(
+          '========================================= \n'
+          '📍 导航信息更新:\n'
+          '  当前道路: ${info.currentRoadName ?? "未知"}\n'
+          '  下一路段: ${info.nextRoadName}\n'
+          '  转向类型: ${info.iconType}--${_getIconTypeName(info.iconType)}\n'
+          '  当前路段剩余: ${_formatDistance(info.curStepRetainDistance)} / ${_formatTime(info.curStepRetainTime ?? 0)}\n'
+          '  全程剩余: ${_formatDistance(info.pathRetainDistance)} / ${_formatTime(info.pathRetainTime)}\n'
+          '  红绿灯: ${info.routeRemainLightCount ?? 0}个\n'
+          '  进度: Step=${info.curStep ?? 0}, Link=${info.curLink ?? 0}, Point=${info.curPoint ?? 0}\n'
+          '==========================================',
+        );
       }),
     );
 
@@ -230,7 +238,9 @@ class _NavigationPageState extends State<NavigationPage> {
   void _addLog(String log) {
     setState(() {
       _eventLogs.insert(
-          0, '[${DateTime.now().toString().substring(11, 19)}] $log');
+        0,
+        '[${DateTime.now().toString().substring(11, 19)}] $log',
+      );
       if (_eventLogs.length > 50) {
         _eventLogs.removeLast();
       }
@@ -425,11 +435,7 @@ class _NavigationPageState extends State<NavigationPage> {
                 if (hasIcon)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(
-                      icon,
-                      width: 64,
-                      height: 64,
-                    ),
+                    child: Image.memory(icon, width: 64, height: 64),
                   )
                 else
                   Container(
@@ -448,8 +454,10 @@ class _NavigationPageState extends State<NavigationPage> {
             _sectionTitle('道路 / 转向'),
             _kv('当前道路', info.currentRoadName ?? ''),
             _kv('下一路段', info.nextRoadName),
-            _kv('转向图标类型(iconType)',
-                '${info.iconType}--${_getIconTypeName(info.iconType)}'),
+            _kv(
+              '转向图标类型(iconType)',
+              '${info.iconType}--${_getIconTypeName(info.iconType)}',
+            ),
             _sectionTitle('剩余距离 / 时间'),
             _kv('当前路段剩余距离', _formatDistance(info.curStepRetainDistance)),
             _kv(
@@ -463,11 +471,15 @@ class _NavigationPageState extends State<NavigationPage> {
             _sectionTitle('基础 / 进度'),
             _kv('路线ID(pathId)', info.pathId?.toString() ?? '未知'),
             _kv('导航类型(naviType)', info.naviType?.toString() ?? '未知'),
-            _kv('Step/Link/Point',
-                '${info.curStep}/${info.curLink}/${info.curPoint}'),
+            _kv(
+              'Step/Link/Point',
+              '${info.curStep}/${info.curLink}/${info.curPoint}',
+            ),
             _sectionTitle('红绿灯 / 速度'),
-            _kv('剩余红绿灯(routeRemainLightCount)',
-                info.routeRemainLightCount?.toString() ?? '未知'),
+            _kv(
+              '剩余红绿灯(routeRemainLightCount)',
+              info.routeRemainLightCount?.toString() ?? '未知',
+            ),
             _kv('当前速度(currentSpeed)', info.currentSpeed?.toString() ?? '未知'),
             _sectionTitle('图标数据(调试)'),
             _kv('icon', hasIcon ? '有(可渲染)' : '无'),
@@ -477,10 +489,14 @@ class _NavigationPageState extends State<NavigationPage> {
             else ...[
               _kv('text', info.exitDirectionInfo!.text ?? ''),
               _kv('exitName', info.exitDirectionInfo!.exitName ?? ''),
-              _kv('directionType',
-                  info.exitDirectionInfo!.directionType?.toString() ?? ''),
-              _kv('distance',
-                  info.exitDirectionInfo!.distance?.toString() ?? ''),
+              _kv(
+                'directionType',
+                info.exitDirectionInfo!.directionType?.toString() ?? '',
+              ),
+              _kv(
+                'distance',
+                info.exitDirectionInfo!.distance?.toString() ?? '',
+              ),
             ],
             _sectionTitle('不可避让信息'),
             if (info.notAvoidInfo == null)
@@ -570,8 +586,9 @@ class _NavigationPageState extends State<NavigationPage> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed:
-                      _collectedIcons.isEmpty ? null : _saveIconsToGallery,
+                  onPressed: _collectedIcons.isEmpty
+                      ? null
+                      : _saveIconsToGallery,
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('保存'),
                 ),
@@ -593,7 +610,9 @@ class _NavigationPageState extends State<NavigationPage> {
                 Text(
                   '有图标 (${typesWithIcon.length} 种类型, ${_collectedIcons.length} 个图标):',
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w500),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -615,10 +634,9 @@ class _NavigationPageState extends State<NavigationPage> {
                               color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withOpacity(0.3),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withOpacity(0.3),
                               ),
                             ),
                             padding: const EdgeInsets.all(4),
@@ -656,7 +674,9 @@ class _NavigationPageState extends State<NavigationPage> {
                 Text(
                   '无图标 (${typesWithoutIcon.length} 种类型，点击复制):',
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w500),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -669,7 +689,9 @@ class _NavigationPageState extends State<NavigationPage> {
                       onTap: () => _copyToClipboard(copyText),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.errorContainer,
                           borderRadius: BorderRadius.circular(4),
@@ -678,8 +700,9 @@ class _NavigationPageState extends State<NavigationPage> {
                           '$iconType: ${_getIconTypeName(iconType)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color:
-                                Theme.of(context).colorScheme.onErrorContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -715,8 +738,10 @@ class _NavigationPageState extends State<NavigationPage> {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(999),
@@ -734,22 +759,28 @@ class _NavigationPageState extends State<NavigationPage> {
             _kv('时间', _formatMs(loc.time)),
             _sectionTitle('航向 / 速度 / 精度'),
             _kv('航向(bearing)', loc.bearing?.toStringAsFixed(1) ?? '未知'),
-            _kv('道路方向(roadBearing)',
-                loc.roadBearing?.toStringAsFixed(1) ?? '未知'),
+            _kv(
+              '道路方向(roadBearing)',
+              loc.roadBearing?.toStringAsFixed(1) ?? '未知',
+            ),
             _kv('速度', _formatSpeed(loc.speed)),
             _kv(
-                '精度(accuracy)',
-                loc.accuracy == null
-                    ? '未知'
-                    : '${loc.accuracy!.toStringAsFixed(1)} m'),
+              '精度(accuracy)',
+              loc.accuracy == null
+                  ? '未知'
+                  : '${loc.accuracy!.toStringAsFixed(1)} m',
+            ),
             _kv(
-                '海拔(altitude)',
-                loc.altitude == null
-                    ? '未知'
-                    : '${loc.altitude!.toStringAsFixed(1)} m'),
+              '海拔(altitude)',
+              loc.altitude == null
+                  ? '未知'
+                  : '${loc.altitude!.toStringAsFixed(1)} m',
+            ),
             _sectionTitle('导航进度索引'),
-            _kv('Step/Link/Point',
-                '${loc.curStepIndex ?? ''}/${loc.curLinkIndex ?? ''}/${loc.curPointIndex ?? ''}'),
+            _kv(
+              'Step/Link/Point',
+              '${loc.curStepIndex ?? ''}/${loc.curLinkIndex ?? ''}/${loc.curPointIndex ?? ''}',
+            ),
             _sectionTitle('类型 / 匹配'),
             _kv('matchStatus', loc.matchStatus?.toString() ?? '未知'),
             _kv('locationDataType', loc.locationDataType?.toString() ?? '未知'),
@@ -765,6 +796,8 @@ class _NavigationPageState extends State<NavigationPage> {
   }
 
   Future<void> _startNavigation() async {
+    if (_isStartingNavigation) return;
+
     final lat = double.tryParse(_latController.text);
     final lng = double.tryParse(_lngController.text);
 
@@ -775,6 +808,9 @@ class _NavigationPageState extends State<NavigationPage> {
       return;
     }
 
+    setState(() {
+      _isStartingNavigation = true;
+    });
     _addLog('正在启动导航...');
 
     try {
@@ -801,6 +837,14 @@ class _NavigationPageState extends State<NavigationPage> {
       _addLog('✗ 启动导航失败: $e');
       if (mounted) {
         LoadingUtil.showError('启动导航失败: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isStartingNavigation = false;
+        });
+      } else {
+        _isStartingNavigation = false;
       }
     }
   }
@@ -860,13 +904,17 @@ class _NavigationPageState extends State<NavigationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('导航类型',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '导航类型',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     SegmentedButton<NaviType>(
                       segments: const [
                         ButtonSegment(
-                            value: NaviType.driver, label: Text('驾车')),
+                          value: NaviType.driver,
+                          label: Text('驾车'),
+                        ),
                         ButtonSegment(value: NaviType.walk, label: Text('步行')),
                         ButtonSegment(value: NaviType.ride, label: Text('骑行')),
                       ],
@@ -891,15 +939,21 @@ class _NavigationPageState extends State<NavigationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('页面类型',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '页面类型',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     SegmentedButton<NaviPageType>(
                       segments: const [
                         ButtonSegment(
-                            value: NaviPageType.route, label: Text('路线规划')),
+                          value: NaviPageType.route,
+                          label: Text('路线规划'),
+                        ),
                         ButtonSegment(
-                            value: NaviPageType.navi, label: Text('直接导航')),
+                          value: NaviPageType.navi,
+                          label: Text('直接导航'),
+                        ),
                       ],
                       selected: {_pageType},
                       onSelectionChanged: (values) {
@@ -922,8 +976,10 @@ class _NavigationPageState extends State<NavigationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('目的地',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '目的地',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -936,7 +992,8 @@ class _NavigationPageState extends State<NavigationPage> {
                               isDense: true,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -949,7 +1006,8 @@ class _NavigationPageState extends State<NavigationPage> {
                               isDense: true,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                           ),
                         ),
                       ],
@@ -985,9 +1043,15 @@ class _NavigationPageState extends State<NavigationPage> {
               valueListenable: AMapNavi.isNavigatingListenable,
               builder: (context, isNavigating, _) {
                 return FilledButton.icon(
-                  onPressed: _startNavigation,
+                  onPressed: _isStartingNavigation ? null : _startNavigation,
                   icon: const Icon(Icons.navigation),
-                  label: Text(isNavigating ? '继续导航' : '启动导航'),
+                  label: Text(
+                    _isStartingNavigation
+                        ? '启动中...'
+                        : isNavigating
+                        ? '继续导航'
+                        : '启动导航',
+                  ),
                 );
               },
             ),
@@ -1020,8 +1084,10 @@ class _NavigationPageState extends State<NavigationPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('事件日志',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text(
+                          '事件日志',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         TextButton(
                           onPressed: () {
                             setState(() {
@@ -1036,9 +1102,9 @@ class _NavigationPageState extends State<NavigationPage> {
                     Container(
                       height: 200,
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: _eventLogs.isEmpty
