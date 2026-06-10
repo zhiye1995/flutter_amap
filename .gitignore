@@ -31,9 +31,13 @@ migrate_working_dir/
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
-/official_demo/
-/official_example/
-official_demo\Android_3D_Demo
+#/official_demo/
+#/official_example/
+#official_demo\Android_3D_Demo
 
 # FVM Version Cache
 .fvm/
+/official_example/AMap_Android_API_Navi_Demo/android_studio/NaviDemo/.gradle-user/
+/official_example/AMap_Android_API_Navi_Demo/android_studio/NaviDemo/.gradle/
+/official_example/AMap_Android_API_Navi_Demo/android_studio/NaviDemo/gradle/wrapper/gradle-wrapper.jar
+/official_example/AMap_Android_API_Navi_Demo/android_studio/NaviDemo/app/libs/
