@@ -1,3 +1,10 @@
+## 1.0.11
+
+- Migrate Android build to Flutter 3.44: AGP 9.0.1, Gradle 9.1.0, Kotlin 2.3.20.
+- Convert plugin `android/` Gradle scripts from Groovy to Kotlin DSL (`.kts`).
+- Raise Android `minSdk` from 21 to 24; require Java/JVM 17.
+- Align example app with Flutter 3.44 built-in Kotlin transition flags (`android.builtInKotlin=false`, `android.newDsl=false`).
+
 ## 0.7.0
 
 Migrate deprecated "onBackground" to "onSurface".

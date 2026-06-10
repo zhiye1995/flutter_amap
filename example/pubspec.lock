@@ -124,7 +124,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.9"
+    version: "1.0.10"
   flutter_easyloading:
     dependency: "direct main"
     description:
@@ -211,10 +211,10 @@ packages:
     dependency: transitive
     description:
       name: latlong2
-      sha256: "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
+      sha256: "84b776b100a84a684a0aaa3fa4dc2c9b1931c658de533701ee4e09bfa991f8dc"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.9.1"
+    version: "0.10.1"
   leak_tracker:
     dependency: transitive
     description:
