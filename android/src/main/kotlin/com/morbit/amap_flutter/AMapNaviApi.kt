@@ -16,6 +16,7 @@ import com.amap.api.navi.model.AMapNaviLocation
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Poi
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -65,6 +66,7 @@ class AMapNaviApi {
         private const val NAVI_METHOD_CHANNEL = "plugins.flutter.dev/amap_navi"
         private const val NAVI_EVENT_CHANNEL = "plugins.flutter.dev/amap_navi_events"
 
+        private var registeredMessenger: BinaryMessenger? = null
         private var methodChannel: MethodChannel? = null
         private var eventChannel: EventChannel? = null
         private var naviListener: AMapNaviListenerImpl? = null
@@ -78,6 +80,8 @@ class AMapNaviApi {
         private var cleaningNaviSession: Boolean = false
         private var cruiseActive: Boolean = false
 
+        private class NaviNoActivityException(message: String) : IllegalStateException(message)
+
         /**
          * 注册 MethodChannel / EventChannel，创建导航事件监听器。
          *
@@ -85,15 +89,26 @@ class AMapNaviApi {
          * 保证导航与巡航共用同一 Dart 事件流。
          */
         fun setup(binding: FlutterPluginBinding, activity: Activity?) {
-            activityRef = activity
+            activityRef = activity ?: activityRef
 
-            methodChannel = MethodChannel(binding.binaryMessenger, NAVI_METHOD_CHANNEL)
+            val messenger = binding.binaryMessenger
+            if (registeredMessenger === messenger && methodChannel != null && eventChannel != null) {
+                return
+            }
+
+            methodChannel?.setMethodCallHandler(null)
+            eventChannel?.setStreamHandler(null)
+            registeredMessenger = messenger
+
+            methodChannel = MethodChannel(messenger, NAVI_METHOD_CHANNEL)
             methodChannel?.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
                 handleMethodCall(binding.applicationContext, call, result)
             }
 
-            naviListener = AMapNaviListenerImpl()
-            eventChannel = EventChannel(binding.binaryMessenger, NAVI_EVENT_CHANNEL)
+            if (naviListener == null) {
+                naviListener = AMapNaviListenerImpl()
+            }
+            eventChannel = EventChannel(messenger, NAVI_EVENT_CHANNEL)
             eventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     Log.i(TAG, "EventChannel onListen")
@@ -124,6 +139,7 @@ class AMapNaviApi {
             methodChannel = null
             eventChannel?.setStreamHandler(null)
             eventChannel = null
+            registeredMessenger = null
             naviListener = null
             aimlessListener = null
             activityRef = null
@@ -132,6 +148,7 @@ class AMapNaviApi {
             cruiseAttachedNaviListener = false
             naviComponentActive = false
             cleaningNaviSession = false
+            cruiseActive = false
         }
 
         private fun handleMethodCall(context: Context, call: MethodCall, result: MethodChannel.Result) {
@@ -140,6 +157,9 @@ class AMapNaviApi {
                     try {
                         startNavigation(context, call)
                         result.success(null)
+                    } catch (e: NaviNoActivityException) {
+                        Log.w(TAG, "startNavigation requires an attached Activity", e)
+                        result.error("NAVI_NO_ACTIVITY", e.message, null)
                     } catch (e: Exception) {
                         Log.e(TAG, "startNavigation error", e)
                         result.error("NAVI_ERROR", e.message, null)
@@ -193,6 +213,9 @@ class AMapNaviApi {
          * 避免连续两次启动导航时无法重新算路的问题。
          */
         private fun startNavigation(context: Context, call: MethodCall) {
+            val launchActivity = activityRef ?: throw NaviNoActivityException(
+                "AMap navigation requires an attached Activity. Ensure the plugin is registered on a foreground FlutterActivity before calling startNavigation."
+            )
             stopCruiseModeInternal()
             if (naviComponentActive) {
                 Log.w(TAG, "startNavigation requested while previous component is still active")
@@ -304,11 +327,10 @@ class AMapNaviApi {
                 params.tryCall("setNeedCalculateRouteWhenPresent", !startNaviDirectly)
             }
 
-            val launchContext: Context = activityRef ?: context
             try {
                 naviComponentActive = true
                 AmapNaviPage.getInstance().showRouteActivity(
-                    launchContext,
+                    launchActivity,
                     params,
                     NaviInfoCallbackImpl(),
                     AMapFlutterRouteActivity::class.java
