@@ -1,6 +1,7 @@
 package com.morbit.amap_flutter
 
 import android.graphics.Color
+import android.graphics.Insets
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -18,6 +19,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AMapFlutterRouteTheme)
+        prepareWindowForFullscreen()
         super.onCreate(savedInstanceState)
         applySystemBars()
     }
@@ -34,7 +36,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         }
     }
 
-    private fun applySystemBars() {
+    private fun prepareWindowForFullscreen() {
         val window = window
 
         window.clearFlags(
@@ -44,8 +46,30 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    } else {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    }
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
+        }
+
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.WHITE
+    }
+
+    private fun applySystemBars() {
+        prepareWindowForFullscreen()
+        window.decorView.systemUiVisibility = lightSystemBarFlags(window)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.run {
                 hide(WindowInsets.Type.statusBars())
                 systemBarsBehavior =
@@ -53,10 +77,6 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             }
         }
 
-        window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.WHITE
-
-        window.decorView.systemUiVisibility = lightSystemBarFlags(window)
         applyContentInsets()
     }
 
@@ -66,13 +86,13 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             contentRoot = content
             contentRootPadding = Padding(
                 left = content.paddingLeft,
-                top = content.paddingTop,
+                top = 0,
                 right = content.paddingRight,
                 bottom = content.paddingBottom
             )
             content.setOnApplyWindowInsetsListener { view, insets ->
                 applyInsetsPadding(view, insets)
-                insets
+                removeTopInsets(insets)
             }
         }
 
@@ -90,6 +110,61 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             padding.right + navigationBars.right,
             padding.bottom + navigationBars.bottom
         )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun removeTopInsets(insets: WindowInsets): WindowInsets {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                val topInsets =
+                    WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout()
+                WindowInsets.Builder(insets)
+                    .setInsets(topInsets, Insets.NONE)
+                    .setInsetsIgnoringVisibility(topInsets, Insets.NONE)
+                    .setDisplayCutout(null)
+                    .build()
+            }
+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                WindowInsets.Builder(insets)
+                    .setSystemWindowInsets(
+                        Insets.of(
+                            insets.systemWindowInsetLeft,
+                            0,
+                            insets.systemWindowInsetRight,
+                            insets.systemWindowInsetBottom
+                        )
+                    )
+                    .setStableInsets(
+                        Insets.of(
+                            insets.stableInsetLeft,
+                            0,
+                            insets.stableInsetRight,
+                            insets.stableInsetBottom
+                        )
+                    )
+                    .setDisplayCutout(null)
+                    .build()
+            }
+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
+                insets.replaceSystemWindowInsets(
+                    insets.systemWindowInsetLeft,
+                    0,
+                    insets.systemWindowInsetRight,
+                    insets.systemWindowInsetBottom
+                ).consumeDisplayCutout()
+            }
+
+            else -> {
+                insets.replaceSystemWindowInsets(
+                    insets.systemWindowInsetLeft,
+                    0,
+                    insets.systemWindowInsetRight,
+                    insets.systemWindowInsetBottom
+                )
+            }
+        }
     }
 
     @Suppress("DEPRECATION")

@@ -32,6 +32,11 @@ android {
         main {
             // Maven 合包已自带 .so，无需再指定 libs 下的 jniLibs
             // jniLibs.srcDirs = ['libs']
+            java {
+                // 讯飞 Msc.jar 未随仓库分发，排除依赖该类的源码
+                exclude 'com/amap/navi/demo/util/IFlyTTS.java'
+                exclude 'com/amap/navi/demo/util/AmapTTSController.java'
+            }
         }
     }
 
@@ -61,8 +66,12 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
 
     // 导航 + 3D地图 + 定位 + 搜索 合包（Maven Central）
-    implementation 'com.amap.api:navi-3dmap-location-search:11.2.000_3dmap11.2.000_loc11.2.000_sea9.8.0'
+//    implementation 'com.amap.api:navi-3dmap-location-search:11.2.000_3dmap11.2.000_loc11.2.000_sea9.8.0'
 
-    // 讯飞语音（仅 IflyVoice 示例需要，与高德 SDK 无关）
-    implementation files('libs/Msc.jar')
+    implementation "com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1"
+
+    // 讯飞语音 Msc.jar 未随仓库分发，导航播报改用系统 TTS。
+    // 若要启用科大讯飞：从 https://www.xfyun.cn 下载在线语音合成 Android SDK，
+    // 将 Msc.jar 放到 app/libs/ 后取消下面注释，并恢复 IFlyTTS / AmapTTSController。
+    // implementation files('libs/Msc.jar')
 }

@@ -36,7 +36,7 @@ public class TTSController implements AMapNaviListener, ICallBack {
 
     public static enum TTSType {
         /**
-         * 讯飞语音
+         * 讯飞语音（需自行放入 libs/Msc.jar；当前 Demo 回退到系统 TTS）
          */
         IFLYTTS,
         /**
@@ -49,7 +49,6 @@ public class TTSController implements AMapNaviListener, ICallBack {
     private Context mContext;
     private TTS tts = null;
     private SystemTTS systemTTS;
-    private IFlyTTS iflyTTS = null;
     private LinkedList<String> wordList = new LinkedList<String>();
     private final int TTS_PLAY = 1;
     private final int CHECK_TTS_PLAY = 2;
@@ -75,27 +74,20 @@ public class TTSController implements AMapNaviListener, ICallBack {
     };
 
     public void setTTSType(TTSType type) {
-        if (type == TTSType.SYSTEMTTS) {
-            tts = systemTTS;
-        } else {
-            tts = iflyTTS;
-        }
+        // 仓库未包含讯飞 Msc.jar，两种类型均使用系统 TTS
+        tts = systemTTS;
         tts.setCallback(this);
     }
 
     private TTSController(Context context) {
         mContext = context.getApplicationContext();
         systemTTS = SystemTTS.getInstance(mContext);
-        iflyTTS = IFlyTTS.getInstance(mContext);
-        tts = iflyTTS;
+        tts = systemTTS;
     }
 
     public void init() {
         if (systemTTS != null) {
             systemTTS.init();
-        }
-        if (iflyTTS != null) {
-            iflyTTS.init();
         }
         tts.setCallback(this);
     }
@@ -111,18 +103,12 @@ public class TTSController implements AMapNaviListener, ICallBack {
         if (systemTTS != null) {
             systemTTS.stopSpeak();
         }
-        if (iflyTTS != null) {
-            iflyTTS.stopSpeak();
-        }
         wordList.clear();
     }
 
     public void destroy() {
         if (systemTTS != null) {
             systemTTS.destroy();
-        }
-        if (iflyTTS != null) {
-            iflyTTS.destroy();
         }
         ttsManager = null;
     }

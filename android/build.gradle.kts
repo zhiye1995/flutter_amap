@@ -91,13 +91,15 @@ dependencies {
 
 //    implementation("com.amap.api:navi-3dmap-location-search:10.0.900_3dmap10.0.1000_loc6.4.8_sea9.7.4")  导航时，二次退出，无法路劲规划
 //    implementation("com.amap.api:navi-3dmap-location-search:10.1.500_3dmap10.1.500_loc6.5.0_sea9.7.4")   导航时，二次退出，无法路劲规划
-    implementation("com.amap.api:navi-3dmap-location-search:10.1.600_3dmap10.1.600_loc6.5.1_sea9.7.4")
+//    implementation("com.amap.api:navi-3dmap-location-search:10.1.600_3dmap10.1.600_loc6.5.1_sea9.7.4")
 
 //    implementation("com.amap.api:navi-3dmap-location-search:11.1.000_3dmap11.1.000_loc11.1.000_sea9.7.4") 打包闪退
 //    implementation("com.amap.api:navi-3dmap-location-search:11.1.001_3dmap11.1.001_loc11.1.001_sea9.7.4") 打包闪退
 //    implementation("com.amap.api:navi-3dmap-location-search:11.1.200_3dmap11.1.200_loc11.1.200_sea9.7.4")打包闪退
 
 //    implementation("com.amap.api:navi-3dmap-location-search:11.2.000_3dmap11.2.000_loc11.2.000_sea9.8.0") 起点 我的位置无法规划
+
+    implementation("com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
