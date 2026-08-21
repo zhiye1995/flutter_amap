@@ -12,13 +12,10 @@ PODS:
     - AMapNavi (= 11.1.200)
     - AMapSearch (= 9.8.0)
     - Flutter
-  - saver_gallery (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_amap (from `.symlinks/plugins/flutter_amap/ios`)
-  - saver_gallery (from `.symlinks/plugins/saver_gallery/ios`)
 
 SPEC REPOS:
   trunk:
@@ -32,18 +29,15 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_amap:
     :path: ".symlinks/plugins/flutter_amap/ios"
-  saver_gallery:
-    :path: ".symlinks/plugins/saver_gallery/ios"
 
 SPEC CHECKSUMS:
   AMapFoundation: 5f01fcabd1e591967e52178d2d96dac843396285
   AMapLocation: 51549dc73f5bfa8806c33857ad2079fa6215bb49
   AMapNavi: 1ab847368e406bed60b56525a583554557c4333d
   AMapSearch: ec339fc3cf772d5ff657f02397888391b4b1bde8
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_amap: 41afed66057be698bd7a720d73cd26272b25d801
-  saver_gallery: 76172dc4bf6b40e66d694948ada9ff402304dd87
 
-PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
+PODFILE CHECKSUM: 0e525152e3ec397947996fbf92d176f885bd8b2a
 
 COCOAPODS: 1.16.2

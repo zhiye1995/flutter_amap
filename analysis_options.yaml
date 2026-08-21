@@ -4,6 +4,13 @@ analyzer:
   # 本地参考代码（.gitignore 已忽略），缺少完整依赖时不应参与分析，否则会拖垮 IDE / flutter analyze
   exclude:
     - official_demo/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
