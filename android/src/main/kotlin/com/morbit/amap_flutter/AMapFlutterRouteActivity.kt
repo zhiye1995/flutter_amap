@@ -72,7 +72,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         }
 
         window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.WHITE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
@@ -80,17 +80,25 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
 
     private fun applySystemBars() {
         prepareWindowForFullscreen()
-        window.decorView.systemUiVisibility = lightSystemBarFlags(window)
+        enforceSystemBarVisibility()
+        applyContentInsets()
+    }
+
+    private fun enforceSystemBarVisibility() {
+        val decorView = window.decorView
+        val targetFlags = lightSystemBarFlags(window)
+        if (decorView.systemUiVisibility != targetFlags) {
+            decorView.systemUiVisibility = targetFlags
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.run {
                 hide(WindowInsets.Type.statusBars())
+                show(WindowInsets.Type.navigationBars())
                 systemBarsBehavior =
                     WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         }
-
-        applyContentInsets()
     }
 
     private fun applyContentInsets() {
@@ -116,6 +124,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             }
             routePanelLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
                 resizeRoutePanel(content, routePanelBottomInset)
+                enforceSystemBarVisibility()
             }.also { listener ->
                 content.viewTreeObserver.addOnGlobalLayoutListener(listener)
             }
@@ -129,13 +138,12 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         val padding = contentRootPadding ?: return
         val navigationBars = navigationBars(insets)
 
-        // Keep only side-safe areas. Bottom padding would stop AMap's map and
-        // bottom panel above the transparent gesture navigation area.
+        // Keep AMap content above the opaque system navigation bar.
         view.setPadding(
             padding.left + navigationBars.left,
             padding.top,
             padding.right + navigationBars.right,
-            padding.bottom
+            padding.bottom + navigationBars.bottom
         )
 
         resizeRoutePanel(view, navigationBars.bottom)
@@ -186,7 +194,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             basePadding.left,
             basePadding.top,
             basePadding.right,
-            basePadding.bottom + bottomInset
+            basePadding.bottom
         )
     }
 
@@ -357,10 +365,10 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
     private fun lightSystemBarFlags(window: Window): Int {
         var flags = window.decorView.systemUiVisibility
         flags = flags and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv()
+        flags = flags and View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION.inv()
         flags = flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
         flags = flags or View.SYSTEM_UI_FLAG_FULLSCREEN
         flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
         flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
