@@ -5,17 +5,27 @@ import android.graphics.Insets
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.TextView
 import com.amap.api.navi.AmapRouteActivity
+import com.amap.api.navi.view.SlidingUpPanelLayout
 
 
 class AMapFlutterRouteActivity : AmapRouteActivity() {
 
     private var contentRoot: View? = null
     private var contentRootPadding: Padding? = null
+    private var routePanel: View? = null
+    private var routeSlidingPanel: SlidingUpPanelLayout? = null
+    private var routePanelBaseCollapsedHeight = 0
+    private var routePanelBasePadding: Padding? = null
+    private var routePanelBottomInset = 0
+    private var routePanelLayoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AMapFlutterRouteTheme)
@@ -62,7 +72,10 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         }
 
         window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.WHITE
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
     }
 
     private fun applySystemBars() {
@@ -83,6 +96,13 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
     private fun applyContentInsets() {
         val content = findViewById<View>(android.R.id.content) ?: return
         if (contentRoot !== content) {
+            contentRoot?.viewTreeObserver?.let { observer ->
+                routePanelLayoutListener?.let { listener ->
+                    if (observer.isAlive) {
+                        observer.removeOnGlobalLayoutListener(listener)
+                    }
+                }
+            }
             contentRoot = content
             contentRootPadding = Padding(
                 left = content.paddingLeft,
@@ -92,7 +112,12 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
             )
             content.setOnApplyWindowInsetsListener { view, insets ->
                 applyInsetsPadding(view, insets)
-                removeTopInsets(insets)
+                removeTopAndBottomInsets(insets)
+            }
+            routePanelLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+                resizeRoutePanel(content, routePanelBottomInset)
+            }.also { listener ->
+                content.viewTreeObserver.addOnGlobalLayoutListener(listener)
             }
         }
 
@@ -104,23 +129,165 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
         val padding = contentRootPadding ?: return
         val navigationBars = navigationBars(insets)
 
+        // Keep only side-safe areas. Bottom padding would stop AMap's map and
+        // bottom panel above the transparent gesture navigation area.
         view.setPadding(
             padding.left + navigationBars.left,
             padding.top,
             padding.right + navigationBars.right,
-            padding.bottom + navigationBars.bottom
+            padding.bottom
+        )
+
+        resizeRoutePanel(view, navigationBars.bottom)
+    }
+
+    private fun resizeRoutePanel(content: View, bottomInset: Int) {
+        routePanelBottomInset = bottomInset
+        val currentPanel = routePanel
+        val currentSlidingPanel = routeSlidingPanel
+        val (panel, slidingPanel) =
+            if (
+                currentPanel?.isAttachedToWindow == true &&
+                currentSlidingPanel?.isAttachedToWindow == true
+            ) {
+                currentPanel to currentSlidingPanel
+            } else {
+                findRoutePanel(content) ?: return
+            }
+
+        if (routePanel !== panel || routeSlidingPanel !== slidingPanel) {
+            routePanel = panel
+            routeSlidingPanel = slidingPanel
+            routePanelBaseCollapsedHeight = slidingPanel.panelHeight
+            routePanelBasePadding = Padding(
+                left = panel.paddingLeft,
+                top = panel.paddingTop,
+                right = panel.paddingRight,
+                bottom = panel.paddingBottom
+            )
+        }
+
+        if (routePanelBaseCollapsedHeight <= 0) {
+            routePanelBaseCollapsedHeight = slidingPanel.panelHeight
+        }
+        val basePadding = routePanelBasePadding ?: return
+        if (routePanelBaseCollapsedHeight <= 0) return
+
+        // The route-planning panel is the collapsed part of AMap's
+        // SlidingUpPanelLayout. The drag view itself fills the parent, so
+        // changing its LayoutParams height is clipped and has no visible
+        // effect. Increase the SDK panel's collapsed height instead.
+        val targetHeight = routePanelBaseCollapsedHeight + bottomInset
+        if (slidingPanel.panelHeight != targetHeight) {
+            slidingPanel.panelHeight = targetHeight
+        }
+
+        panel.setPadding(
+            basePadding.left,
+            basePadding.top,
+            basePadding.right,
+            basePadding.bottom + bottomInset
         )
     }
 
+    private fun findRoutePanel(content: View): Pair<View, SlidingUpPanelLayout>? {
+        findViewByResourceEntryName(content, "navi_sdk_dragView")?.let { panel ->
+            findSlidingPanelParent(panel)?.let { slidingPanel ->
+                return panel to slidingPanel
+            }
+        }
+
+        val startButton = findTextView(content, "开始导航") ?: return null
+        var child: View = startButton
+        var parent = child.parent as? View
+        while (parent != null && parent !== content) {
+            if (parent is SlidingUpPanelLayout) {
+                return child to parent
+            }
+            child = parent
+            parent = parent.parent as? View
+        }
+
+        return null
+    }
+
+    private fun findSlidingPanelParent(view: View): SlidingUpPanelLayout? {
+        var parent = view.parent as? View
+        while (parent != null) {
+            if (parent is SlidingUpPanelLayout) {
+                return parent
+            }
+            parent = parent.parent as? View
+        }
+
+        return null
+    }
+
+    private fun findViewByResourceEntryName(view: View, targetName: String): View? {
+        if (view.id != View.NO_ID) {
+            try {
+                if (view.resources.getResourceEntryName(view.id) == targetName) {
+                    return view
+                }
+            } catch (_: android.content.res.Resources.NotFoundException) {
+                // AMap loads part of its UI from a private resource package.
+            }
+        }
+
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                findViewByResourceEntryName(view.getChildAt(index), targetName)?.let {
+                    return it
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun findTextView(view: View, targetText: String): TextView? {
+        if (view is TextView && view.text?.toString() == targetText) {
+            return view
+        }
+
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                findTextView(view.getChildAt(index), targetText)?.let {
+                    return it
+                }
+            }
+        }
+
+        return null
+    }
+
     @Suppress("DEPRECATION")
-    private fun removeTopInsets(insets: WindowInsets): WindowInsets {
+    private fun removeTopAndBottomInsets(insets: WindowInsets): WindowInsets {
+        // AMap handles the insets dispatched to its own view hierarchy. Remove
+        // the top and bottom values so it does not reserve system-bar bands.
         return when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
                 val topInsets =
                     WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout()
+                val navigationBars = insets.getInsets(WindowInsets.Type.navigationBars())
+                val navigationBarsIgnoringVisibility =
+                    insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars())
                 WindowInsets.Builder(insets)
                     .setInsets(topInsets, Insets.NONE)
                     .setInsetsIgnoringVisibility(topInsets, Insets.NONE)
+                    .setInsets(
+                        WindowInsets.Type.navigationBars(),
+                        Insets.of(navigationBars.left, 0, navigationBars.right, 0)
+                    )
+                    .setInsetsIgnoringVisibility(
+                        WindowInsets.Type.navigationBars(),
+                        Insets.of(
+                            navigationBarsIgnoringVisibility.left,
+                            0,
+                            navigationBarsIgnoringVisibility.right,
+                            0
+                        )
+                    )
                     .setDisplayCutout(null)
                     .build()
             }
@@ -132,7 +299,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
                             insets.systemWindowInsetLeft,
                             0,
                             insets.systemWindowInsetRight,
-                            insets.systemWindowInsetBottom
+                            0
                         )
                     )
                     .setStableInsets(
@@ -140,7 +307,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
                             insets.stableInsetLeft,
                             0,
                             insets.stableInsetRight,
-                            insets.stableInsetBottom
+                            0
                         )
                     )
                     .setDisplayCutout(null)
@@ -152,7 +319,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
                     insets.systemWindowInsetLeft,
                     0,
                     insets.systemWindowInsetRight,
-                    insets.systemWindowInsetBottom
+                    0
                 ).consumeDisplayCutout()
             }
 
@@ -161,7 +328,7 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
                     insets.systemWindowInsetLeft,
                     0,
                     insets.systemWindowInsetRight,
-                    insets.systemWindowInsetBottom
+                    0
                 )
             }
         }
@@ -190,10 +357,10 @@ class AMapFlutterRouteActivity : AmapRouteActivity() {
     private fun lightSystemBarFlags(window: Window): Int {
         var flags = window.decorView.systemUiVisibility
         flags = flags and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv()
-        flags = flags and View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION.inv()
         flags = flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
         flags = flags or View.SYSTEM_UI_FLAG_FULLSCREEN
         flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
         flags = flags or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
