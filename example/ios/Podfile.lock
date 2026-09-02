@@ -1,21 +1,25 @@
 PODS:
-  - AMapFoundation (1.9.0)
-  - AMapLocation (2.12.0):
+  - AMapFoundation (1.9.1)
+  - AMapLocation (2.12.2):
     - AMapFoundation (>= 1.9.0)
-  - AMapNavi (11.1.200):
-    - AMapFoundation (>= 1.8.7)
-  - AMapSearch (9.8.0):
+  - AMapNavi (11.2.100):
+    - AMapFoundation (>= 1.9.0)
+  - AMapSearch (9.8.1):
     - AMapFoundation (>= 1.9.0)
   - Flutter (1.0.0)
-  - flutter_amap (0.0.1):
-    - AMapLocation (= 2.12.0)
-    - AMapNavi (= 11.1.200)
-    - AMapSearch (= 9.8.0)
+  - flutter_amap (2.0.0):
+    - AMapLocation (= 2.12.2)
+    - AMapNavi (= 11.2.100)
+    - AMapSearch (= 9.8.1)
+    - Flutter
+  - flutter_amap_navi (1.0.0):
+    - AMapNavi (= 11.2.100)
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_amap (from `.symlinks/plugins/flutter_amap/ios`)
+  - flutter_amap_navi (from `.symlinks/plugins/flutter_amap_navi/ios`)
 
 SPEC REPOS:
   trunk:
@@ -29,15 +33,18 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_amap:
     :path: ".symlinks/plugins/flutter_amap/ios"
+  flutter_amap_navi:
+    :path: ".symlinks/plugins/flutter_amap_navi/ios"
 
 SPEC CHECKSUMS:
-  AMapFoundation: 5f01fcabd1e591967e52178d2d96dac843396285
-  AMapLocation: 51549dc73f5bfa8806c33857ad2079fa6215bb49
-  AMapNavi: 1ab847368e406bed60b56525a583554557c4333d
-  AMapSearch: ec339fc3cf772d5ff657f02397888391b4b1bde8
+  AMapFoundation: 8c511ce0584873bc6febb071365b2bfd62ce4a11
+  AMapLocation: 0a44d96a4d9698ecb70560d2cc47d6f49c191ad8
+  AMapNavi: c9542d673f6ad5cba7b0aa43701c3b3a3bf3d789
+  AMapSearch: bbbaa101ed94f3b51ab3a867d030a5336555138e
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  flutter_amap: 41afed66057be698bd7a720d73cd26272b25d801
+  flutter_amap: 7bdd38f2b30d0e11afda84bdb518b19119ecbbac
+  flutter_amap_navi: 7c7328d3ade55b3c835eaf0ef66e53f5bf5d3da5
 
-PODFILE CHECKSUM: 0e525152e3ec397947996fbf92d176f885bd8b2a
+PODFILE CHECKSUM: 4b65c1e360bd22fa395240df800bf8c6b92ab555
 
 COCOAPODS: 1.16.2

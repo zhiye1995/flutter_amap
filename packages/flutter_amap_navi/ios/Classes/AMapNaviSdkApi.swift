@@ -28,11 +28,14 @@ final class AMapNaviSdkApi: NSObject {
             let apiKey = arguments["iosKey"] as? String ?? ""
             let agreePrivacy = arguments["agreePrivacy"] as? Bool ?? false
             AMapServices.shared().apiKey = apiKey
+            let privacyShow: AMapPrivacyShowStatus = agreePrivacy ? .didShow : .notShow
+            let privacyInfo: AMapPrivacyInfoStatus = agreePrivacy ? .didContain : .notContain
+            let privacyAgree: AMapPrivacyAgreeStatus = agreePrivacy ? .didAgree : .notAgree
             MAMapView.updatePrivacyShow(
-                AMapPrivacyShowStatus(agreePrivacy),
-                privacyInfo: AMapPrivacyInfoStatus(agreePrivacy)
+                privacyShow,
+                privacyInfo: privacyInfo
             )
-            MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus(agreePrivacy))
+            MAMapView.updatePrivacyAgree(privacyAgree)
             updateManagerPrivacy(AMapNaviDriveManager.self, agree: agreePrivacy)
             updateManagerPrivacy(AMapNaviWalkManager.self, agree: agreePrivacy)
             updateManagerPrivacy(AMapNaviRideManager.self, agree: agreePrivacy)
@@ -46,6 +49,8 @@ final class AMapNaviSdkApi: NSObject {
         let showSelector = NSSelectorFromString("updatePrivacyShow:privacyInfo:")
         if metaClass.responds(to: showSelector),
            let method = class_getClassMethod(cls, showSelector) {
+            let privacyShow: AMapPrivacyShowStatus = agree ? .didShow : .notShow
+            let privacyInfo: AMapPrivacyInfoStatus = agree ? .didContain : .notContain
             typealias ShowMethod = @convention(c) (
                 AnyClass,
                 Selector,
@@ -56,21 +61,22 @@ final class AMapNaviSdkApi: NSObject {
             function(
                 cls,
                 showSelector,
-                AMapPrivacyShowStatus(agree),
-                AMapPrivacyInfoStatus(agree)
+                privacyShow,
+                privacyInfo
             )
         }
 
         let agreeSelector = NSSelectorFromString("updatePrivacyAgree:")
         if metaClass.responds(to: agreeSelector),
            let method = class_getClassMethod(cls, agreeSelector) {
+            let privacyAgree: AMapPrivacyAgreeStatus = agree ? .didAgree : .notAgree
             typealias AgreeMethod = @convention(c) (
                 AnyClass,
                 Selector,
                 AMapPrivacyAgreeStatus
             ) -> Void
             let function = unsafeBitCast(method_getImplementation(method), to: AgreeMethod.self)
-            function(cls, agreeSelector, AMapPrivacyAgreeStatus(agree))
+            function(cls, agreeSelector, privacyAgree)
         }
     }
 }
