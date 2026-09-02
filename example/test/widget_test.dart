@@ -1,9 +1,16 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('combined example can use independent map and navigation models', () {
+    final mapPosition = Position(latitude: 39.9, longitude: 116.3);
+    final naviPosition = NaviPosition(
+      latitude: mapPosition.latitude,
+      longitude: mapPosition.longitude,
+    );
+
+    expect(naviPosition.latitude, mapPosition.latitude);
+    expect(NaviDrivingStrategy.fromId(20).id, 20);
+  });
 }

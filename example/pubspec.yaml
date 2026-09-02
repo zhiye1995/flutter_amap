@@ -1,8 +1,10 @@
 name: flutter_amap_example
-description: Demonstrates how to use the amap_flutter plugin.
+description: Demonstrates how to use flutter_amap and flutter_amap_navi together.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+resolution: workspace
 
 # 修改app名称   rename setAppName --targets ios,android --value  "leafwink"
 # 获取app名称   rename getAppName --targets ios,android
@@ -21,13 +23,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_amap:
-    # When depending on this package from a real application you should use:
-    #   amap_flutter: ^x.y.z
-    # See https://dart.dev/tools/pub/dependencies#version-constraints
-    # The example app is bundled with the plugin so we use a path dependency on
-    # the parent directory to use the current plugin's version.
-    path: ../
+  flutter_amap: ^2.0.0
+#  flutter_amap_navi: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -46,7 +43,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

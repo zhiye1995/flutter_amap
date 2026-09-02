@@ -1,37 +1,43 @@
-name: Publish to pub.dev
+name: Publish package
 
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+      - 'flutter_amap-v*'
+      - 'flutter_amap_navi-v*'
 
 jobs:
   publish:
-    name: Publish to pub.dev
     runs-on: ubuntu-latest
     environment: pub.dev
     permissions:
-      id-token: write # Required for authentication using OIDC
+      id-token: write
     steps:
-      # Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      # This action adds a token needed for pub.dev
-      - name: Install Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      # Install Flutter
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      # Minimal package setup and dry run checks.
-      - name: Install dependencies
+          cache: true
+      - name: Select package
+        id: package
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == flutter_amap_navi-v* ]]; then
+            echo "directory=packages/flutter_amap_navi" >> "$GITHUB_OUTPUT"
+          else
+            echo "directory=packages/flutter_amap" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Resolve workspace
         run: flutter pub get
-      # Publish package with dry run
+      - name: Test selected package
+        working-directory: ${{ steps.package.outputs.directory }}
+        run: flutter test --no-pub
+      - name: Analyze selected package
+        working-directory: ${{ steps.package.outputs.directory }}
+        run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
       - name: Publish dry run
+        working-directory: ${{ steps.package.outputs.directory }}
         run: flutter pub publish --dry-run
-      # Publishing...
       - name: Publish to pub.dev
-        run: flutter pub publish -f
+        working-directory: ${{ steps.package.outputs.directory }}
+        run: flutter pub publish --force

@@ -3,6 +3,8 @@
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+# 联合示例复用 AMapNavi 中已包含的 3D 地图，不再额外链接 AMap3DMap。
+ENV['FLUTTER_AMAP_USE_NAVI_SDK'] = 'true'
 
 project 'Runner', {
   'Debug' => :debug,

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
@@ -818,7 +818,7 @@ class _NavigationPageState extends State<NavigationPage> {
       NaviPoint? endPoint;
       if (lat != null && lng != null) {
         endPoint = NaviPoint(
-          position: Position(latitude: lat, longitude: lng),
+          position: NaviPosition(latitude: lat, longitude: lng),
           name: _nameController.text.isNotEmpty ? _nameController.text : null,
         );
       }

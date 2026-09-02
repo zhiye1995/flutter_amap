@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 智能巡航示例：地图展示自车位置，右上角开启/关闭巡航（依赖插件 [AMapNavi.startCruiseMode]）。

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 class RoutePlanPage extends StatefulWidget {
@@ -432,7 +433,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: paths.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               return _buildRoutePlanCard(
                 paths[index],
@@ -656,7 +657,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     itemBuilder: (context, index) {
                       return _buildStepItem(path.steps[index]);
                     },
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                   ),
                 ),
               ],
@@ -840,15 +841,33 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           RoutePlanType.ride => NaviType.ride,
         },
         pageType: NaviPageType.route,
-        start:
-            _startLocation?.toNaviPoint() ??
-            NaviPoint(position: _startPosition, name: '我的位置'),
-        end:
-            _endLocation?.toNaviPoint() ??
-            NaviPoint(position: endPosition, name: '终点'),
-        drivingStrategy: _driveStrategy,
+        start: _startLocation != null
+            ? _toNaviPoint(_startLocation!)
+            : NaviPoint(
+                position: _toNaviPosition(_startPosition),
+                name: '我的位置',
+              ),
+        end: _endLocation != null
+            ? _toNaviPoint(_endLocation!)
+            : NaviPoint(position: _toNaviPosition(endPosition), name: '终点'),
+        drivingStrategy: NaviDrivingStrategy.fromId(_driveStrategy.id),
         startNaviDirectly: false,
       ),
+    );
+  }
+
+  NaviPoint _toNaviPoint(LocationPickerResult result) {
+    return NaviPoint(
+      position: _toNaviPosition(result.position),
+      name: result.name,
+      poiId: result.poiId,
+    );
+  }
+
+  NaviPosition _toNaviPosition(Position position) {
+    return NaviPosition(
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
   }
 
@@ -1136,7 +1155,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       width: 18,
       height: 18,
       color: Colors.black,
-      errorBuilder: (_, __, ___) => const SizedBox(width: 18, height: 18),
+      errorBuilder: (_, _, _) => const SizedBox(width: 18, height: 18),
     );
   }
 

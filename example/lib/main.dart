@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter/material.dart';
 import 'core/utils/utils.dart';
 import 'features/map_3d/index.dart';
@@ -35,6 +36,15 @@ class _AppState extends State<App> {
         // androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
       ),
       agreePrivacy: true,
+    );
+    await AMapNavi.init(
+      config: NaviSdkConfig(
+        apiKey: NaviApiKey(
+          iosKey: "14cf569c80ddc89d84513331ed8c5164",
+          androidKey: "fddb0c469571c9686915aade4e2a7a18",
+        ),
+        agreePrivacy: true,
+      ),
     );
   }
 
