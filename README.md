@@ -9,16 +9,28 @@
 
 根目录 [`example`](example/) 同时集成两个插件；每个包的 `example/` 则只依赖自身，用于验证独立集成。
 
-## 工作区开发
+## 功能预览
 
-```shell
-flutter pub get
-flutter test packages/flutter_amap
-flutter test packages/flutter_amap_navi
-flutter analyze --no-pub
-```
+以下截图展示示例应用的部分功能，点击图片可查看原图。
 
-工作区共享根目录唯一的 `pubspec.lock`，所有成员声明 `resolution: workspace`。
+### 示例入口与功能目录
+
+首页、3D 地图目录与导航目录，方便开发者了解示例功能分布。
+
+[![示例应用首页、3D 地图目录与导航目录](docs/images/1.png)](docs/images/1.png)
+
+### 地图与数据查询
+
+地图样式切换、多地图实例、POI 关键字搜索、点与多边形位置判断、天气查询及折线样式。
+
+[![地图显示、多地图实例、POI 搜索、多边形判断、天气查询与折线样式示例](docs/images/2.png)](docs/images/2.png)
+
+### 路线规划与地图交互
+
+路线方案展示、轨迹平滑移动、地点选择及导航路线预览。
+
+[![路线规划、轨迹平滑移动、地点选择与导航路线预览](docs/images/3.png)](docs/images/3.png)
+
 
 ## 联合初始化
 
