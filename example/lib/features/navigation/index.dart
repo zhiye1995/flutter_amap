@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
+import 'component_route_pages.dart';
 import 'cruise_map_page.dart';
 import 'navigation.dart';
 import 'place_picker.dart';
@@ -39,8 +40,10 @@ class _CategoryData {
 
 final List<_CategoryData> _menuData = [
   _CategoryData('导航组件(新)', [
-    _ItemData('起终点算路'),
-    _ItemData('无起点算路'),
+    _ItemData('起终点算路',
+        pageBuilder: () => const StartEndRoutePage(), isCompleted: true),
+    _ItemData('无起点算路',
+        pageBuilder: () => const CurrentLocationRoutePage(), isCompleted: true),
     _ItemData('途经点算路'),
     _ItemData('组件直接导航',
         pageBuilder: () => const NavigationPage(), isCompleted: true),

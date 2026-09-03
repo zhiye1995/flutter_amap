@@ -51,7 +51,7 @@ class _ChangeMapCenterPageState extends State<ChangeMapCenterPage> {
     if (!mounted || duration == null) {
       return;
     }
-    LoadingUtil.showSuccess('Animation to 陆家嘴 complete');
+    // LoadingUtil.showSuccess('Animation to 陆家嘴 complete');
   }
 
   @override

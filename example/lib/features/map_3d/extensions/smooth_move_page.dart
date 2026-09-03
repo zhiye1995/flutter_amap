@@ -47,12 +47,14 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   var _showStaticMarker = true;
 
   StreamSubscription<SmoothMoveMarkerCompleteEvent>? _smoothMoveCompletedSub;
-  Duration _remainingDuration = _duration;
-  DateTime? _lastStartTime;
+  StreamSubscription<SmoothMoveMarkerProgressEvent>? _smoothMoveProgressSub;
+  double _progress = 0;
+  double _remainingDistance = 0;
 
   @override
   void dispose() {
     _smoothMoveCompletedSub?.cancel();
+    _smoothMoveProgressSub?.cancel();
     _controller?.stopSmoothMoveMarker(_markerId);
     super.dispose();
   }
@@ -106,6 +108,16 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (_moving) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: _progress),
+              const SizedBox(height: 4),
+              Text(
+                '进度 ${(_progress * 100).toStringAsFixed(0)}% · '
+                '剩余 ${_remainingDistance.toStringAsFixed(0)} 米',
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -160,6 +172,16 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     ) {
       if (event.value == _markerId) _onMoveCompleted();
     });
+    await _smoothMoveProgressSub?.cancel();
+    _smoothMoveProgressSub = controller.onSmoothMoveMarkerProgress.listen((
+      event,
+    ) {
+      if (!mounted || event.value != _markerId) return;
+      setState(() {
+        _progress = event.progress;
+        _remainingDistance = event.remainingDistance;
+      });
+    });
     await controller.waitForMapCompleted();
     if (!mounted || _controller != controller) return;
     controller.moveCameraToFitPosition(
@@ -173,16 +195,17 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   Future<void> _start() async {
     final controller = _controller;
     if (controller == null) return;
-    _remainingDuration = _duration;
-
-    setState(() => _showStaticMarker = false);
+    setState(() {
+      _showStaticMarker = false;
+      _progress = 0;
+      _remainingDistance = 0;
+    });
     await controller.startSmoothMoveMarker(
       marker: _buildCarMarker(_points.first),
       points: _points,
       duration: _duration,
     );
     if (!mounted) return;
-    _lastStartTime = DateTime.now();
     setState(() {
       _moving = true;
       _paused = false;
@@ -196,15 +219,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.pauseSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    final lastStartTime = _lastStartTime;
-    if (lastStartTime != null) {
-      final elapsed = DateTime.now().difference(lastStartTime);
-      final remaining = _remainingDuration - elapsed;
-      _remainingDuration = remaining < Duration.zero
-          ? Duration.zero
-          : remaining;
-    }
-
     setState(() => _paused = true);
     context.snackBar('已暂停平滑移动');
   }
@@ -214,8 +228,6 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (controller == null) return;
     await controller.resumeSmoothMoveMarker(_markerId);
     if (!mounted) return;
-
-    _lastStartTime = DateTime.now();
 
     setState(() => _paused = false);
     context.snackBar('已继续平滑移动');
@@ -227,26 +239,25 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     await controller.stopSmoothMoveMarker(_markerId);
     if (!mounted) return;
 
-    _remainingDuration = _duration;
-    _lastStartTime = null;
-
     setState(() {
       _moving = false;
       _paused = false;
       _showStaticMarker = true;
+      _progress = 0;
+      _remainingDistance = 0;
     });
     context.snackBar('已停止平滑移动');
   }
 
   void _onMoveCompleted() {
     if (!_moving) return;
-    _remainingDuration = _duration;
-    _lastStartTime = null;
     if (mounted) {
       setState(() {
         _moving = false;
         _paused = false;
         _showStaticMarker = false;
+        _progress = 1;
+        _remainingDistance = 0;
       });
     }
   }

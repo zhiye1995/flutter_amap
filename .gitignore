@@ -46,3 +46,5 @@ build/
 /official_example/AMap_Android_API_Navi_Demo/android_studio/NaviDemo/app/libs/
 /official_example/AMap_Android_API_3DMap_Demo/
 /official_example/MAMapKit_3D_Demo/
+# Widget Preview related
+.widget_preview/
