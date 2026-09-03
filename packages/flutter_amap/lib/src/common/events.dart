@@ -136,6 +136,26 @@ class SmoothMoveMarkerCompleteEvent extends _PositionedMapEvent<String> {
   SmoothMoveMarkerCompleteEvent(super.mapId, super.position, super.markerId);
 }
 
+/// 平滑移动 Marker 的播放进度事件。
+class SmoothMoveMarkerProgressEvent extends _PositionedMapEvent<String> {
+  SmoothMoveMarkerProgressEvent(
+    super.mapId,
+    super.position,
+    super.markerId, {
+    required this.progress,
+    required this.remainingDistance,
+  });
+
+  /// 已完成比例，范围为 0 到 1。
+  final double progress;
+
+  /// 到轨迹终点的剩余距离，单位为米。
+  final double remainingDistance;
+}
+
+/// 平滑移动 Marker 当前的播放状态。
+enum SmoothMoveMarkerStatus { idle, moving, paused, completed }
+
 /// 用户位置改变事件
 class UserLocationChangeEvent extends MapEvent<Location> {
   UserLocationChangeEvent(super.mapId, super.location);

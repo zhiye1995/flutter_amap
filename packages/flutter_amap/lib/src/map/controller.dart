@@ -24,9 +24,17 @@ class AMapController {
 
   final List<StreamSubscription<dynamic>> _subscriptions =
       <StreamSubscription<dynamic>>[];
+  final Map<String, SmoothMoveMarkerStatus> _smoothMoveStatuses =
+      <String, SmoothMoveMarkerStatus>{};
 
   Stream<SmoothMoveMarkerCompleteEvent> get onSmoothMoveMarkerCompleted =>
       AMapFlutterPlatformInterface.instance.onSmoothMoveMarkerCompleted(
+        mapId: mapId,
+      );
+
+  /// 平滑移动过程中的位置、进度和剩余距离。
+  Stream<SmoothMoveMarkerProgressEvent> get onSmoothMoveMarkerProgress =>
+      AMapFlutterPlatformInterface.instance.onSmoothMoveMarkerProgress(
         mapId: mapId,
       );
 
@@ -111,6 +119,8 @@ class AMapController {
             _aMapFlutter.onMarkerDrag?.call(event.value, event.position);
           case MarkerDragEndEvent():
             _aMapFlutter.onMarkerDragEnd?.call(event.value, event.position);
+          case SmoothMoveMarkerCompleteEvent():
+            _smoothMoveStatuses[event.value] = SmoothMoveMarkerStatus.completed;
           case UserLocationChangeEvent():
             _aMapFlutter.onUserLocationChange?.call(event.value);
           default:
@@ -189,15 +199,41 @@ class AMapController {
 
   /// 沿一组轨迹点平滑移动点标记。
   ///
-  /// Android 使用高德官方 `SmoothMoveMarker`；iOS 使用原生计时插值驱动路径移动。
+  /// Android 使用高德官方 `MovingPointOverlay`；iOS 使用原生计时插值驱动路径移动。
+  /// [duration] 必须为不小于 1 秒的整秒时长，以保持 Android 与 iOS 行为一致。
   Future<void> startSmoothMoveMarker({
     required Marker marker,
     required List<Position> points,
     required Duration duration,
   }) async {
     if (_isDestroyed) return;
+    if (marker.id.trim().isEmpty) {
+      throw ArgumentError.value(marker.id, 'marker.id', '不能为空');
+    }
     if (points.length < 2) {
       throw ArgumentError.value(points, 'points', '至少需要 2 个轨迹点');
+    }
+    for (final point in points) {
+      if (!point.latitude.isFinite ||
+          !point.longitude.isFinite ||
+          point.latitude < -90 ||
+          point.latitude > 90 ||
+          point.longitude < -180 ||
+          point.longitude > 180) {
+        throw ArgumentError.value(point, 'points', '包含无效经纬度');
+      }
+    }
+    final firstPoint = points.first;
+    if (!points.skip(1).any(
+          (point) =>
+              point.latitude != firstPoint.latitude ||
+              point.longitude != firstPoint.longitude,
+        )) {
+      throw ArgumentError.value(points, 'points', '至少需要 2 个不同的轨迹点');
+    }
+    if (duration < const Duration(seconds: 1) ||
+        duration.inMilliseconds % Duration.millisecondsPerSecond != 0) {
+      throw ArgumentError.value(duration, 'duration', '必须为不小于 1 秒的整秒时长');
     }
     await AMapFlutterPlatformInterface.instance.startSmoothMoveMarker(
       marker,
@@ -205,7 +241,12 @@ class AMapController {
       duration.inMilliseconds,
       mapId: mapId,
     );
+    _smoothMoveStatuses[marker.id] = SmoothMoveMarkerStatus.moving;
   }
+
+  /// 返回指定 Marker 当前的平滑移动状态。
+  SmoothMoveMarkerStatus smoothMoveMarkerStatus(String markerId) =>
+      _smoothMoveStatuses[markerId] ?? SmoothMoveMarkerStatus.idle;
 
   /// 停止并移除指定的平滑移动点标记。
   Future<void> stopSmoothMoveMarker(String markerId) async {
@@ -214,6 +255,7 @@ class AMapController {
       markerId,
       mapId: mapId,
     );
+    _smoothMoveStatuses.remove(markerId);
   }
 
   /// 暂停指定的平滑移动点标记。
@@ -223,6 +265,9 @@ class AMapController {
       markerId,
       mapId: mapId,
     );
+    if (_smoothMoveStatuses[markerId] == SmoothMoveMarkerStatus.moving) {
+      _smoothMoveStatuses[markerId] = SmoothMoveMarkerStatus.paused;
+    }
   }
 
   /// 继续指定的平滑移动点标记。
@@ -232,6 +277,9 @@ class AMapController {
       markerId,
       mapId: mapId,
     );
+    if (_smoothMoveStatuses[markerId] == SmoothMoveMarkerStatus.paused) {
+      _smoothMoveStatuses[markerId] = SmoothMoveMarkerStatus.moving;
+    }
   }
 
   /// 添加折线
@@ -545,6 +593,7 @@ class AMapController {
       await subscription.cancel();
     }
     _subscriptions.clear();
+    _smoothMoveStatuses.clear();
     await AMapFlutterPlatformInterface.instance.destroy(mapId: mapId);
   }
 }

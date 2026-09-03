@@ -128,6 +128,12 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     return _events(mapId).whereType<SmoothMoveMarkerCompleteEvent>();
   }
 
+  Stream<SmoothMoveMarkerProgressEvent> onSmoothMoveMarkerProgress({
+    required int mapId,
+  }) {
+    return _events(mapId).whereType<SmoothMoveMarkerProgressEvent>();
+  }
+
   Stream<UserLocationChangeEvent> onUserLocationChange({required int mapId}) {
     return _events(mapId).whereType<UserLocationChangeEvent>();
   }
@@ -199,7 +205,7 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('removeMarker() has not been implemented.');
   }
 
-  /// 启动点标记平滑移动（Android `SmoothMoveMarker`；iOS 原生计时插值）。
+  /// 启动点标记平滑移动（Android `MovingPointOverlay`；iOS 原生计时插值）。
   Future<void> startSmoothMoveMarker(
     Marker marker,
     List<Position> points,

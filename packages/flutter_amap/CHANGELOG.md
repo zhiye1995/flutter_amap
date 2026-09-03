@@ -5,6 +5,7 @@
 - Move navigation and cruise APIs into the independent `flutter_amap_navi` package.
 - Remove `AMapSdkConfig.preloadNaviIcons`; navigation assets are now owned by the navigation package.
 - Use map-only Android and iOS SDK dependencies so map-only apps do not bundle AMap navigation.
+- Replace Android's deprecated `SmoothMoveMarker` with `MovingPointOverlay`, add reliable pause/resume cleanup, and expose throttled smooth-move progress events on Android and iOS.
 
 ## 1.0.11
 

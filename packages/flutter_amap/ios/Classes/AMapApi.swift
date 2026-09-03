@@ -20,6 +20,7 @@ private class SmoothMoveState {
   var startTime: Date
   var elapsedMs: Int
   var paused: Bool
+  var lastProgressEmitTime: CFTimeInterval
 
   init(marker: Marker, points: [Position], durationMs: Int, segmentDistances: [Double], totalDistance: Double) {
     self.marker = marker
@@ -30,6 +31,7 @@ private class SmoothMoveState {
     self.startTime = Date()
     self.elapsedMs = 0
     self.paused = false
+    self.lastProgressEmitTime = 0
   }
 }
 
@@ -59,6 +61,7 @@ class _AMapApi: NSObject {
   private var smoothMoveAnnotations = [String: Annotation]()
   private var smoothMoveDisplayLink: CADisplayLink?
   var onSmoothMoveMarkerCompleted: ((String, Position) -> Void)?
+  var onSmoothMoveMarkerProgress: ((String, Position, Double, Double) -> Void)?
 
   init(registrar: FlutterPluginRegistrar, mapView: MAMapView, mapInitConfig: MapInitConfig?) {
     self.registrar = registrar
@@ -326,14 +329,17 @@ class _AMapApi: NSObject {
   }
 
   func stopSmoothMoveMarker(markerId: String) {
-    guard let annotation = smoothMoveAnnotations[markerId] else { return }
+    guard let annotation = smoothMoveAnnotations.removeValue(forKey: markerId) else {
+      smoothMoveStates.removeValue(forKey: markerId)
+      stopSmoothMoveDisplayLinkIfIdle()
+      return
+    }
     if let moveAnimations = annotation.allMoveAnimations() {
       for item in moveAnimations {
         item.cancel()
       }
     }
     mapView.removeAnnotation(annotation)
-    smoothMoveAnnotations.removeValue(forKey: markerId)
     markerIds.removeValue(forKey: annotation.hash)
     smoothMoveStates.removeValue(forKey: markerId)
     stopSmoothMoveDisplayLinkIfIdle()
@@ -381,15 +387,23 @@ class _AMapApi: NSObject {
       }
 
       let elapsedMs = currentSmoothMoveElapsedMs(state)
+      let frame: SmoothMoveFrame
       if elapsedMs >= state.durationMs {
-        let frame = smoothMoveFrame(for: state, elapsedMs: state.durationMs)
+        frame = smoothMoveFrame(for: state, elapsedMs: state.durationMs)
         annotation.coordinate = frame.position.coordinate
         updateSmoothMoveDirection(annotation: annotation, from: frame.directionStart, to: frame.directionEnd)
         completedMarkerIds.append(markerId)
       } else {
-        let frame = smoothMoveFrame(for: state, elapsedMs: elapsedMs)
+        frame = smoothMoveFrame(for: state, elapsedMs: elapsedMs)
         annotation.coordinate = frame.position.coordinate
         updateSmoothMoveDirection(annotation: annotation, from: frame.directionStart, to: frame.directionEnd)
+      }
+      let progress = min(1.0, max(0.0, Double(elapsedMs) / Double(state.durationMs)))
+      let remainingDistance = state.totalDistance * (1.0 - progress)
+      let now = CACurrentMediaTime()
+      if now - state.lastProgressEmitTime >= 0.1 || progress >= 1.0 {
+        state.lastProgressEmitTime = now
+        onSmoothMoveMarkerProgress?(markerId, frame.position, progress, remainingDistance)
       }
     }
 
@@ -882,5 +896,16 @@ class _AMapApi: NSObject {
 
   func resume() { }
 
-  func destroy() { }
+  func destroy() {
+    smoothMoveDisplayLink?.invalidate()
+    smoothMoveDisplayLink = nil
+    for annotation in smoothMoveAnnotations.values {
+      mapView.removeAnnotation(annotation)
+      markerIds.removeValue(forKey: annotation.hash)
+    }
+    smoothMoveAnnotations.removeAll()
+    smoothMoveStates.removeAll()
+    onSmoothMoveMarkerCompleted = nil
+    onSmoothMoveMarkerProgress = nil
+  }
 }

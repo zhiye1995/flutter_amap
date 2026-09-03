@@ -15,6 +15,13 @@ class AMapController: NSObject {
     api.onSmoothMoveMarkerCompleted = { [weak self] markerId, position in
       self?.onSmoothMoveMarkerCompleted(markerId: markerId, position: position)
     }
+    api.onSmoothMoveMarkerProgress = { [weak self] markerId, position, progress, remainingDistance in
+      self?.onSmoothMoveMarkerProgress(
+        markerId: markerId,
+        position: position,
+        progress: progress,
+        remainingDistance: remainingDistance)
+    }
     channel.setMethodCallHandler { [weak self] (call, result) in
       self?.onMethodCall(call: call, result: result)
     }
@@ -353,6 +360,21 @@ class AMapController: NSObject {
     channel.invokeMethod("onSmoothMoveMarkerCompleted", arguments: [
       "markerId": markerId,
       "position": position,
+    ] as [String: Any])
+  }
+
+  /// 平滑移动 Marker 的位置、进度与剩余距离。
+  func onSmoothMoveMarkerProgress(
+    markerId: String,
+    position: Position,
+    progress: Double,
+    remainingDistance: Double
+  ) {
+    channel.invokeMethod("onSmoothMoveMarkerProgress", arguments: [
+      "markerId": markerId,
+      "position": position,
+      "progress": progress,
+      "remainingDistance": remainingDistance,
     ] as [String: Any])
   }
 

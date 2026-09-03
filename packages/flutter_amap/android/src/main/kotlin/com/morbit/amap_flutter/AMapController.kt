@@ -17,6 +17,9 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
     api.setSmoothMoveMarkerCompletedListener { markerId, position ->
       onSmoothMoveMarkerCompleted(markerId, position)
     }
+    api.setSmoothMoveMarkerProgressListener { markerId, position, progress, remainingDistance ->
+      onSmoothMoveMarkerProgress(markerId, position, progress, remainingDistance)
+    }
     channel.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
       this.onMethodCall(call, result)
     }
@@ -350,6 +353,24 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
       mapOf(
         "markerId" to markerId,
         "position" to position,
+      ),
+    )
+  }
+
+  /// 平滑移动 Marker 的位置、进度与剩余距离。
+  fun onSmoothMoveMarkerProgress(
+    markerId: String,
+    position: Position,
+    progress: Double,
+    remainingDistance: Double,
+  ) {
+    channel.invokeMethod(
+      "onSmoothMoveMarkerProgress",
+      mapOf(
+        "markerId" to markerId,
+        "position" to position,
+        "progress" to progress,
+        "remainingDistance" to remainingDistance,
       ),
     )
   }

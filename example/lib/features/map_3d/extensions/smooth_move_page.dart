@@ -186,7 +186,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (!mounted || _controller != controller) return;
     controller.moveCameraToFitPosition(
       _points,
-      EdgePadding(left: 60, top: 80, right: 60, bottom: 80),
+      EdgePadding(left: 160, top: 80, right: 160, bottom: 80),
       const Duration(milliseconds: 300),
     );
     if (mounted) setState(() => _ready = true);
@@ -210,7 +210,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
       _moving = true;
       _paused = false;
     });
-    context.snackBar('已开始平滑移动');
+    // context.snackBar('已开始平滑移动');
   }
 
   Future<void> _pause() async {
@@ -220,7 +220,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (!mounted) return;
 
     setState(() => _paused = true);
-    context.snackBar('已暂停平滑移动');
+    // context.snackBar('已暂停平滑移动');
   }
 
   Future<void> _resume() async {
@@ -230,7 +230,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
     if (!mounted) return;
 
     setState(() => _paused = false);
-    context.snackBar('已继续平滑移动');
+    // context.snackBar('已继续平滑移动');
   }
 
   Future<void> _stop() async {
@@ -246,7 +246,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
       _progress = 0;
       _remainingDistance = 0;
     });
-    context.snackBar('已停止平滑移动');
+    // context.snackBar('已停止平滑移动');
   }
 
   void _onMoveCompleted() {

@@ -15,7 +15,7 @@ import com.amap.api.maps.model.animation.Animation
 import com.amap.api.maps.model.animation.RotateAnimation
 import com.amap.api.maps.model.animation.ScaleAnimation
 import com.amap.api.maps.model.animation.TranslateAnimation
-import com.amap.api.maps.utils.overlay.SmoothMoveMarker
+import com.amap.api.maps.utils.overlay.MovingPointOverlay
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -23,23 +23,36 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?) {
   private val mapView = amap.getView()
   private val markerAnimationTokens = mutableMapOf<String, Int>()
-  private val smoothMoveMarkers = mutableMapOf<String, SmoothMoveMarker>()
+  private val smoothMoveMarkers = mutableMapOf<String, MovingPointOverlay>()
+  private val smoothMoveNativeMarkers = mutableMapOf<String, AMapMarker>()
+  private val pausedSmoothMoveMarkers = mutableMapOf<String, AMapMarker>()
+  private val completedSmoothMoveMarkers = mutableMapOf<String, AMapMarker>()
   private val smoothMoveStates = mutableMapOf<String, SmoothMoveState>()
   private var smoothMoveMarkerCompletedListener: ((String, Position) -> Unit)? = null
+  private var smoothMoveMarkerProgressListener: ((String, Position, Double, Double) -> Unit)? = null
 
   private data class SmoothMoveState(
-    val marker: Marker,
-    val points: List<Position>,
-    val durationMs: Long,
-    val startTimeMs: Long,
+    var marker: Marker,
+    var points: List<Position>,
+    var durationMs: Long,
+    val originalTotalDistance: Double,
+    var totalDistance: Double,
+    var completedDistance: Double,
     var remainingMs: Long,
+    var remainingDistance: Double,
+    var rotation: Float = 0f,
     var pausedPosition: Position? = null,
     var paused: Boolean = false,
     var completed: Boolean = false,
+    var lastProgressEmitMs: Long = 0L,
   )
 
   fun setSmoothMoveMarkerCompletedListener(listener: (String, Position) -> Unit) {
     smoothMoveMarkerCompletedListener = listener
+  }
+
+  fun setSmoothMoveMarkerProgressListener(listener: (String, Position, Double, Double) -> Unit) {
+    smoothMoveMarkerProgressListener = listener
   }
 
   fun initMap() {
@@ -182,30 +195,30 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   }
 
   fun startSmoothMoveMarker(marker: Marker, points: List<Position>, durationMs: Long) {
-    if (points.size < 2) return
+    val movePoints = compactSmoothMovePoints(points)
+    if (movePoints.size < 2) return
     stopSmoothMoveMarker(marker.id)
     val safeDuration = durationMs.coerceAtLeast(1_000L)
+    val totalDistance = smoothMoveDistance(movePoints)
+    if (totalDistance <= 0.0) return
     smoothMoveStates[marker.id] =
       SmoothMoveState(
-        marker = marker,
-        points = points,
+        marker = marker.copy(position = movePoints.first()),
+        points = movePoints,
         durationMs = safeDuration,
-        startTimeMs = System.currentTimeMillis(),
+        originalTotalDistance = totalDistance,
+        totalDistance = totalDistance,
+        completedDistance = 0.0,
         remainingMs = safeDuration,
+        remainingDistance = totalDistance,
       )
-    startSmoothMoveSegment(marker.id, marker, points, safeDuration)
+    startSmoothMoveSegment(marker.id)
   }
 
   fun stopSmoothMoveMarker(markerId: String) {
-    smoothMoveMarkers.remove(markerId)?.let {
-      it.stopMove()
-      try {
-        it.marker?.remove()
-      } catch (e: Exception) {
-        // ignore
-      }
-      it.destroy()
-    }
+    destroySmoothMoveOverlay(markerId)
+    pausedSmoothMoveMarkers.remove(markerId)?.remove()
+    completedSmoothMoveMarkers.remove(markerId)?.remove()
     smoothMoveStates.remove(markerId)
   }
 
@@ -213,59 +226,153 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     val state = smoothMoveStates[markerId] ?: return
     if (state.paused) return
     val smoothMarker = smoothMoveMarkers[markerId] ?: return
-    val current = smoothMarker.position?.toPosition() ?: state.points.first()
-    val elapsed = System.currentTimeMillis() - state.startTimeMs
-    state.pausedPosition = current
-    state.remainingMs = (state.remainingMs - elapsed).coerceAtLeast(1_000L)
+    val nativeMarker = smoothMoveNativeMarkers[markerId]
     state.paused = true
     smoothMarker.stopMove()
+    state.rotation = nativeMarker?.rotateAngle ?: state.rotation
+    val current = smoothMarker.position?.toPosition() ?: state.points.first()
+    val oldTotalDistance = state.totalDistance
+    val expectedRemainingDistance = state.remainingDistance.coerceIn(0.0, oldTotalDistance)
+    val remainingPoints = buildRemainingSmoothMovePoints(
+      current,
+      state.points,
+      expectedRemainingDistance,
+    )
+    val remainingDistance = smoothMoveDistance(remainingPoints)
+    val remainingRatio = if (oldTotalDistance > 0.0) remainingDistance / oldTotalDistance else 0.0
+    state.completedDistance += oldTotalDistance - remainingDistance
+    state.pausedPosition = current
+    state.remainingMs = (state.durationMs * remainingRatio).toLong().coerceAtLeast(1_000L)
+    state.points = remainingPoints
+    state.marker = state.marker.copy(position = current)
+    state.totalDistance = remainingDistance
+    state.remainingDistance = remainingDistance
+    smoothMoveMarkers.remove(markerId)
+    smoothMoveNativeMarkers.remove(markerId)
+    smoothMarker.destroy()
+    val pausedMarker = mapView.map.addMarker(
+      state.marker.toMarkerOptions(amap.binding),
+    )
+    pausedMarker.rotateAngle = state.rotation
+    pausedSmoothMoveMarkers[markerId] = pausedMarker
   }
 
   fun resumeSmoothMoveMarker(markerId: String) {
     val state = smoothMoveStates[markerId] ?: return
     if (!state.paused) return
-    val smoothMarker = smoothMoveMarkers[markerId]
-    val current = state.pausedPosition ?: state.points.first()
+    if (state.points.size < 2 || state.totalDistance <= 0.0) return
+    pausedSmoothMoveMarkers.remove(markerId)?.remove()
     state.paused = false
     state.pausedPosition = null
-    smoothMoveStates[markerId] = state.copy(startTimeMs = System.currentTimeMillis())
-    if (smoothMarker != null) {
-      smoothMarker.startSmoothMove()
-      return
-    }
-    val remainingPoints = buildRemainingSmoothMovePoints(current, state.points)
-    startSmoothMoveSegment(markerId, state.marker.copy(position = current), remainingPoints, state.remainingMs)
+    state.durationMs = state.remainingMs
+    startSmoothMoveSegment(markerId)
   }
 
-  private fun startSmoothMoveSegment(markerId: String, marker: Marker, points: List<Position>, durationMs: Long) {
-    if (points.size < 2) return
-    val smoothMarker = SmoothMoveMarker(mapView.map)
-    marker.bitmap?.toBitmapDescriptor(amap.binding)?.let { smoothMarker.setDescriptor(it) }
-    smoothMarker.setPoints(points.map { it.toPosition() })
-    smoothMarker.setTotalDuration((durationMs.coerceAtLeast(1_000L) / 1_000L).toInt())
-    smoothMarker.setMoveListener(object : SmoothMoveMarker.MoveListener {
+  private fun startSmoothMoveSegment(markerId: String) {
+    val state = smoothMoveStates[markerId] ?: return
+    if (state.points.size < 2) return
+    val nativeMarker = mapView.map.addMarker(state.marker.toMarkerOptions(amap.binding))
+    nativeMarker.rotateAngle = state.rotation
+    val smoothMarker = MovingPointOverlay(mapView.map, nativeMarker)
+    smoothMarker.setPoints(state.points.map { it.toPosition() })
+    smoothMarker.setTotalDuration(((state.durationMs.coerceAtLeast(1_000L) + 999L) / 1_000L).toInt())
+    smoothMarker.setMoveListener(object : MovingPointOverlay.MoveListener {
       override fun move(distance: Double) {
-        if (distance != 0.0) return
         val state = smoothMoveStates[markerId] ?: return
         if (state.paused || state.completed) return
+        state.remainingDistance = distance.coerceAtLeast(0.0)
+        val position = smoothMarker.position?.toPosition() ?: state.points.first()
+        val now = System.currentTimeMillis()
+        val progress = if (state.originalTotalDistance > 0.0) {
+          ((state.completedDistance + state.totalDistance - state.remainingDistance) /
+            state.originalTotalDistance).coerceIn(0.0, 1.0)
+        } else 1.0
+        if (now - state.lastProgressEmitMs >= 100L || distance <= 0.0) {
+          state.lastProgressEmitMs = now
+          val remainingDistanceForEvent = state.remainingDistance
+          mapView.post {
+            smoothMoveMarkerProgressListener?.invoke(
+              markerId,
+              position,
+              progress,
+              remainingDistanceForEvent,
+            )
+          }
+        }
+        if (distance > 0.0) return
         state.completed = true
+        state.rotation = nativeMarker.rotateAngle
         smoothMoveStates.remove(markerId)
-        val position = smoothMarker.position?.toPosition() ?: points.last()
+        smoothMoveMarkers.remove(markerId)
+        smoothMoveNativeMarkers.remove(markerId)
+        val endPosition = state.points.last()
+        smoothMarker.destroy()
+        val completedMarker = mapView.map.addMarker(
+          state.marker.copy(position = endPosition).toMarkerOptions(amap.binding),
+        )
+        completedMarker.rotateAngle = state.rotation
+        completedSmoothMoveMarkers[markerId] = completedMarker
         mapView.post {
-          smoothMoveMarkerCompletedListener?.invoke(markerId, position)
+          smoothMoveMarkerCompletedListener?.invoke(markerId, endPosition)
         }
       }
     })
     smoothMoveMarkers[markerId] = smoothMarker
+    smoothMoveNativeMarkers[markerId] = nativeMarker
     smoothMarker.startSmoothMove()
   }
 
-  private fun buildRemainingSmoothMovePoints(current: Position, points: List<Position>): List<Position> {
-    val nearestIndex =
-      points.indices.minByOrNull { index ->
-        AMapUtils.calculateLineDistance(current.toPosition(), points[index].toPosition())
-      } ?: 0
-    return listOf(current) + points.drop((nearestIndex + 1).coerceAtMost(points.size - 1))
+  private fun destroySmoothMoveOverlay(markerId: String) {
+    smoothMoveNativeMarkers.remove(markerId)
+    smoothMoveMarkers.remove(markerId)?.let { overlay ->
+      overlay.stopMove()
+      overlay.destroy()
+    }
+  }
+
+  private fun buildRemainingSmoothMovePoints(
+    current: Position,
+    points: List<Position>,
+    expectedRemainingDistance: Double,
+  ): List<Position> {
+    if (points.size < 2) return listOf(current)
+    var suffixDistance = 0.0
+    var bestIndex = points.size - 2
+    var bestDifference = Double.MAX_VALUE
+    for (index in points.size - 2 downTo 0) {
+      val candidate = AMapUtils.calculateLineDistance(
+        current.toPosition(),
+        points[index + 1].toPosition(),
+      ) + suffixDistance
+      val difference = kotlin.math.abs(candidate - expectedRemainingDistance)
+      if (difference < bestDifference) {
+        bestDifference = difference
+        bestIndex = index
+      }
+      suffixDistance += AMapUtils.calculateLineDistance(
+        points[index].toPosition(),
+        points[index + 1].toPosition(),
+      )
+    }
+    return compactSmoothMovePoints(listOf(current) + points.drop(bestIndex + 1))
+  }
+
+  private fun compactSmoothMovePoints(points: List<Position>): List<Position> {
+    val compacted = mutableListOf<Position>()
+    points.forEach { point ->
+      if (compacted.lastOrNull() == null ||
+        AMapUtils.calculateLineDistance(compacted.last().toPosition(), point.toPosition()) > 0f
+      ) {
+        compacted.add(point)
+      }
+    }
+    return compacted
+  }
+
+  private fun smoothMoveDistance(points: List<Position>): Double {
+    return points.zipWithNext().sumOf { (start, end) ->
+      AMapUtils.calculateLineDistance(start.toPosition(), end.toPosition()).toDouble()
+    }
   }
 
   fun addPolyline(polyline: Polyline) {
@@ -534,6 +641,15 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
   }
 
   fun destroy() {
+    smoothMoveMarkers.keys.toList().forEach(::stopSmoothMoveMarker)
+    pausedSmoothMoveMarkers.values.forEach { it.remove() }
+    pausedSmoothMoveMarkers.clear()
+    completedSmoothMoveMarkers.values.forEach { it.remove() }
+    completedSmoothMoveMarkers.clear()
+    smoothMoveStates.clear()
+    smoothMoveNativeMarkers.clear()
+    smoothMoveMarkerCompletedListener = null
+    smoothMoveMarkerProgressListener = null
     amap.destroyView()
   }
 }

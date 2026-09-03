@@ -45,6 +45,36 @@ AMapWidget(
 
 搜索入口为 `AMapSearch`。路线查询仍属于地图搜索能力，继续使用 `PathPlanningStrategy`；它与导航包的 `NaviDrivingStrategy` 是彼此独立的类型。
 
+## 轨迹平滑移动
+
+`AMapController` 可以让 Marker 沿轨迹移动，并支持暂停、继续、停止以及进度监听。总时长必须是不小于 1 秒的整秒时长。
+
+```dart
+final progressSubscription =
+    controller.onSmoothMoveMarkerProgress.listen((event) {
+  debugPrint(
+    '${event.value}: ${(event.progress * 100).toStringAsFixed(0)}%, '
+    '剩余 ${event.remainingDistance.toStringAsFixed(1)} 米',
+  );
+});
+
+await controller.startSmoothMoveMarker(
+  marker: Marker(id: 'car', position: points.first),
+  points: points,
+  duration: const Duration(seconds: 30),
+);
+
+final status = controller.smoothMoveMarkerStatus('car');
+
+await controller.pauseSmoothMoveMarker('car');
+await controller.resumeSmoothMoveMarker('car');
+await controller.stopSmoothMoveMarker('car');
+
+await progressSubscription.cancel();
+```
+
+`onSmoothMoveMarkerCompleted` 在自然播放到终点时触发。`stopSmoothMoveMarker` 会停止播放并移除移动 Marker，不触发完成事件。
+
 ## 平台配置
 
 ### Android
