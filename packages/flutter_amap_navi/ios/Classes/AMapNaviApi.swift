@@ -90,11 +90,11 @@ class AMapNaviApi: NSObject {
             .prefix(16)
             .compactMap(makePOIInfo(map:))
         let drivingStrategyValue = arguments["drivingStrategy"] as? Int ?? 10
-        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? .multipleDefault
+        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? AMapNaviDrivingStrategy.multipleDefault
         let travelStrategyValue = arguments["travelStrategy"] as? Int ?? 1001
-        let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue) ?? .multipleDefault
+        let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue) ?? AMapNaviTravelStrategy.multipleDefault
 
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
             var completed = false
             let completion: (AMapNaviRouteGroup?, NSError?) -> Void = { [weak self] routeGroup, error in
                 if completed { return }
