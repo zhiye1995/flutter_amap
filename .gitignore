@@ -48,3 +48,4 @@ build/
 /official_example/MAMapKit_3D_Demo/
 # Widget Preview related
 .widget_preview/
+/official_demo/

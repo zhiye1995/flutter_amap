@@ -63,6 +63,8 @@ class AMapNaviApi: NSObject {
             startNavigation(call: call, result: result)
         case "stopNavigation":
             stopNavigation(result: result)
+        case "calculateIndependentRoute":
+            calculateIndependentRoute(call: call, result: result)
         case "startCruiseMode":
             startCruiseMode(call: call, result: result)
         case "stopCruiseMode":
@@ -73,6 +75,138 @@ class AMapNaviApi: NSObject {
     }
     
     // MARK: - Navigation Methods
+
+    /// 使用驾车管理器计算不会覆盖当前导航路线的独立路线组。
+    private func calculateIndependentRoute(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let endMap = arguments["end"] as? [String: Any],
+              let endInfo = makePOIInfo(map: endMap) else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "独立算路需要有效终点", details: nil))
+            return
+        }
+        let routeType = arguments["routeType"] as? Int ?? 1
+        let startInfo = (arguments["start"] as? [String: Any]).flatMap(makePOIInfo(map:))
+        let wayInfos = ((arguments["wayPoints"] as? [[String: Any]]) ?? [])
+            .prefix(16)
+            .compactMap(makePOIInfo(map:))
+        let drivingStrategyValue = arguments["drivingStrategy"] as? Int ?? 10
+        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? .multipleDefault
+        let travelStrategyValue = arguments["travelStrategy"] as? Int ?? 1001
+        let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue) ?? .multipleDefault
+
+        DispatchQueue.main.async {
+            var completed = false
+            let completion: (AMapNaviRouteGroup?, NSError?) -> Void = { [weak self] routeGroup, error in
+                if completed { return }
+                completed = true
+                if let error = error as NSError? {
+                    result(FlutterError(
+                        code: "INDEPENDENT_ROUTE_FAILED",
+                        message: error.localizedDescription,
+                        details: ["errorCode": error.code]
+                    ))
+                    return
+                }
+                guard let self = self, let routeGroup = routeGroup else {
+                    result(FlutterError(
+                        code: "INDEPENDENT_ROUTE_EMPTY",
+                        message: "导航 SDK 未返回独立路线",
+                        details: nil
+                    ))
+                    return
+                }
+                result(self.routeGroupToFlutter(routeGroup))
+            }
+
+            let accepted: Bool
+            switch routeType {
+            case 1:
+                accepted = AMapNaviDriveManager.sharedInstance().independentCalculateDriveRoute(
+                    withStart: startInfo,
+                    end: endInfo,
+                    wayPoints: Array(wayInfos),
+                    drivingStrategy: drivingStrategy,
+                    callback: completion
+                )
+            case 2:
+                accepted = AMapNaviRideManager.sharedInstance().independentCalculateRideRoute(
+                    withStart: startInfo,
+                    end: endInfo,
+                    wayPoints: Array(wayInfos),
+                    strategy: travelStrategy,
+                    callback: completion
+                )
+            case 3:
+                accepted = AMapNaviWalkManager.sharedInstance().independentCalculateWalkRoute(
+                    withStart: startInfo,
+                    end: endInfo,
+                    wayPoints: Array(wayInfos),
+                    strategy: travelStrategy,
+                    callback: completion
+                )
+            default:
+                result(FlutterError(
+                    code: "UNSUPPORTED_ROUTE_TYPE",
+                    message: "不支持的独立算路交通类型",
+                    details: ["routeType": routeType]
+                ))
+                return
+            }
+            if !accepted {
+                if completed { return }
+                completed = true
+                result(FlutterError(
+                    code: "INDEPENDENT_ROUTE_REJECTED",
+                    message: "导航 SDK 未接受独立算路请求，请检查起终点和策略参数",
+                    details: nil
+                ))
+            }
+        }
+    }
+
+    private func makePOIInfo(map: [String: Any]) -> AMapNaviPOIInfo? {
+        let latitude = (map["lat"] as? NSNumber)?.doubleValue
+        let longitude = (map["lng"] as? NSNumber)?.doubleValue
+        let poiId = (map["poiId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        guard (latitude != nil && longitude != nil) || poiId != nil else { return nil }
+        let info = AMapNaviPOIInfo()
+        if let latitude = latitude, let longitude = longitude {
+            info.locPoint = AMapNaviPoint.location(
+                withLatitude: CGFloat(latitude),
+                longitude: CGFloat(longitude)
+            )
+        }
+        info.mid = poiId
+        if let angle = (map["startAngle"] as? NSNumber)?.doubleValue {
+            info.startAngle = angle
+        }
+        return info
+    }
+
+    private func routeGroupToFlutter(_ group: AMapNaviRouteGroup) -> [String: Any] {
+        let routeIds = group.naviRouteIDs ?? []
+        let paths: [[String: Any]] = routeIds.compactMap { number in
+            guard let route = group.naviRoutes?[number] else { return nil }
+            return [
+                "routeId": number.intValue,
+                "distanceMeters": route.routeLength,
+                "durationSeconds": route.routeTime,
+                "tollCost": route.routeTollCost,
+                "trafficLightCount": route.routeTrafficLightCount,
+                "coordinates": (route.routeCoordinates ?? []).map { point in
+                    [
+                        "latitude": Double(point.latitude),
+                        "longitude": Double(point.longitude)
+                    ]
+                }
+            ]
+        }
+        let mainIndex = routeIds.firstIndex(where: { $0.intValue == group.naviRouteID }) ?? 0
+        return [
+            "mainPathIndex": mainIndex,
+            "paths": paths
+        ]
+    }
     
     private func startNavigation(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let arguments = call.arguments as? [String: Any] else {

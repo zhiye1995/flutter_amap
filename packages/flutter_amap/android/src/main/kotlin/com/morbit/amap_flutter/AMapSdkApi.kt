@@ -11,14 +11,19 @@ class AMapSdkApi {
     fun setup(binding: FlutterPluginBinding) {
       val initializerChannel = MethodChannel(binding.binaryMessenger, "plugins.flutter.dev/amap_initializer")
       initializerChannel.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
-        if (call.method == "agreePrivacy") {
-          val agree = call.argument<Boolean>("agree")!!
-          agreePrivacy(binding.applicationContext, agree)
-          result.success(null)
-        } else if (call.method == "setApiKey") {
-          val apiKey = call.argument<String>("androidKey")!!
-          setApiKey(apiKey)
-          result.success(null)
+        when (call.method) {
+          "agreePrivacy" -> {
+            val agree = call.argument<Boolean>("agree")!!
+            agreePrivacy(binding.applicationContext, agree)
+            result.success(null)
+          }
+          "setApiKey" -> {
+            val apiKey = call.argument<String>("androidKey")!!
+            setApiKey(apiKey)
+            result.success(null)
+          }
+          "getSdkVersion" -> result.success(MapsInitializer.getVersion())
+          else -> result.notImplemented()
         }
       }
     }

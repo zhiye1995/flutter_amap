@@ -336,6 +336,10 @@ class AMapWidget extends StatefulWidget {
       sdkConfig.agreePrivacy,
     );
   }
+
+  /// 获取当前平台实际加载的高德地图 SDK 版本。
+  static Future<String> get sdkVersion =>
+      AMapFlutterPlatformInterface.instance.getSdkVersion();
 }
 
 class AMapWidgetState extends State<AMapWidget> {

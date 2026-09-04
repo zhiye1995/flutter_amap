@@ -4,6 +4,7 @@ import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'component_route_pages.dart';
 import 'cruise_map_page.dart';
 import 'place_picker.dart';
+import 'route_planning_pages.dart';
 
 // ──────────────────────────────────────────────────────────
 //  数据模型
@@ -14,11 +15,7 @@ class _ItemData {
   final Widget Function()? pageBuilder;
   final bool isCompleted;
 
-  const _ItemData(
-    this.title, {
-    this.pageBuilder,
-    this.isCompleted = false,
-  });
+  const _ItemData(this.title, {this.pageBuilder, this.isCompleted = false});
 
   bool get isAvailable {
     if (!isCompleted) return false;
@@ -39,33 +36,74 @@ class _CategoryData {
 
 final List<_CategoryData> _menuData = [
   _CategoryData('导航组件(新)', [
-    _ItemData('起终点算路',
-        pageBuilder: () => const StartEndRoutePage(), isCompleted: true),
-    _ItemData('无起点算路',
-        pageBuilder: () => const CurrentLocationRoutePage(), isCompleted: true),
-    _ItemData('途经点算路',
-        pageBuilder: () => const WayPointRoutePage(), isCompleted: true),
-    _ItemData('组件直接导航',
-        pageBuilder: () => const DirectNavigationPage(), isCompleted: true),
-    _ItemData('自定义 Activity 的导航组件（Android 原生容器）',
-        pageBuilder: () => const CustomActivityRoutePage(), isCompleted: true),
-    _ItemData('选取地点 (POI)（示例）',
-        pageBuilder: () => const PlacePickerPage(), isCompleted: true),
+    _ItemData(
+      '起终点算路',
+      pageBuilder: () => const StartEndRoutePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '无起点算路',
+      pageBuilder: () => const CurrentLocationRoutePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '途经点算路',
+      pageBuilder: () => const WayPointRoutePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '组件直接导航',
+      pageBuilder: () => const DirectNavigationPage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '自定义 Activity 的导航组件（Android 原生容器）',
+      pageBuilder: () => const CustomActivityRoutePage(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '选取地点 (POI)（示例）',
+      pageBuilder: () => const PlacePickerPage(),
+      isCompleted: true,
+    ),
   ]),
   _CategoryData('路径规划', [
-    _ItemData('驾车路径规划'),
-    _ItemData('步行路径规划'),
-    _ItemData('骑行路径规划'),
-    _ItemData('货车导航路径规划'),
-    _ItemData('独立路径规划'),
+    _ItemData(
+      '驾车路径规划',
+      pageBuilder: () => const NaviRoutePlanPage.drive(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '步行路径规划',
+      pageBuilder: () => const NaviRoutePlanPage.walk(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '骑行路径规划',
+      pageBuilder: () => const NaviRoutePlanPage.ride(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '货车导航路径规划',
+      pageBuilder: () => const NaviRoutePlanPage.truck(),
+      isCompleted: true,
+    ),
+    _ItemData(
+      '独立路径规划',
+      pageBuilder: () => const IndependentRoutePlanPage(),
+      isCompleted: true,
+    ),
   ]),
   _CategoryData('多类型导航', [
     _ItemData('内置语音导航'),
     _ItemData('实时导航'),
     _ItemData('模拟导航'),
     _ItemData('货车导航'),
-    _ItemData('智能巡航',
-        pageBuilder: () => const CruiseMapPage(), isCompleted: true),
+    _ItemData(
+      '智能巡航',
+      pageBuilder: () => const CruiseMapPage(),
+      isCompleted: true,
+    ),
     _ItemData('HUD导航'),
   ]),
   _CategoryData('导航UI自定义', [
@@ -109,10 +147,7 @@ class NavigationIndexPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('导航目录'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('导航目录'), centerTitle: true),
       backgroundColor: Colors.white,
       body: ListView.builder(
         itemCount: _menuData.length,
@@ -202,8 +237,10 @@ class _FeatureItemTile extends StatelessWidget {
             children: [
               if (!item.isCompleted)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange[50],
                     borderRadius: BorderRadius.circular(12),
@@ -220,7 +257,11 @@ class _FeatureItemTile extends StatelessWidget {
           onTap: () => _handleTap(context),
         ),
         const Divider(
-            height: 1, indent: 48, endIndent: 16, color: Colors.black12),
+          height: 1,
+          indent: 48,
+          endIndent: 16,
+          color: Colors.black12,
+        ),
       ],
     );
   }

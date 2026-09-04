@@ -24,6 +24,12 @@ class AMapNaviMethodChannel extends AMapNaviPlatformInterface {
         });
   }
 
+  @override
+  Future<String> getSdkVersion() async {
+    return await _initializerChannel.invokeMethod<String>('getSdkVersion') ??
+        '';
+  }
+
   void _initNaviEventChannel() {
     if (_naviEventChannelInitialized) return;
     _naviEventChannelInitialized = true;
@@ -189,6 +195,35 @@ class AMapNaviMethodChannel extends AMapNaviPlatformInterface {
           )
           .toList(),
     });
+  }
+
+  @override
+  Future<NaviIndependentRouteResult> calculateIndependentRoute(
+    NaviIndependentRouteRequest request,
+  ) async {
+    Map<String, dynamic> pointToMap(NaviPoint point) => <String, dynamic>{
+      'lat': point.position.latitude,
+      'lng': point.position.longitude,
+      'name': point.name,
+      'poiId': point.poiId,
+      'startAngle': point.startAngle,
+    };
+
+    final value = await _naviChannel.invokeMapMethod<String, dynamic>(
+      'calculateIndependentRoute',
+      <String, dynamic>{
+        'routeType': request.routeType.code,
+        'drivingStrategy': request.drivingStrategy.id,
+        'travelStrategy': request.travelStrategy,
+        'start': request.start == null ? null : pointToMap(request.start!),
+        'end': pointToMap(request.end),
+        'wayPoints': request.wayPoints.map(pointToMap).toList(),
+      },
+    );
+    if (value == null) {
+      throw StateError('导航 SDK 未返回独立算路结果');
+    }
+    return NaviIndependentRouteResult.fromMap(value);
   }
 
   @override

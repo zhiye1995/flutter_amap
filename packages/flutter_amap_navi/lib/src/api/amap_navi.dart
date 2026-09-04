@@ -48,6 +48,10 @@ class AMapNavi {
     _initialized = true;
   }
 
+  /// 获取当前平台实际加载的高德导航 SDK 版本。
+  static Future<String> get sdkVersion =>
+      AMapNaviPlatformInterface.instance.getSdkVersion();
+
   static void _ensureInitialized() {
     if (!_initialized) {
       throw StateError('AMapNavi 尚未初始化，请先调用 AMapNavi.init()');
@@ -97,6 +101,19 @@ class AMapNavi {
     await AMapNaviPlatformInterface.instance.startNavigation(config);
     // 启动方法调用成功后即认为进入导航态；若后续失败，会在事件回调里回落为 false
     _setIsNavigating(true);
+  }
+
+  /// 计算一组不会覆盖当前导航路线的独立路径。
+  ///
+  /// 可在导航前用于路线预览，也可在导航过程中比较其他路线。Android 和
+  /// iOS 均支持驾车、骑行和步行独立算路。
+  static Future<NaviIndependentRouteResult> calculateIndependentRoute({
+    required NaviIndependentRouteRequest request,
+  }) {
+    _ensureInitialized();
+    return AMapNaviPlatformInterface.instance.calculateIndependentRoute(
+      request,
+    );
   }
 
   /// 停止导航

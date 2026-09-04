@@ -12,6 +12,10 @@ final class AMapNaviSdkApi: NSObject {
             binaryMessenger: registrar.messenger()
         )
         channel.setMethodCallHandler { call, result in
+            if call.method == "getSdkVersion" {
+                result(AMapNaviVersion)
+                return
+            }
             guard call.method == "initialize" else {
                 result(FlutterMethodNotImplemented)
                 return

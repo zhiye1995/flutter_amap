@@ -148,6 +148,10 @@ abstract class AMapFlutterPlatformInterface extends PlatformInterface {
     throw UnimplementedError('agreePrivacy() has not been implemented.');
   }
 
+  Future<String> getSdkVersion() {
+    throw UnimplementedError('getSdkVersion() has not been implemented.');
+  }
+
   /// 设置地图属性
   Future<void> updateMapConfig(MapUpdateConfig config, {required int mapId}) {
     throw UnimplementedError('updateMapConfig() has not been implemented.');

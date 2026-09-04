@@ -1,0 +1,84 @@
+name: Workspace CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+jobs:
+  dart-and-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+      - run: flutter test --no-pub packages/flutter_amap
+      - run: flutter test --no-pub packages/flutter_amap_navi
+      - name: Test examples
+        shell: bash
+        run: |
+          (cd packages/flutter_amap/example && flutter test --no-pub)
+          (cd packages/flutter_amap_navi/example && flutter test --no-pub)
+          (cd example && flutter test --no-pub)
+      - name: Build map-only example
+        working-directory: packages/flutter_amap/example
+        run: flutter build apk --debug --no-pub
+      - name: Build navigation-only example
+        working-directory: packages/flutter_amap_navi/example
+        run: flutter build apk --debug --no-pub
+      - name: Build combined example
+        working-directory: example
+        run: flutter build apk --debug --no-pub
+      - name: Check Android AMap SDK selection
+        shell: bash
+        run: |
+          (cd packages/flutter_amap/example/android && ./gradlew app:dependencies --configuration debugRuntimeClasspath --console=plain > dependencies.txt)
+          grep -q 'com.amap.api:3dmap-location-search:11.2.100_loc11.2.100_sea9.8.1' packages/flutter_amap/example/android/dependencies.txt
+          ! grep -q 'com.amap.api:navi-3dmap-location-search:' packages/flutter_amap/example/android/dependencies.txt
+
+          (cd packages/flutter_amap_navi/example/android && ./gradlew app:dependencies --configuration debugRuntimeClasspath --console=plain > dependencies.txt)
+          grep -q 'com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1' packages/flutter_amap_navi/example/android/dependencies.txt
+          ! grep -q 'com.amap.api:3dmap-location-search:' packages/flutter_amap_navi/example/android/dependencies.txt
+
+          (cd example/android && ./gradlew app:dependencies --configuration debugRuntimeClasspath --console=plain > dependencies.txt)
+          grep -q 'com.amap.api:3dmap-location-search:11.2.100_loc11.2.100_sea9.8.1 -> com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1' example/android/dependencies.txt
+
+  ios:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - packages/flutter_amap/example
+          - packages/flutter_amap_navi/example
+          - example
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve example workspace
+        working-directory: ${{ matrix.example }}
+        run: flutter pub get
+      - name: Install CocoaPods
+        working-directory: ${{ matrix.example }}/ios
+        run: pod install
+      - name: Build iOS without signing
+        working-directory: ${{ matrix.example }}
+        run: flutter build ios --debug --no-codesign --no-pub
+      - name: Check selected AMap SDK Pod
+        shell: bash
+        run: |
+          lock="${{ matrix.example }}/ios/Podfile.lock"
+          if [ "${{ matrix.example }}" = "packages/flutter_amap/example" ]; then
+            grep -q 'AMap3DMap (11.2.100)' "$lock"
+            ! grep -q 'AMapNavi (' "$lock"
+          else
+            grep -q 'AMapNavi (11.2.100)' "$lock"
+            ! grep -q 'AMap3DMap (' "$lock"
+          fi

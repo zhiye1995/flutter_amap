@@ -90,6 +90,52 @@ void main() {
     await AMapNavi.stopCruiseMode();
   });
 
+  test('independent route request and result use navigation channel', () async {
+    MethodCall? capturedCall;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(naviChannel, (call) async {
+      capturedCall = call;
+      return <String, dynamic>{
+        'requestId': 42,
+        'mainPathIndex': 0,
+        'paths': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'routeId': 12,
+            'distanceMeters': 12345,
+            'durationSeconds': 1800,
+            'tollCost': 5,
+            'trafficLightCount': 8,
+            'coordinates': <Map<String, dynamic>>[
+              <String, dynamic>{'latitude': 39.9, 'longitude': 116.3},
+              <String, dynamic>{'latitude': 40.0, 'longitude': 116.4},
+            ],
+          },
+        ],
+      };
+    });
+
+    final route = await AMapNavi.calculateIndependentRoute(
+      request: NaviIndependentRouteRequest(
+        start: NaviPoint(
+          name: '起点',
+          position: NaviPosition(latitude: 39.9, longitude: 116.3),
+        ),
+        end: NaviPoint(
+          name: '终点',
+          position: NaviPosition(latitude: 40.0, longitude: 116.4),
+        ),
+      ),
+    );
+
+    expect(capturedCall?.method, 'calculateIndependentRoute');
+    expect(capturedCall?.arguments, containsPair('routeType', 1));
+    expect(capturedCall?.arguments, containsPair('travelStrategy', 1001));
+    expect(route.requestId, 42);
+    expect(route.mainPath?.routeId, 12);
+    expect(route.mainPath?.coordinates, hasLength(2));
+  });
+
   test('repeated initialization applies the latest configuration', () async {
     final calls = <MethodCall>[];
     final messenger =
@@ -118,6 +164,17 @@ void main() {
     expect(calls.last.arguments, containsPair('iosKey', 'ios-new'));
     expect(calls.last.arguments, containsPair('androidKey', 'android-new'));
     expect(calls.last.arguments, containsPair('agreePrivacy', true));
+  });
+
+  test('gets the native navigation SDK version', () async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(initializerChannel, (call) async {
+      expect(call.method, 'getSdkVersion');
+      return '11.2.100';
+    });
+
+    expect(await AMapNavi.sdkVersion, '11.2.100');
   });
 
   test('cruise facility streams stay separated', () async {

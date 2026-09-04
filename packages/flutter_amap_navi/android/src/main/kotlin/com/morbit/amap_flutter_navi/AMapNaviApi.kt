@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ComponentName
 import android.util.Log
 import com.amap.api.navi.AMapNavi
+import com.amap.api.navi.AMapNaviIndependentRouteListener
 import com.amap.api.navi.AmapNaviPage
 import com.amap.api.navi.AmapNaviParams
 import com.amap.api.navi.AmapNaviType
@@ -13,7 +14,11 @@ import com.amap.api.navi.AmapRouteActivity
 import com.amap.api.navi.INaviInfoCallback
 import com.amap.api.navi.enums.AimLessMode
 import com.amap.api.navi.model.AMapCarInfo
+import com.amap.api.navi.model.AMapCalcRouteResult
 import com.amap.api.navi.model.AMapNaviLocation
+import com.amap.api.navi.model.AMapNaviPath
+import com.amap.api.navi.model.AMapNaviPathGroup
+import com.amap.api.navi.model.NaviPoi
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Poi
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
@@ -172,6 +177,15 @@ class AMapNaviApi {
                     result.success(null)
                 }
 
+                "calculateIndependentRoute" -> {
+                    try {
+                        calculateIndependentRoute(context, call, result)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "calculateIndependentRoute error", e)
+                        result.error("INDEPENDENT_ROUTE_ERROR", e.message, null)
+                    }
+                }
+
                 "startCruiseMode" -> {
                     try {
                         startCruiseMode(context, call)
@@ -194,6 +208,132 @@ class AMapNaviApi {
 
                 else -> result.notImplemented()
             }
+        }
+
+        /**
+         * 使用导航 SDK 的独立算路接口。返回的路线组不会自动替换当前导航路线。
+         */
+        private fun calculateIndependentRoute(
+            context: Context,
+            call: MethodCall,
+            result: MethodChannel.Result
+        ) {
+            val end = call.naviPoi("end")
+                ?: throw IllegalArgumentException("end is required")
+            val start = call.naviPoi("start")
+            val wayPoints = call.naviPoiList("wayPoints").take(16)
+            val routeType = call.argument<Int>("routeType") ?: 1
+            val strategy = if (routeType == 1) {
+                call.argument<Int>("drivingStrategy") ?: 10
+            } else {
+                call.argument<Int>("travelStrategy") ?: 1001
+            }
+            val engine = aMapNavi ?: AMapNavi.getInstance(context.applicationContext).also {
+                aMapNavi = it
+            }
+            var responded = false
+            fun fail(code: String, message: String?, details: Any?) {
+                if (responded) return
+                responded = true
+                result.error(code, message, details)
+            }
+
+            val accepted = engine.independentCalculateRoute(
+                start,
+                end,
+                wayPoints,
+                strategy,
+                routeType,
+                object : AMapNaviIndependentRouteListener {
+                    override fun onIndependentCalculateSuccess(group: AMapNaviPathGroup) {
+                        if (responded) return
+                        responded = true
+                        result.success(group.toFlutterMap())
+                    }
+
+                    override fun onIndependentCalculateFail(routeResult: AMapCalcRouteResult) {
+                        fail(
+                            "INDEPENDENT_ROUTE_FAILED",
+                            routeResult.errorDescription ?: "独立路径规划失败",
+                            mapOf(
+                                "errorCode" to routeResult.errorCode,
+                                "errorDetail" to routeResult.errorDetail,
+                                "requestId" to routeResult.routeRequestId
+                            )
+                        )
+                    }
+
+                    override fun onIndependentCalculateInvoke(routeRequestId: Int) {
+                        Log.d(TAG, "independent route requestId=$routeRequestId")
+                    }
+                }
+            )
+            if (!accepted) {
+                fail(
+                    "INDEPENDENT_ROUTE_REJECTED",
+                    "导航 SDK 未接受独立算路请求，请检查起终点和策略参数",
+                    null
+                )
+            }
+        }
+
+        private fun MethodCall.naviPoi(key: String): NaviPoi? {
+            @Suppress("UNCHECKED_CAST")
+            val value = argument<Map<String, Any?>>(key) ?: return null
+            val latitude = (value["lat"] as? Number)?.toDouble() ?: return null
+            val longitude = (value["lng"] as? Number)?.toDouble() ?: return null
+            return NaviPoi(
+                value["name"] as? String ?: key,
+                LatLng(latitude, longitude),
+                value["poiId"] as? String ?: ""
+            ).also { poi ->
+                (value["startAngle"] as? Number)?.toFloat()?.let { poi.direction = it }
+            }
+        }
+
+        private fun MethodCall.naviPoiList(key: String): List<NaviPoi> {
+            @Suppress("UNCHECKED_CAST")
+            val values = argument<List<Map<String, Any?>>>(key) ?: return emptyList()
+            return values.mapNotNull { value ->
+                val latitude = (value["lat"] as? Number)?.toDouble()
+                val longitude = (value["lng"] as? Number)?.toDouble()
+                if (latitude == null || longitude == null) return@mapNotNull null
+                NaviPoi(
+                    value["name"] as? String ?: key,
+                    LatLng(latitude, longitude),
+                    value["poiId"] as? String ?: ""
+                ).also { poi ->
+                    (value["startAngle"] as? Number)?.toFloat()?.let { poi.direction = it }
+                }
+            }
+        }
+
+        private fun AMapNaviPathGroup.toFlutterMap(): Map<String, Any?> {
+            val paths = (0 until pathCount).mapNotNull { index ->
+                getPath(index)?.toFlutterMap(index)
+            }
+            return mapOf(
+                "requestId" to routeRequestId,
+                "mainPathIndex" to mainPathIndex,
+                "paths" to paths
+            )
+        }
+
+        private fun AMapNaviPath.toFlutterMap(index: Int): Map<String, Any?> {
+            return mapOf(
+                "routeId" to (pathid.takeIf { it != 0L } ?: (12 + index).toLong()),
+                "distanceMeters" to allLength,
+                "durationSeconds" to allTime,
+                "tollCost" to tollCost,
+                "trafficLightCount" to trafficLightCount,
+                "labels" to labels,
+                "coordinates" to (coordList ?: emptyList()).map { point ->
+                    mapOf(
+                        "latitude" to point.latitude,
+                        "longitude" to point.longitude
+                    )
+                }
+            )
         }
 
         /**
@@ -382,16 +522,16 @@ class AMapNaviApi {
             fun boolValue(key: String) = info[key] as? Boolean
             info["vehicleId"]?.toString()?.takeIf { it.isNotEmpty() }?.let { carInfo.carNumber = it }
             intValue("motorcycleCC")?.let { carInfo.motorcycleCC = it }
-            carInfo.trySet("setRestriction", boolValue("isRestriction"))
-            carInfo.trySet("setCarType", intValue("type"))
-            carInfo.trySet("setVehicleHeight", doubleValue("height"))
-            carInfo.trySet("setVehicleWeight", doubleValue("weight"))
-            carInfo.trySet("setVehicleLoad", doubleValue("load"))
-            carInfo.trySet("setVehicleLoadSwitch", boolValue("vehicleLoadSwitch"))
-            carInfo.trySet("setVehicleWidth", doubleValue("width"))
-            carInfo.trySet("setVehicleLength", doubleValue("length"))
-            carInfo.trySet("setVehicleSize", intValue("size"))
-            carInfo.trySet("setVehicleAxis", intValue("axisNums"))
+            boolValue("isRestriction")?.let { carInfo.isRestriction = it }
+            intValue("type")?.let { carInfo.carType = it.toString() }
+            doubleValue("height")?.let { carInfo.vehicleHeight = it.toString() }
+            doubleValue("weight")?.let { carInfo.vehicleWeight = it.toString() }
+            doubleValue("load")?.let { carInfo.vehicleLoad = it.toString() }
+            boolValue("vehicleLoadSwitch")?.let { carInfo.isVehicleLoadSwitch = it }
+            doubleValue("width")?.let { carInfo.vehicleWidth = it.toString() }
+            doubleValue("length")?.let { carInfo.vehicleLength = it.toString() }
+            intValue("size")?.let { carInfo.vehicleSize = it.toString() }
+            intValue("axisNums")?.let { carInfo.vehicleAxis = it.toString() }
         }
 
         /**

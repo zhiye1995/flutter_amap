@@ -250,6 +250,12 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
     });
   }
 
+  @override
+  Future<String> getSdkVersion() async {
+    return await _initializerChannel.invokeMethod<String>('getSdkVersion') ??
+        '';
+  }
+
   /// 设置地图属性
   @override
   Future<void> updateMapConfig(MapUpdateConfig config, {required int mapId}) {

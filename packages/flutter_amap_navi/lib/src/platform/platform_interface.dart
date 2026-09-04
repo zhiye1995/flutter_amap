@@ -67,8 +67,20 @@ abstract class AMapNaviPlatformInterface extends PlatformInterface {
     throw UnimplementedError('initialize() has not been implemented.');
   }
 
+  Future<String> getSdkVersion() {
+    throw UnimplementedError('getSdkVersion() has not been implemented.');
+  }
+
   Future<void> startNavigation(NaviConfig config) {
     throw UnimplementedError('startNavigation() has not been implemented.');
+  }
+
+  Future<NaviIndependentRouteResult> calculateIndependentRoute(
+    NaviIndependentRouteRequest request,
+  ) {
+    throw UnimplementedError(
+      'calculateIndependentRoute() has not been implemented.',
+    );
   }
 
   Future<void> stopNavigation() {

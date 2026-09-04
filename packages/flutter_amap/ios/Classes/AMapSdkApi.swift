@@ -22,6 +22,10 @@ class _AMapSdkApi: NSObject {
         let apiKey = arguments["iosKey"] as! String
         _AMapSdkApi.setApiKey(apiKey: apiKey)
         result(nil)
+      } else if(call.method == "getSdkVersion") {
+        result(MAMapVersion)
+      } else {
+        result(FlutterMethodNotImplemented)
       }
     })
   }

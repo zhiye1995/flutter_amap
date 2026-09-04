@@ -20,7 +20,7 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
-  late final Future<void> _bootstrapFuture;
+  late final Future<({String map, String navi})> _bootstrapFuture;
 
   @override
   void initState() {
@@ -28,7 +28,7 @@ class _AppState extends State<App> {
     _bootstrapFuture = _bootstrap();
   }
 
-  Future<void> _bootstrap() async {
+  Future<({String map, String navi})> _bootstrap() async {
     await AMapWidget.init(
       apiKey: ApiKey(
         iosKey: "14cf569c80ddc89d84513331ed8c5164",
@@ -46,11 +46,24 @@ class _AppState extends State<App> {
         agreePrivacy: true,
       ),
     );
+    final versions = await Future.wait([
+      _loadSdkVersion(AMapWidget.sdkVersion),
+      _loadSdkVersion(AMapNavi.sdkVersion),
+    ]);
+    return (map: versions[0], navi: versions[1]);
+  }
+
+  Future<String> _loadSdkVersion(Future<String> versionFuture) async {
+    try {
+      final version = (await versionFuture).trim();
+      return version.isEmpty ? '获取失败' : version;
+    } catch (_) {
+      return '获取失败';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: CupertinoApp(
@@ -61,7 +74,7 @@ class _AppState extends State<App> {
           DefaultCupertinoLocalizations.delegate,
           DefaultWidgetsLocalizations.delegate,
         ],
-        home: FutureBuilder<void>(
+        home: FutureBuilder<({String map, String navi})>(
           future: _bootstrapFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -71,12 +84,13 @@ class _AppState extends State<App> {
             }
             if (snapshot.hasError) {
               return Scaffold(
-                body: Center(
-                  child: Text("Init failed: ${snapshot.error}"),
-                ),
+                body: Center(child: Text("Init failed: ${snapshot.error}")),
               );
             }
-            return const FeatureListPage();
+            return FeatureListPage(
+              mapSdkVersion: snapshot.data?.map ?? '未知',
+              naviSdkVersion: snapshot.data?.navi ?? '未知',
+            );
           },
         ),
       ),
@@ -86,15 +100,19 @@ class _AppState extends State<App> {
 
 /// 功能列表页面
 class FeatureListPage extends StatelessWidget {
-  const FeatureListPage({super.key});
+  final String mapSdkVersion;
+  final String naviSdkVersion;
+
+  const FeatureListPage({
+    super.key,
+    required this.mapSdkVersion,
+    required this.naviSdkVersion,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('高德地图 Flutter 插件'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('高德地图 Flutter 插件'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -120,6 +138,25 @@ class FeatureListPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '高德地图 SDK 版本：$mapSdkVersion',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '高德导航 SDK 版本：$naviSdkVersion',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -176,10 +213,7 @@ class _CategoryCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),

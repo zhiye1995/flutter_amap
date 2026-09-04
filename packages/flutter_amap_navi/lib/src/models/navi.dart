@@ -23,6 +23,19 @@ enum NaviPageType {
   navi,
 }
 
+/// 独立算路的交通方式。
+///
+/// 数值与高德 Android `independentCalculateRoute` 的 transportType 对齐。
+enum NaviIndependentRouteType {
+  drive(1),
+  ride(2),
+  walk(3);
+
+  const NaviIndependentRouteType(this.code);
+
+  final int code;
+}
+
 /// 导航途经点/终点
 class NaviPoint {
   NaviPoint({required this.position, this.name, this.poiId, this.startAngle});
@@ -63,6 +76,107 @@ class NaviPoint {
       name: name ?? this.name,
       poiId: poiId ?? this.poiId,
       startAngle: startAngle ?? this.startAngle,
+    );
+  }
+}
+
+/// 独立路径规划参数。
+///
+/// 独立算路不会替换当前导航路线，适合行前预览或后台比较路线。
+class NaviIndependentRouteRequest {
+  NaviIndependentRouteRequest({
+    required this.end,
+    this.start,
+    this.wayPoints = const <NaviPoint>[],
+    this.routeType = NaviIndependentRouteType.drive,
+    this.drivingStrategy = NaviDrivingStrategy.drivingMultipleRoutesDefault,
+    this.travelStrategy = 1001,
+  }) : assert(wayPoints.length <= 16, '导航 SDK 最多支持 16 个途经点');
+
+  final NaviPoint? start;
+  final NaviPoint end;
+  final List<NaviPoint> wayPoints;
+  final NaviIndependentRouteType routeType;
+  final NaviDrivingStrategy drivingStrategy;
+
+  /// 骑行/步行策略。1000 为单路径，1001 为多路径。
+  final int travelStrategy;
+}
+
+/// 导航 SDK 返回的一条独立路线。
+class NaviIndependentRoutePath {
+  const NaviIndependentRoutePath({
+    required this.routeId,
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.coordinates,
+    this.tollCost,
+    this.trafficLightCount,
+    this.labels,
+  });
+
+  final int routeId;
+  final int distanceMeters;
+  final int durationSeconds;
+  final int? tollCost;
+  final int? trafficLightCount;
+  final String? labels;
+  final List<NaviPosition> coordinates;
+
+  static NaviIndependentRoutePath fromMap(Map<String, dynamic> map) {
+    final coordinates = <NaviPosition>[];
+    for (final value in map['coordinates'] as List? ?? const <Object?>[]) {
+      if (value is! Map) continue;
+      final point = Map<String, dynamic>.from(value);
+      final latitude = (point['latitude'] as num?)?.toDouble();
+      final longitude = (point['longitude'] as num?)?.toDouble();
+      if (latitude != null && longitude != null) {
+        coordinates.add(NaviPosition(latitude: latitude, longitude: longitude));
+      }
+    }
+    return NaviIndependentRoutePath(
+      routeId: (map['routeId'] as num?)?.toInt() ?? 0,
+      distanceMeters: (map['distanceMeters'] as num?)?.toInt() ?? 0,
+      durationSeconds: (map['durationSeconds'] as num?)?.toInt() ?? 0,
+      tollCost: (map['tollCost'] as num?)?.toInt(),
+      trafficLightCount: (map['trafficLightCount'] as num?)?.toInt(),
+      labels: map['labels'] as String?,
+      coordinates: coordinates,
+    );
+  }
+}
+
+/// 独立路径规划结果。
+class NaviIndependentRouteResult {
+  const NaviIndependentRouteResult({
+    required this.paths,
+    required this.mainPathIndex,
+    this.requestId,
+  });
+
+  final List<NaviIndependentRoutePath> paths;
+  final int mainPathIndex;
+  final int? requestId;
+
+  NaviIndependentRoutePath? get mainPath {
+    if (paths.isEmpty) return null;
+    if (mainPathIndex < 0 || mainPathIndex >= paths.length) return paths.first;
+    return paths[mainPathIndex];
+  }
+
+  static NaviIndependentRouteResult fromMap(Map<String, dynamic> map) {
+    final paths = <NaviIndependentRoutePath>[];
+    for (final value in map['paths'] as List? ?? const <Object?>[]) {
+      if (value is Map) {
+        paths.add(
+          NaviIndependentRoutePath.fromMap(Map<String, dynamic>.from(value)),
+        );
+      }
+    }
+    return NaviIndependentRouteResult(
+      paths: paths,
+      mainPathIndex: (map['mainPathIndex'] as num?)?.toInt() ?? 0,
+      requestId: (map['requestId'] as num?)?.toInt(),
     );
   }
 }
