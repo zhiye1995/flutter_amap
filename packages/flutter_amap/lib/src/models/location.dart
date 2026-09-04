@@ -31,7 +31,11 @@ enum UserLocationType {
 
 /// 定位点
 class Location {
-  Location({required this.position, this.heading, this.accuracy});
+  Location({
+    required this.position,
+    this.heading,
+    this.accuracy,
+  });
 
   /// 定位点的位置
   Position position;
@@ -43,7 +47,11 @@ class Location {
   double? accuracy;
 
   Object encode() {
-    return <Object?>[position.encode(), heading, accuracy];
+    return <Object?>[
+      position.encode(),
+      heading,
+      accuracy,
+    ];
   }
 
   static Location decode(List<Object?> result) {
@@ -54,7 +62,11 @@ class Location {
     );
   }
 
-  Location copyWith({Position? position, double? heading, double? accuracy}) {
+  Location copyWith({
+    Position? position,
+    double? heading,
+    double? accuracy,
+  }) {
     return Location(
       position: position ?? this.position,
       heading: heading ?? this.heading,
@@ -205,14 +217,13 @@ class UserLocationStyle {
       userLocationType: type is UserLocationType
           ? type
           : type != null
-          ? UserLocationType.values[type as int]
-          : null,
+              ? UserLocationType.values[type as int]
+              : null,
       fillColor: result[1] != null ? Color(result[1] as int) : null,
       strokeColor: result[2] != null ? Color(result[2] as int) : null,
       lineWidth: result[3] as double?,
-      image: result[4] != null
-          ? Bitmap.decode(result[4]! as List<Object?>)
-          : null,
+      image:
+          result[4] != null ? Bitmap.decode(result[4]! as List<Object?>) : null,
       showLocationDot: result.length > 5 ? result[5] as bool? : null,
       anchor: result.length > 6 && result[6] != null
           ? Anchor.decode(result[6]! as List<Object?>)
@@ -276,7 +287,8 @@ extension UserLocationTypePlatform on UserLocationType {
       UserLocationType.locationTypeLocationRotate ||
       UserLocationType.locationTypeLocationRotateNoCenter ||
       UserLocationType.locationTypeFollowNoCenter ||
-      UserLocationType.locationTypeMapRotateNoCenter => true,
+      UserLocationType.locationTypeMapRotateNoCenter =>
+        true,
     };
   }
 
@@ -286,19 +298,20 @@ extension UserLocationTypePlatform on UserLocationType {
       UserLocationType.locationTypeShow ||
       UserLocationType.locationTypeLocate ||
       UserLocationType.locationTypeFollow ||
-      UserLocationType.locationTypeMapRotate => true,
+      UserLocationType.locationTypeMapRotate =>
+        true,
       _ => false,
     };
   }
 
-  /// 枚举注释中标注为（Android Only）或与 Android 默认语义强绑定、不以 iOS 为主展示的类型。
+  /// 是否仅表达 Android 原生语义，在 iOS 上只能回退到近似追踪模式。
   bool get isAndroidDocumentationOnly {
     return switch (this) {
-      UserLocationType.locationTypeShow ||
       UserLocationType.locationTypeLocationRotate ||
       UserLocationType.locationTypeLocationRotateNoCenter ||
       UserLocationType.locationTypeFollowNoCenter ||
-      UserLocationType.locationTypeMapRotateNoCenter => true,
+      UserLocationType.locationTypeMapRotateNoCenter =>
+        true,
       _ => false,
     };
   }
