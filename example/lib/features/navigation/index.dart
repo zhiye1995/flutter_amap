@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'component_route_pages.dart';
 import 'cruise_map_page.dart';
-import 'navigation.dart';
 import 'place_picker.dart';
 
 // ──────────────────────────────────────────────────────────
@@ -44,10 +43,12 @@ final List<_CategoryData> _menuData = [
         pageBuilder: () => const StartEndRoutePage(), isCompleted: true),
     _ItemData('无起点算路',
         pageBuilder: () => const CurrentLocationRoutePage(), isCompleted: true),
-    _ItemData('途经点算路'),
+    _ItemData('途经点算路',
+        pageBuilder: () => const WayPointRoutePage(), isCompleted: true),
     _ItemData('组件直接导航',
-        pageBuilder: () => const NavigationPage(), isCompleted: true),
-    _ItemData('自定义 Activity 的导航组件（Android 原生容器）'),
+        pageBuilder: () => const DirectNavigationPage(), isCompleted: true),
+    _ItemData('自定义 Activity 的导航组件（Android 原生容器）',
+        pageBuilder: () => const CustomActivityRoutePage(), isCompleted: true),
     _ItemData('选取地点 (POI)（示例）',
         pageBuilder: () => const PlacePickerPage(), isCompleted: true),
   ]),

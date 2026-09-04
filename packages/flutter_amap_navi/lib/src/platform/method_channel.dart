@@ -161,6 +161,7 @@ class AMapNaviMethodChannel extends AMapNaviPlatformInterface {
       'motorcycleCC': config.motorcycleCC,
       'naviType': config.naviType.index,
       'pageType': config.pageType.index,
+      'androidActivityClassName': config.androidActivityClassName,
       'drivingStrategy': config.drivingStrategy.id,
       'travelStrategy': config.travelStrategy,
       'multipleRoute': config.multipleRoute,

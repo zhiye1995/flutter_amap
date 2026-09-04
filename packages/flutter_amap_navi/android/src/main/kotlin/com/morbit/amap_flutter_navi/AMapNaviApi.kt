@@ -2,12 +2,14 @@ package com.morbit.amap_flutter_navi
 
 import android.app.Activity
 import android.content.Context
+import android.content.ComponentName
 import android.util.Log
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.AmapNaviPage
 import com.amap.api.navi.AmapNaviParams
 import com.amap.api.navi.AmapNaviType
 import com.amap.api.navi.AmapPageType
+import com.amap.api.navi.AmapRouteActivity
 import com.amap.api.navi.INaviInfoCallback
 import com.amap.api.navi.enums.AimLessMode
 import com.amap.api.navi.model.AMapCarInfo
@@ -215,6 +217,20 @@ class AMapNaviApi {
             val launchActivity = activityRef ?: throw NaviNoActivityException(
                 "AMap navigation requires an attached Activity. Ensure the plugin is registered on a foreground FlutterActivity before calling startNavigation."
             )
+            // 先校验宿主容器，避免配置错误时销毁仍在使用的导航会话。
+            val activityClassName = call.argument<String>("androidActivityClassName")
+            val routeActivityClass = if (activityClassName.isNullOrBlank()) {
+                AMapFlutterRouteActivity::class.java
+            } else {
+                val customClass = Class.forName(activityClassName, false, context.classLoader)
+                    .asSubclass(AmapRouteActivity::class.java)
+                @Suppress("DEPRECATION")
+                val activityInfo = context.packageManager.getActivityInfo(
+                    ComponentName(context, customClass), 0
+                )
+                require(activityInfo.enabled) { "Custom navigation Activity is disabled: $activityClassName" }
+                customClass
+            }
             stopCruiseModeInternal()
             if (naviComponentActive) {
                 Log.w(TAG, "startNavigation requested while previous component is still active")
@@ -329,7 +345,7 @@ class AMapNaviApi {
                     launchActivity,
                     params,
                     NaviInfoCallbackImpl(),
-                    AMapFlutterRouteActivity::class.java
+                    routeActivityClass
                 )
             } catch (e: Exception) {
                 cleanupNaviSession(

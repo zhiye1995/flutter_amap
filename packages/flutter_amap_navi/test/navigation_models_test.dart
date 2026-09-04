@@ -25,6 +25,7 @@ void main() {
       multipleRoute: false,
       startNaviDirectly: true,
       vehicleInfo: NaviVehicleInfo(type: 1, height: 3.9, axisNums: 6),
+      androidActivityClassName: 'com.example.CustomNaviActivity',
     );
 
     final decoded = NaviConfig.decode(config.encode() as List<Object?>);
@@ -39,6 +40,7 @@ void main() {
     expect(decoded.multipleRoute, false);
     expect(decoded.startNaviDirectly, true);
     expect(decoded.vehicleInfo?.axisNums, 6);
+    expect(decoded.androidActivityClassName, 'com.example.CustomNaviActivity');
   });
 
   test('NaviDrivingStrategy preserves all native strategy IDs', () {

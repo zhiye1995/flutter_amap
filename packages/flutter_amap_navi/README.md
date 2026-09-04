@@ -45,6 +45,21 @@ await AMapNavi.startNavigation(
 
 `AMapNavi.init` 可重复调用，后一次配置会重新应用。未初始化就启动导航或巡航会抛出 `StateError`；插件不会替应用静默同意隐私协议。
 
+### Android 自定义导航 Activity
+
+自定义容器需继承 `AMapFlutterRouteActivity`（间接继承高德 `AmapRouteActivity`）并在宿主 Manifest 注册，然后传入完整类名：
+
+```dart
+await AMapNavi.startNavigation(
+  config: NaviConfig(
+    end: destination,
+    androidActivityClassName: 'com.example.app.CustomNaviActivity',
+  ),
+);
+```
+
+插件会在启动前检查类是否存在、是否继承正确且已启用。该参数仅在 Android 生效；为空时继续使用插件默认容器。
+
 ## 与地图包联合使用
 
 两个包刻意不共享 Dart 模型。请在应用边界显式转换：
@@ -65,6 +80,7 @@ final naviStrategy = NaviDrivingStrategy.fromId(mapStrategy.id);
 - `minSdk` 24，Java/JVM 17。
 - 宿主按业务声明网络、粗略/精确定位、前后台定位和 `WAKE_LOCK` 权限，并在运行时请求定位权限。
 - 插件 Manifest 自动合并 `AMapFlutterRouteActivity` 及导航主题。
+- 导航 SDK 作为 Android API 依赖暴露，以便宿主实现自定义 `AmapRouteActivity` 容器。
 - 本包固定使用 `com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1`。
 - 与 `flutter_amap` 联合使用时，插件会自动用该导航合包替换纯地图合包，防止重复类。
 

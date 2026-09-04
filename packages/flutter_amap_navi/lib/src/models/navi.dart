@@ -165,6 +165,7 @@ class NaviConfig {
     this.multipleRoute = true,
     this.startNaviDirectly,
     this.vehicleInfo,
+    this.androidActivityClassName,
   });
 
   /// 车牌号（用于限行规避）
@@ -203,6 +204,13 @@ class NaviConfig {
   /// 完整车辆信息；传入后优先于 [carNumber]/[motorcycleCC]。
   final NaviVehicleInfo? vehicleInfo;
 
+  /// Android 自定义导航容器的完整类名，iOS 忽略。
+  ///
+  /// 宿主需在 AndroidManifest.xml 中注册该 Activity，并继承
+  /// AmapRouteActivity；推荐继承插件的 AMapFlutterRouteActivity 复用安全区处理。
+  /// 不传时使用插件默认容器。
+  final String? androidActivityClassName;
+
   Object encode() {
     return <Object?>[
       carNumber,
@@ -217,6 +225,7 @@ class NaviConfig {
       multipleRoute,
       startNaviDirectly,
       vehicleInfo?.encode(),
+      androidActivityClassName,
     ];
   }
 
@@ -241,6 +250,7 @@ class NaviConfig {
       vehicleInfo: at(11) != null
           ? NaviVehicleInfo.decode(at(11)! as List<Object?>)
           : null,
+      androidActivityClassName: at(12) as String?,
     );
   }
 
@@ -257,6 +267,7 @@ class NaviConfig {
     bool? multipleRoute,
     bool? startNaviDirectly,
     NaviVehicleInfo? vehicleInfo,
+    String? androidActivityClassName,
   }) {
     return NaviConfig(
       carNumber: carNumber ?? this.carNumber,
@@ -271,6 +282,8 @@ class NaviConfig {
       multipleRoute: multipleRoute ?? this.multipleRoute,
       startNaviDirectly: startNaviDirectly ?? this.startNaviDirectly,
       vehicleInfo: vehicleInfo ?? this.vehicleInfo,
+      androidActivityClassName:
+          androidActivityClassName ?? this.androidActivityClassName,
     );
   }
 }

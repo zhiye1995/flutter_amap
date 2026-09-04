@@ -3,7 +3,10 @@ import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
-/// 演示 [UserLocationStyle.userLocationType] 多种模式；双端差异见 [UserLocationTypePlatform]（`lib/src/models/location.dart`）。
+/// 演示 [UserLocationStyle.userLocationType] 的平台模式及语义差异。
+///
+/// Android 完整映射高德 `MyLocationStyle` 的八种模式；iOS 仅提供
+/// `none`、`follow`、`followWithHeading` 三种原生追踪能力。
 class UserLocationPage extends StatefulWidget {
   const UserLocationPage({super.key});
 
@@ -16,7 +19,8 @@ class UserLocationPage extends StatefulWidget {
 class _UserLocationPageState extends State<UserLocationPage> {
   AMapController? controller;
   Location? _lastLocation;
-  UserLocationType _mode = UserLocationType.locationTypeFollow;
+  static UserLocationType? _lastSelectedMode;
+  UserLocationType _mode = _restoreMode();
 
   @override
   void dispose() {
@@ -29,9 +33,8 @@ class _UserLocationPageState extends State<UserLocationPage> {
     final isAndroidHost = defaultTargetPlatform == TargetPlatform.android;
     final isIosHost = defaultTargetPlatform == TargetPlatform.iOS;
     final platformHint = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS => '当前设备：iOS。请在下方「iOS」一行选择；「Android」行仅作对照，不可点选。',
-      TargetPlatform.android =>
-        '当前设备：Android。请在下方「Android」一行选择；「iOS」行仅展示可映射子集，不可点选。',
+      TargetPlatform.iOS => '当前设备：iOS。只有 iOS 行可操作；Android 行用于语义对照。',
+      TargetPlatform.android => '当前设备：Android。只有 Android 行可操作；iOS 行用于语义对照。',
       _ => '当前设备：${defaultTargetPlatform.name}。两行均为对照，不可点选。',
     };
 
@@ -46,7 +49,8 @@ class _UserLocationPageState extends State<UserLocationPage> {
                     ? null
                     : () async {
                         try {
-                          final Location location = _lastLocation ??
+                          final Location location =
+                              _lastLocation ??
                               await controller!.waitForUserLocation(
                                 timeout: const Duration(seconds: 10),
                               );
@@ -111,25 +115,25 @@ class _UserLocationPageState extends State<UserLocationPage> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 10),
-                    if (isAndroidHost)
-                      _buildModeStrip(
-                        context,
-                        title: 'Android（高德 MyLocationStyle）',
-                        types: UserLocationType.values
-                            .where((t) => t.hasAndroidMyLocationStyleMapping)
-                            .toList(),
-                        interactive: isAndroidHost,
-                      ),
+                    _buildModeStrip(
+                      context,
+                      title: 'Android（高德 MyLocationStyle）',
+                      types: UserLocationType.values
+                          .where((t) => t.hasAndroidMyLocationStyleMapping)
+                          .toList(),
+                      interactive: isAndroidHost,
+                      androidSemantics: true,
+                    ),
                     const SizedBox(height: 12),
-                    if (isIosHost)
-                      _buildModeStrip(
-                        context,
-                        title: 'iOS（MAUserTrackingMode 可映射）',
-                        types: UserLocationType.values
-                            .where((t) => t.hasIosNativeTrackingMapping)
-                            .toList(),
-                        interactive: isIosHost,
-                      ),
+                    _buildModeStrip(
+                      context,
+                      title: 'iOS（MAUserTrackingMode）',
+                      types: UserLocationType.values
+                          .where((t) => t.hasIosNativeTrackingMapping)
+                          .toList(),
+                      interactive: isIosHost,
+                      androidSemantics: false,
+                    ),
                   ],
                 ),
               ),
@@ -145,14 +149,12 @@ class _UserLocationPageState extends State<UserLocationPage> {
     required String title,
     required List<UserLocationType> types,
     required bool interactive,
+    required bool androidSemantics,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text(title, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -162,13 +164,16 @@ class _UserLocationPageState extends State<UserLocationPage> {
                   (t) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
-                      label: Text(_modeTitle(t)),
-                      tooltip: t.platformAvailabilityLabel,
-                      selected: _mode == t,
+                      label: Text(_modeTitle(t, android: androidSemantics)),
+                      tooltip: _modeDescription(t, android: androidSemantics),
+                      selected: interactive && _mode == t,
                       onSelected: interactive
                           ? (selected) {
                               if (!selected) return;
-                              setState(() => _mode = t);
+                              setState(() {
+                                _mode = t;
+                                _lastSelectedMode = t;
+                              });
                             }
                           : null,
                     ),
@@ -181,24 +186,72 @@ class _UserLocationPageState extends State<UserLocationPage> {
     );
   }
 
-  static String _modeTitle(UserLocationType t) {
+  static UserLocationType _restoreMode() {
+    final last = _lastSelectedMode;
+    if (last != null && _isSelectableOnHost(last)) {
+      return last;
+    }
+    return UserLocationType.locationTypeFollow;
+  }
+
+  static bool _isSelectableOnHost(UserLocationType type) {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => type.hasAndroidMyLocationStyleMapping,
+      TargetPlatform.iOS => type.hasIosNativeTrackingMapping,
+      _ => false,
+    };
+  }
+
+  static String _modeTitle(UserLocationType t, {required bool android}) {
+    if (!android) {
+      return switch (t) {
+        UserLocationType.locationTypeShow => '持续显示',
+        UserLocationType.locationTypeLocate => '首次居中',
+        UserLocationType.locationTypeFollow => '连续居中',
+        UserLocationType.locationTypeMapRotate => '方向跟随',
+        _ => '不支持',
+      };
+    }
+    return switch (t) {
+      UserLocationType.locationTypeShow => '单次不居中',
+      UserLocationType.locationTypeLocate => '单次居中',
+      UserLocationType.locationTypeFollow => '连续居中',
+      UserLocationType.locationTypeMapRotate => '地图随向',
+      UserLocationType.locationTypeLocationRotate => '蓝点随向',
+      UserLocationType.locationTypeLocationRotateNoCenter => '蓝点随向·不居中',
+      UserLocationType.locationTypeFollowNoCenter => '连续·不居中',
+      UserLocationType.locationTypeMapRotateNoCenter => '地图随向·不居中',
+    };
+  }
+
+  static String _modeDescription(UserLocationType t, {required bool android}) {
+    if (!android) {
+      return switch (t) {
+        UserLocationType.locationTypeShow => '持续更新蓝点，相机不跟随（none）',
+        UserLocationType.locationTypeLocate => '首次位置更新时居中，随后取消相机跟随；定位仍继续',
+        UserLocationType.locationTypeFollow => '持续更新蓝点并保持居中（follow）',
+        UserLocationType.locationTypeMapRotate =>
+          '持续居中，地图按设备方向旋转（followWithHeading）',
+        _ => 'iOS 没有等价的原生追踪模式',
+      };
+    }
     switch (t) {
       case UserLocationType.locationTypeShow:
-        return '仅显示';
+        return '获取一次位置，不移动地图中心，成功后停止定位';
       case UserLocationType.locationTypeLocate:
-        return '定位一次';
+        return '获取一次位置并移动到地图中心，成功后停止定位';
       case UserLocationType.locationTypeFollow:
-        return '连续跟随';
+        return '持续更新蓝点并保持居中，默认每秒定位一次';
       case UserLocationType.locationTypeMapRotate:
-        return '地图转向';
+        return '持续居中，地图按设备方向旋转';
       case UserLocationType.locationTypeLocationRotate:
-        return '点随向转';
+        return '持续居中，蓝点按设备方向旋转';
       case UserLocationType.locationTypeLocationRotateNoCenter:
-        return '点转不居中';
+        return '蓝点按设备方向旋转，不移动地图中心';
       case UserLocationType.locationTypeFollowNoCenter:
-        return '跟随不居中';
+        return '持续更新蓝点，不移动地图中心';
       case UserLocationType.locationTypeMapRotateNoCenter:
-        return '图转不居中';
+        return '地图按设备方向旋转，不移动地图中心';
     }
   }
 }

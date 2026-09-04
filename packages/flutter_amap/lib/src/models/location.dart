@@ -4,10 +4,10 @@ part of '../../../flutter_amap.dart';
 
 /// 用户定位类型
 enum UserLocationType {
-  ///只定位一次（Android Only）
+  /// Android 单次定位且不移动地图中心；iOS 持续显示位置但不跟随相机。
   locationTypeShow,
 
-  ///定位一次，且将视角移动到地图中心点
+  /// Android 单次定位并居中；iOS 首次居中后取消相机跟随，但定位仍继续。
   locationTypeLocate,
 
   ///连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
@@ -16,26 +16,22 @@ enum UserLocationType {
   ///连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
   locationTypeMapRotate,
 
-  ///连续定位、且将视角移动到地图中心点，定位点依照设备方向旋转，并且会跟随设备移动。（1秒1次定位）默认执行此种模式（Android Only）
+  /// Android 连续居中，定位点依照设备方向旋转；iOS 回退为普通居中跟随。
   locationTypeLocationRotate,
 
-  ///连续定位、蓝点不会移动到地图中心点，定位点依照设备方向旋转，并且蓝点会跟随设备移动（Android Only）
+  /// Android 连续定位、蓝点随设备方向旋转且不居中；iOS 回退为不跟随。
   locationTypeLocationRotateNoCenter,
 
-  ///连续定位、蓝点不会移动到地图中心点，并且蓝点会跟随设备移动（Android Only）
+  /// Android 连续定位且不居中；iOS 回退为不跟随。
   locationTypeFollowNoCenter,
 
-  ///连续定位、蓝点不会移动到地图中心点，地图依照设备方向旋转，并且蓝点会跟随设备移动（Android Only）
+  /// Android 连续定位、地图随设备方向旋转且不居中；iOS 回退为不跟随。
   locationTypeMapRotateNoCenter,
 }
 
 /// 定位点
 class Location {
-  Location({
-    required this.position,
-    this.heading,
-    this.accuracy,
-  });
+  Location({required this.position, this.heading, this.accuracy});
 
   /// 定位点的位置
   Position position;
@@ -47,11 +43,7 @@ class Location {
   double? accuracy;
 
   Object encode() {
-    return <Object?>[
-      position.encode(),
-      heading,
-      accuracy,
-    ];
+    return <Object?>[position.encode(), heading, accuracy];
   }
 
   static Location decode(List<Object?> result) {
@@ -62,11 +54,7 @@ class Location {
     );
   }
 
-  Location copyWith({
-    Position? position,
-    double? heading,
-    double? accuracy,
-  }) {
+  Location copyWith({Position? position, double? heading, double? accuracy}) {
     return Location(
       position: position ?? this.position,
       heading: heading ?? this.heading,
@@ -217,13 +205,14 @@ class UserLocationStyle {
       userLocationType: type is UserLocationType
           ? type
           : type != null
-              ? UserLocationType.values[type as int]
-              : null,
+          ? UserLocationType.values[type as int]
+          : null,
       fillColor: result[1] != null ? Color(result[1] as int) : null,
       strokeColor: result[2] != null ? Color(result[2] as int) : null,
       lineWidth: result[3] as double?,
-      image:
-          result[4] != null ? Bitmap.decode(result[4]! as List<Object?>) : null,
+      image: result[4] != null
+          ? Bitmap.decode(result[4]! as List<Object?>)
+          : null,
       showLocationDot: result.length > 5 ? result[5] as bool? : null,
       anchor: result.length > 6 && result[6] != null
           ? Anchor.decode(result[6]! as List<Object?>)
@@ -287,8 +276,7 @@ extension UserLocationTypePlatform on UserLocationType {
       UserLocationType.locationTypeLocationRotate ||
       UserLocationType.locationTypeLocationRotateNoCenter ||
       UserLocationType.locationTypeFollowNoCenter ||
-      UserLocationType.locationTypeMapRotateNoCenter =>
-        true,
+      UserLocationType.locationTypeMapRotateNoCenter => true,
     };
   }
 
@@ -298,8 +286,7 @@ extension UserLocationTypePlatform on UserLocationType {
       UserLocationType.locationTypeShow ||
       UserLocationType.locationTypeLocate ||
       UserLocationType.locationTypeFollow ||
-      UserLocationType.locationTypeMapRotate =>
-        true,
+      UserLocationType.locationTypeMapRotate => true,
       _ => false,
     };
   }
@@ -311,20 +298,27 @@ extension UserLocationTypePlatform on UserLocationType {
       UserLocationType.locationTypeLocationRotate ||
       UserLocationType.locationTypeLocationRotateNoCenter ||
       UserLocationType.locationTypeFollowNoCenter ||
-      UserLocationType.locationTypeMapRotateNoCenter =>
-        true,
+      UserLocationType.locationTypeMapRotateNoCenter => true,
       _ => false,
     };
   }
 
   /// 一行中文说明，用于示例页 Chip 副标题或 Tooltip。
   String get platformAvailabilityLabel {
-    if (hasIosNativeTrackingMapping) {
-      if (isAndroidDocumentationOnly) {
-        return 'Android：文档标注 Only；iOS：有基础映射（如仅显/追踪）';
-      }
-      return 'Android / iOS：双端可用';
-    }
-    return 'Android：完整；iOS：回退到最接近的 MAUserTrackingMode（不完全等价）';
+    return switch (this) {
+      UserLocationType.locationTypeShow => 'Android：单次不居中；iOS：持续显示但相机不跟随',
+      UserLocationType.locationTypeLocate =>
+        'Android：单次居中并停止定位；iOS：首次居中后仅停止相机跟随',
+      UserLocationType.locationTypeFollow => 'Android / iOS：持续居中跟随',
+      UserLocationType.locationTypeMapRotate => 'Android / iOS：持续居中，地图随设备方向旋转',
+      UserLocationType.locationTypeLocationRotate =>
+        'Android：蓝点随设备方向旋转；iOS：回退为普通居中跟随',
+      UserLocationType.locationTypeLocationRotateNoCenter =>
+        'Android：蓝点随向且不居中；iOS：回退为不跟随',
+      UserLocationType.locationTypeFollowNoCenter =>
+        'Android：持续定位且不居中；iOS：回退为不跟随',
+      UserLocationType.locationTypeMapRotateNoCenter =>
+        'Android：地图随向且不居中；iOS：回退为不跟随',
+    };
   }
 }

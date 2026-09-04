@@ -16,7 +16,7 @@ import com.amap.api.navi.AmapRouteActivity
 import com.amap.api.navi.view.SlidingUpPanelLayout
 
 
-class AMapFlutterRouteActivity : AmapRouteActivity() {
+open class AMapFlutterRouteActivity : AmapRouteActivity() {
 
     private var contentRoot: View? = null
     private var contentRootPadding: Padding? = null

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
+import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 
 /// 地点选择示例页面
 class PlacePickerPage extends StatefulWidget {
@@ -16,6 +17,48 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   PoiItem? _homeAddress;
   PoiItem? _companyAddress;
   LocationPickerResult? _routeLocation;
+  PoiItem? _navigationDestination;
+  bool _isOpeningRoute = false;
+
+  Future<void> _selectNavigationDestination() async {
+    final result = await AMapMapPlacePicker.show(
+      context,
+      config: MapPlacePickerConfig(
+        title: '选择导航终点',
+        hintText: '搜索目的地',
+        initialPosition: _navigationDestination?.position,
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _navigationDestination = result);
+    }
+  }
+
+  Future<void> _openSelectedPoiRoute() async {
+    final destination = _navigationDestination;
+    if (destination == null || _isOpeningRoute) return;
+    setState(() => _isOpeningRoute = true);
+    try {
+      await AMapNavi.startNavigation(
+        config: NaviConfig(
+          naviType: NaviType.driver,
+          pageType: NaviPageType.route,
+          end: NaviPoint(
+            name: destination.name,
+            poiId: destination.poiId.isEmpty ? null : destination.poiId,
+            position: NaviPosition(
+              latitude: destination.position.latitude,
+              longitude: destination.position.longitude,
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) await LoadingUtil.showError('打开路线规划失败：$error');
+    } finally {
+      if (mounted) setState(() => _isOpeningRoute = false);
+    }
+  }
 
   Future<void> _selectHomeAddress() async {
     final result = await AMapMapPlacePicker.show(
@@ -89,6 +132,27 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _AddressCard(
+            icon: Icons.flag_outlined,
+            iconColor: Colors.red,
+            title: '导航终点',
+            address: _navigationDestination,
+            onTap: _selectNavigationDestination,
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _navigationDestination == null || _isOpeningRoute
+                ? null
+                : _openSelectedPoiRoute,
+            icon: _isOpeningRoute
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.alt_route),
+            label: Text(_isOpeningRoute ? '正在打开…' : '使用所选 POI 算路'),
+          ),
+          const SizedBox(height: 28),
           // 家庭地址卡片
           _AddressCard(
             icon: Icons.home,

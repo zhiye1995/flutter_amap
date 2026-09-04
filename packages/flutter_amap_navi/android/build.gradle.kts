@@ -81,7 +81,8 @@ kotlin {
 
 dependencies {
     // 导航 SDK 已包含 3D 地图、定位和搜索，导航包无需再引入独立地图 SDK。
-    implementation(amapNaviSdkCoordinate)
+    // 自定义导航 Activity 需要在宿主编译期继承 AmapRouteActivity。
+    api(amapNaviSdkCoordinate)
 
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")

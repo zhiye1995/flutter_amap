@@ -50,6 +50,7 @@ void main() {
     );
     await AMapNavi.startNavigation(
       config: NaviConfig(
+        androidActivityClassName: 'com.example.CustomNaviActivity',
         end: NaviPoint(
           position: NaviPosition(latitude: 39.9, longitude: 116.3),
         ),
@@ -60,6 +61,13 @@ void main() {
     expect(calls[0].arguments, containsPair('agreePrivacy', true));
     expect(calls[1].method, 'startNavigation');
     expect(calls[1].arguments, containsPair('endLat', 39.9));
+    expect(
+      calls[1].arguments,
+      containsPair(
+        'androidActivityClassName',
+        'com.example.CustomNaviActivity',
+      ),
+    );
     expect(AMapNavi.isNavigating, true);
     expect(
       () => AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both),

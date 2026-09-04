@@ -1,9 +1,8 @@
 import 'package:flutter_amap/flutter_amap.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 改变地图中心点 — 行为对齐高德 Android_3D_Demo `CameraActivity` 中
-/// 预设视点（中关村 / 陆家嘴）、动画开关与方恒参考点 Marker。
+/// 预设视点（中关村 / 方恒国际中心）、动画开关与方恒参考点 Marker。
 /// 像素级 scrollBy、停止动画等见「地图动画效果」页。
 class ChangeMapCenterPage extends StatefulWidget {
   const ChangeMapCenterPage({super.key});
@@ -26,9 +25,9 @@ class _ChangeMapCenterPageState extends State<ChangeMapCenterPage> {
     skew: 0,
   );
 
-  /// `Constants.SHANGHAI`（陆家嘴示例），CameraPosition(zoom=18, tilt=30, bearing=0)
-  static final _lujiazui = CameraPosition(
-    position: Position(latitude: 31.238068, longitude: 121.501654),
+  /// 方恒国际中心，CameraPosition(zoom=18, tilt=30, bearing=0)
+  static final _fanghengCamera = CameraPosition(
+    position: _fangheng,
     zoom: 18,
     heading: 0,
     skew: 30,
@@ -45,13 +44,9 @@ class _ChangeMapCenterPageState extends State<ChangeMapCenterPage> {
     await _controller.moveCamera(_zhongguancun, duration);
   }
 
-  Future<void> _goLujiazui() async {
+  Future<void> _goFangheng() async {
     final duration = _animated ? const Duration(milliseconds: 1000) : null;
-    await _controller.moveCamera(_lujiazui, duration);
-    if (!mounted || duration == null) {
-      return;
-    }
-    // LoadingUtil.showSuccess('Animation to 陆家嘴 complete');
+    await _controller.moveCamera(_fanghengCamera, duration);
   }
 
   @override
@@ -114,8 +109,8 @@ class _ChangeMapCenterPageState extends State<ChangeMapCenterPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: ElevatedButton(
-                    onPressed: _goLujiazui,
-                    child: const Text('去陆家嘴'),
+                    onPressed: _goFangheng,
+                    child: const Text('去方恒'),
                   ),
                 ),
               ],
