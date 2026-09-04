@@ -90,13 +90,15 @@ class AMapNaviApi: NSObject {
             .prefix(16)
             .compactMap(makePOIInfo(map:))
         let drivingStrategyValue = arguments["drivingStrategy"] as? Int ?? 10
-        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? AMapNaviDrivingStrategy.multipleDefault
+        // Recent AMap SDKs preserve the `MotorStrategy` portion of this C enum
+        // case when importing it into Swift.
+        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? AMapNaviDrivingStrategy.motorStrategyMultipleDefault
         let travelStrategyValue = arguments["travelStrategy"] as? Int ?? 1001
         let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue) ?? AMapNaviTravelStrategy.multipleDefault
 
         DispatchQueue.main.async { [weak self] in
             var completed = false
-            let completion: (AMapNaviRouteGroup?, NSError?) -> Void = { [weak self] routeGroup, error in
+            let completion: (AMapNaviRouteGroup?, Error?) -> Void = { [weak self] routeGroup, error in
                 if completed { return }
                 completed = true
                 if let error = error as NSError? {
@@ -117,14 +119,14 @@ class AMapNaviApi: NSObject {
                 }
                 result(self.routeGroupToFlutter(routeGroup))
             }
-
+    
             let accepted: Bool
             switch routeType {
             case 1:
                 accepted = AMapNaviDriveManager.sharedInstance().independentCalculateDriveRoute(
                     withStart: startInfo,
                     end: endInfo,
-                    wayPoints: Array(wayInfos),
+                    wayPOIInfos: Array(wayInfos),
                     drivingStrategy: drivingStrategy,
                     callback: completion
                 )
@@ -132,7 +134,7 @@ class AMapNaviApi: NSObject {
                 accepted = AMapNaviRideManager.sharedInstance().independentCalculateRideRoute(
                     withStart: startInfo,
                     end: endInfo,
-                    wayPoints: Array(wayInfos),
+                    wayPOIInfos: Array(wayInfos),
                     strategy: travelStrategy,
                     callback: completion
                 )
@@ -140,7 +142,7 @@ class AMapNaviApi: NSObject {
                 accepted = AMapNaviWalkManager.sharedInstance().independentCalculateWalkRoute(
                     withStart: startInfo,
                     end: endInfo,
-                    wayPoints: Array(wayInfos),
+                    wayPOIInfos: Array(wayInfos),
                     strategy: travelStrategy,
                     callback: completion
                 )
