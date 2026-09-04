@@ -90,11 +90,14 @@ class AMapNaviApi: NSObject {
             .prefix(16)
             .compactMap(makePOIInfo(map:))
         let drivingStrategyValue = arguments["drivingStrategy"] as? Int ?? 10
-        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue) ?? AMapNaviDrivingStrategy.multipleDefault
+        // 新版 Xcode 对 NS_ENUM 前缀裁剪后不再暴露 `.multipleDefault`，用 rawValue 10（多路径时间优先）回退。
+        let drivingStrategy = AMapNaviDrivingStrategy(rawValue: drivingStrategyValue)
+            ?? AMapNaviDrivingStrategy(rawValue: 10)!
         let travelStrategyValue = arguments["travelStrategy"] as? Int ?? 1001
-        let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue) ?? AMapNaviTravelStrategy.multipleDefault
+        let travelStrategy = AMapNaviTravelStrategy(rawValue: travelStrategyValue)
+            ?? AMapNaviTravelStrategy(rawValue: 1001)!
 
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.async(execute: {
             var completed = false
             let completion: (AMapNaviRouteGroup?, NSError?) -> Void = { [weak self] routeGroup, error in
                 if completed { return }
@@ -161,7 +164,7 @@ class AMapNaviApi: NSObject {
                     details: nil
                 ))
             }
-        }
+        })
     }
 
     private func makePOIInfo(map: [String: Any]) -> AMapNaviPOIInfo? {

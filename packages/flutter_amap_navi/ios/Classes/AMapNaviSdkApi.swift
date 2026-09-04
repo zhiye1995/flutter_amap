@@ -13,7 +13,8 @@ final class AMapNaviSdkApi: NSObject {
         )
         channel.setMethodCallHandler { call, result in
             if call.method == "getSdkVersion" {
-                result(AMapNaviVersion)
+                // AMapNaviVersion 是 C 宏，Swift 模块导入看不到；与 podspec 中 AMapNavi 11.2.100 对齐。
+                result("11.2.100")
                 return
             }
             guard call.method == "initialize" else {

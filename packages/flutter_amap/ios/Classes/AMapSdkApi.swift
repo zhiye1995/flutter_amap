@@ -23,7 +23,8 @@ class _AMapSdkApi: NSObject {
         _AMapSdkApi.setApiKey(apiKey: apiKey)
         result(nil)
       } else if(call.method == "getSdkVersion") {
-        result(MAMapVersion)
+        // MAMapVersion 是 C 宏，Swift 模块导入看不到；与 podspec 中 AMap3DMap/AMapNavi 11.2.100 对齐。
+        result("11.2.100")
       } else {
         result(FlutterMethodNotImplemented)
       }
