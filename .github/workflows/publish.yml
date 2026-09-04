@@ -1,43 +1,43 @@
-name: Publish package
-
-on:
-  push:
-    tags:
-      - 'flutter_amap-v*'
-      - 'flutter_amap_navi-v*'
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    environment: pub.dev
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Select package
-        id: package
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF_NAME" == flutter_amap_navi-v* ]]; then
-            echo "directory=packages/flutter_amap_navi" >> "$GITHUB_OUTPUT"
-          else
-            echo "directory=packages/flutter_amap" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Resolve workspace
-        run: flutter pub get
-      - name: Test selected package
-        working-directory: ${{ steps.package.outputs.directory }}
-        run: flutter test --no-pub
-      - name: Analyze selected package
-        working-directory: ${{ steps.package.outputs.directory }}
-        run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
-      - name: Publish dry run
-        working-directory: ${{ steps.package.outputs.directory }}
-        run: flutter pub publish --dry-run
-      - name: Publish to pub.dev
-        working-directory: ${{ steps.package.outputs.directory }}
-        run: flutter pub publish --force
+#name: Publish package
+#
+#on:
+#  push:
+#    tags:
+#      - 'flutter_amap-v*'
+#      - 'flutter_amap_navi-v*'
+#
+#jobs:
+#  publish:
+#    runs-on: ubuntu-latest
+#    environment: pub.dev
+#    permissions:
+#      id-token: write
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: subosito/flutter-action@v2
+#        with:
+#          channel: stable
+#          cache: true
+#      - name: Select package
+#        id: package
+#        shell: bash
+#        run: |
+#          if [[ "$GITHUB_REF_NAME" == flutter_amap_navi-v* ]]; then
+#            echo "directory=packages/flutter_amap_navi" >> "$GITHUB_OUTPUT"
+#          else
+#            echo "directory=packages/flutter_amap" >> "$GITHUB_OUTPUT"
+#          fi
+#      - name: Resolve workspace
+#        run: flutter pub get
+#      - name: Test selected package
+#        working-directory: ${{ steps.package.outputs.directory }}
+#        run: flutter test --no-pub
+#      - name: Analyze selected package
+#        working-directory: ${{ steps.package.outputs.directory }}
+#        run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+#      - name: Publish dry run
+#        working-directory: ${{ steps.package.outputs.directory }}
+#        run: flutter pub publish --dry-run
+#      - name: Publish to pub.dev
+#        working-directory: ${{ steps.package.outputs.directory }}
+#        run: flutter pub publish --force

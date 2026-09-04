@@ -1,6 +1,6 @@
 name: flutter_amap_navi
 description: A Flutter plugin for AMap drive, walk, ride navigation and cruise events.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/zhiye1995/flutter_amap/tree/main/packages/flutter_amap_navi
 issue_tracker: https://github.com/zhiye1995/flutter_amap/issues
 
