@@ -288,7 +288,7 @@ class NaviConfig {
   /// 摩托车排量（cc）
   final int? motorcycleCC;
 
-  /// 导航类型
+  /// 导航类型。Android 驾车使用高德导航组件，步行/骑行使用专用算路与导航视图。
   final NaviType naviType;
 
   /// 导航页面类型
@@ -297,7 +297,7 @@ class NaviConfig {
   /// 起点（不传则默认为当前位置）
   final NaviPoint? start;
 
-  /// 终点（不传则显示路线规划页让用户选择）
+  /// 终点。驾车不传时由组件选择；步行/骑行必须提供。
   final NaviPoint? end;
 
   /// 途经点列表
@@ -318,7 +318,8 @@ class NaviConfig {
   /// 完整车辆信息；传入后优先于 [carNumber]/[motorcycleCC]。
   final NaviVehicleInfo? vehicleInfo;
 
-  /// Android 自定义导航容器的完整类名，iOS 忽略。
+  /// Android 驾车自定义导航容器的完整类名，iOS 忽略。
+  /// 步行/骑行不支持此参数。
   ///
   /// 宿主需在 AndroidManifest.xml 中注册该 Activity，并继承
   /// AmapRouteActivity；推荐继承插件的 AMapFlutterRouteActivity 复用安全区处理。

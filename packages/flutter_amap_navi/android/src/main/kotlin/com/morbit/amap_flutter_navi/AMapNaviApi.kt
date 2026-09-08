@@ -359,6 +359,15 @@ class AMapNaviApi {
             )
             // 先校验宿主容器，避免配置错误时销毁仍在使用的导航会话。
             val activityClassName = call.argument<String>("androidActivityClassName")
+            val requestedType = call.argument<Int>("naviType") ?: 0
+            if (requestedType == 1 || requestedType == 2) {
+                require(call.argument<Double>("endLat") != null && call.argument<Double>("endLng") != null) {
+                    "Walking and cycling navigation require an end point."
+                }
+                require(activityClassName.isNullOrBlank()) {
+                    "androidActivityClassName is only supported for driving navigation."
+                }
+            }
             val routeActivityClass = if (activityClassName.isNullOrBlank()) {
                 AMapFlutterRouteActivity::class.java
             } else {
@@ -372,6 +381,7 @@ class AMapNaviApi {
                 customClass
             }
             stopCruiseModeInternal()
+            AMapFlutterTravelActivity.closeActive()
             if (naviComponentActive) {
                 Log.w(TAG, "startNavigation requested while previous component is still active")
                 requestExitRouteActivity("startNavigation")
@@ -389,7 +399,6 @@ class AMapNaviApi {
             val naviTypeIndex = call.argument<Int>("naviType") ?: 0
             val pageTypeIndex = call.argument<Int>("pageType") ?: 0
             val drivingStrategy = call.argument<Int>("drivingStrategy") ?: 10
-            val travelStrategy = call.argument<Int>("travelStrategy")
             val multipleRoute = call.argument<Boolean>("multipleRoute") ?: true
             val startNaviDirectly = call.argument<Boolean>("startNaviDirectly")
             @Suppress("UNCHECKED_CAST")
@@ -418,6 +427,19 @@ class AMapNaviApi {
             motorcycleCC?.let { carInfo.motorcycleCC = it }
 
             attachNaviListener()
+
+            // AmapNaviPage 只支持驾车。WALK/RIDE 必须使用真正的骑步行算路引擎。
+            if (naviTypeIndex == 1 || naviTypeIndex == 2) {
+                naviComponentActive = true
+                try {
+                    AMapFlutterTravelActivity.launch(launchActivity, call)
+                } catch (e: Exception) {
+                    cleanupNaviSession(false, true, "travel launch failed")
+                    throw e
+                }
+                return
+            }
+            aMapNavi?.setIsNaviTravelView(false)
 
             val start: Poi? = if (startLat != null && startLng != null) {
                 Poi(startName ?: "起点", LatLng(startLat, startLng), startPoiId ?: "")
@@ -472,8 +494,6 @@ class AMapNaviApi {
             if (naviType == AmapNaviType.DRIVER) {
                 params.tryCall("setMultipleRouteNaviMode", multipleRoute)
                 params.tryCall("setRouteStrategy", drivingStrategy)
-            } else if (travelStrategy != null) {
-                params.tryCall("setRouteStrategy", travelStrategy)
             }
             if (startNaviDirectly != null) {
                 params.tryCall("setNeedCalculateRouteWhenPresent", !startNaviDirectly)
@@ -647,6 +667,7 @@ class AMapNaviApi {
 
         /** 请求关闭高德路线/导航组件 Activity。 */
         private fun requestExitRouteActivity(reason: String): Boolean {
+            if (AMapFlutterTravelActivity.closeActive()) return true
             return try {
                 Log.i(TAG, "requestExitRouteActivity: reason=$reason")
                 AmapNaviPage.getInstance().exitRouteActivity()
@@ -655,6 +676,11 @@ class AMapNaviApi {
                 Log.e(TAG, "requestExitRouteActivity error: reason=$reason", e)
                 false
             }
+        }
+
+        internal fun onTravelActivityClosed() {
+            cleanupNaviSession(false, true, "travel activity closed")
+            naviListener?.eventSink?.success(mapOf("type" to "exitPage", "exitCode" to 0))
         }
 
         /**

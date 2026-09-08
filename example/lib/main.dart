@@ -32,8 +32,8 @@ class _AppState extends State<App> {
     await AMapWidget.init(
       apiKey: ApiKey(
         iosKey: "14cf569c80ddc89d84513331ed8c5164",
-        androidKey: "fddb0c469571c9686915aade4e2a7a18", // home
-        // androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
+        // androidKey: "fddb0c469571c9686915aade4e2a7a18", // home
+        androidKey: "fddb0c469571c9686915aade4e2a7a18", // company
       ),
       agreePrivacy: true,
     );
