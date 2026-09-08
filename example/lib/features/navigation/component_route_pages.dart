@@ -152,9 +152,8 @@ class _ComponentRoutePageState extends State<_ComponentRoutePage> {
       config: MapPlacePickerConfig(
         title: index == null ? '添加途经点' : '修改途经点 ${index + 1}',
         hintText: '搜索途经地点',
-        initialPosition: index == null
-            ? _start.position
-            : _wayPoints[index].position,
+        initialPosition: index == null ? _start.position : null,
+        initialPoi: index == null ? null : _wayPoints[index],
       ),
     );
     if (!mounted || point == null) return;
@@ -174,7 +173,7 @@ class _ComponentRoutePageState extends State<_ComponentRoutePage> {
       config: MapPlacePickerConfig(
         title: isStart ? '选择起点' : '选择终点',
         hintText: isStart ? '搜索起点' : '搜索终点',
-        initialPosition: currentPoint.position,
+        initialPoi: currentPoint,
       ),
     );
     if (point == null || !mounted) return;

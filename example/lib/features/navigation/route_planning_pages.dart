@@ -59,7 +59,7 @@ class _NaviRoutePlanPageState extends State<NaviRoutePlanPage> {
       config: MapPlacePickerConfig(
         title: isStart ? '选择起点' : '选择终点',
         hintText: isStart ? '搜索起点' : '搜索终点',
-        initialPosition: current.position,
+        initialPoi: current,
       ),
     );
     if (!mounted || point == null) return;
@@ -234,7 +234,7 @@ class _IndependentRoutePlanPageState extends State<IndependentRoutePlanPage> {
       config: MapPlacePickerConfig(
         title: isStart ? '选择起点' : '选择终点',
         hintText: isStart ? '搜索起点' : '搜索终点',
-        initialPosition: current.position,
+        initialPoi: current,
       ),
     );
     if (!mounted || point == null) return;

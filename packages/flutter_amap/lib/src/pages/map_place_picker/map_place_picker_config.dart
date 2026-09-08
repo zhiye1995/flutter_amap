@@ -8,6 +8,7 @@ class MapPlacePickerConfig {
     this.city,
     this.types,
     this.initialPosition,
+    this.initialPoi,
     this.searchRadius = 1000,
     this.debounceDelay = const Duration(milliseconds: 500),
   });
@@ -24,8 +25,13 @@ class MapPlacePickerConfig {
   /// POI 类型限制
   final String? types;
 
-  /// 初始位置（如果不设置则使用当前定位）
+  /// 初始位置（未提供 [initialPoi] 时使用；均未设置则使用当前定位）。
   final Position? initialPosition;
+
+  /// 初始选中地点，同时回显名称、地址和坐标。
+  ///
+  /// 优先于 [initialPosition]；用户重新选点前，直接确认返回此地点。
+  final PoiItem? initialPoi;
 
   /// 周边搜索半径（米）
   final int searchRadius;

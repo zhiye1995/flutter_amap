@@ -9,7 +9,7 @@ const _kMapPlacePickerPanelAnimationCurve = Curves.easeInOutCubic;
 /// 全屏页面，包含地图和 POI 列表
 /// - 地图中心固定显示标记点
 /// - 拖动地图后自动搜索中心点附近 POI
-/// - 自动选中第一个 POI
+/// - 回显初始 POI；未提供初始 POI 或主动重新选点时默认选中首项
 class AMapMapPlacePicker extends StatefulWidget {
   const AMapMapPlacePicker({
     super.key,
@@ -42,9 +42,20 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   final FocusNode _searchFocusNode = FocusNode();
   final ValueNotifier<int> _selectedIndexNotifier = ValueNotifier<int>(0);
 
-  final UserLocationStyle _userLocationStyleForPicker = UserLocationStyle(
-    userLocationType: UserLocationType.locationTypeLocate,
-  );
+  late final UserLocationStyle _userLocationStyleForPicker;
+  bool _preserveInitialPoi = false;
+  // 原生地图初始化也会发送相机回调，用户操作前不能据此更换选点。
+  bool _protectInitialCamera = false;
+
+  Position? get _initialPosition =>
+      config.initialPoi?.position ?? config.initialPosition;
+
+  void _releaseInitialSelection() {
+    _preserveInitialPoi = false;
+    _protectInitialCamera = false;
+    _cameraDebounceTimer?.cancel();
+    ++_searchGeneration;
+  }
 
   AMapController? _mapController;
   Position? _currentPosition;
@@ -76,7 +87,20 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     super.initState();
     _searchController.addListener(_onSearchChanged);
 
-    final initial = config.initialPosition;
+    final initial = _initialPosition;
+    _protectInitialCamera = initial != null;
+    _userLocationStyleForPicker = UserLocationStyle(
+      userLocationType: initial != null
+          ? UserLocationType.locationTypeShow
+          : UserLocationType.locationTypeLocate,
+    );
+    final initialPoi = config.initialPoi;
+    if (initialPoi != null) {
+      _preserveInitialPoi = true;
+      _poiList = [initialPoi];
+      _poiSubtitles = _mapPlacePickerBuildSubtitles(_poiList);
+      _isLoading = false;
+    }
     if (initial != null) {
       _mapCenterPosition = initial;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -113,15 +137,13 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       if (center != null) {
         final showLoading = _showLoadingOnNextNearbySearch || _poiList.isEmpty;
         _showLoadingOnNextNearbySearch = false;
-        _searchNearby(
-          center,
-          showLoading: showLoading,
-        );
+        _searchNearby(center, showLoading: showLoading);
       }
       return;
     }
 
     _keywordDebounceTimer?.cancel();
+    _releaseInitialSelection();
     final nextNeedsLoading = _lastKeywordSearchText != keywords;
     _lastKeywordSearchText = keywords;
     if (!_isKeywordSearch ||
@@ -146,7 +168,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     final firstFix = _currentPosition == null;
     _currentPosition = location.position;
 
-    if (firstFix && config.initialPosition == null) {
+    if (firstFix && _initialPosition == null) {
       _mapCenterPosition = location.position;
       _searchNearby(location.position);
     }
@@ -154,6 +176,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 地图移动结束回调
   void _onCameraChangeFinish(CameraPosition cameraPosition) {
+    if (_protectInitialCamera) return;
     if (_isProgrammaticMove) {
       _isProgrammaticMove = false;
       return;
@@ -192,7 +215,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
   }) async {
     final gen = ++_searchGeneration;
 
-    if (showLoading) {
+    if (showLoading && !_preserveInitialPoi) {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
@@ -217,8 +240,21 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       if (_isKeywordSearch) return;
 
       setState(() {
-        _poiList = pois;
-        _poiSubtitles = _mapPlacePickerBuildSubtitles(pois);
+        final initial = _preserveInitialPoi ? config.initialPoi : null;
+        _poiList = initial == null
+            ? pois
+            : [
+                initial,
+                ...pois.where((poi) {
+                  if (initial.poiId.isNotEmpty && poi.poiId.isNotEmpty) {
+                    return initial.poiId != poi.poiId;
+                  }
+                  return initial.name != poi.name ||
+                      initial.position.latitude != poi.position.latitude ||
+                      initial.position.longitude != poi.position.longitude;
+                }),
+              ];
+        _poiSubtitles = _mapPlacePickerBuildSubtitles(_poiList);
         _selectedIndexNotifier.value = 0;
         _isLoading = false;
         _lastNearbySearchCenter = position;
@@ -281,7 +317,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
     final poi = _poiList[index];
     final center = _mapCenterPosition;
-    final closeEnough = center != null &&
+    final closeEnough =
+        center != null &&
         _mapPlacePickerDistanceMeters(center, poi.position) <
             _kSkipMoveCameraMeters;
     final sameItem = index == _selectedIndexNotifier.value;
@@ -289,6 +326,8 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     if (sameItem && closeEnough) {
       return;
     }
+
+    _releaseInitialSelection();
 
     _selectedIndexNotifier.value = index;
 
@@ -299,10 +338,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
     _isProgrammaticMove = true;
     await _mapController?.moveCamera(
-      CameraPosition(
-        position: poi.position,
-        zoom: 16,
-      ),
+      CameraPosition(position: poi.position, zoom: 16),
       _kMapPlacePickerCameraAnimationDuration,
     );
     if (!mounted) return;
@@ -327,14 +363,19 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
     final pos = _currentPosition;
     if (pos == null) return;
 
+    _releaseInitialSelection();
+    _keywordDebounceTimer?.cancel();
+    _isKeywordSearch = false;
+    _lastKeywordSearchText = null;
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.clear();
+    _searchController.addListener(_onSearchChanged);
+
     _isProgrammaticMove = true;
     _mapCenterPosition = pos;
 
     await _mapController?.moveCamera(
-      CameraPosition(
-        position: pos,
-        zoom: 16,
-      ),
+      CameraPosition(position: pos, zoom: 16),
       _kMapPlacePickerCameraAnimationDuration,
     );
     if (!mounted) return;
@@ -404,10 +445,11 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final totalHeight = constraints.maxHeight;
-          final pickerHeight = (_isSearchExpanded
-                  ? getEstimatedKeyboardHeight(totalHeight) + 240
-                  : totalHeight * 0.4)
-              .clamp(0.0, totalHeight);
+          final pickerHeight =
+              (_isSearchExpanded
+                      ? getEstimatedKeyboardHeight(totalHeight) + 240
+                      : totalHeight * 0.4)
+                  .clamp(0.0, totalHeight);
           final mapHeight = totalHeight - pickerHeight;
 
           return Column(
@@ -418,20 +460,27 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
                 height: mapHeight,
                 child: Stack(
                   children: [
-                    RepaintBoundary(
-                      child: AMapWidget(
-                        showUserLocation: true,
-                        userLocationStyle: _userLocationStyleForPicker,
-                        initCameraPosition: CameraPosition(
-                          position: config.initialPosition,
-                          zoom: 16,
+                    Listener(
+                      onPointerMove: (_) {
+                        if (_protectInitialCamera) {
+                          _releaseInitialSelection();
+                        }
+                      },
+                      child: RepaintBoundary(
+                        child: AMapWidget(
+                          showUserLocation: true,
+                          userLocationStyle: _userLocationStyleForPicker,
+                          initCameraPosition: CameraPosition(
+                            position: _initialPosition,
+                            zoom: 16,
+                          ),
+                          zoomControlEnabled: false,
+                          onMapCreated: (controller) {
+                            _mapController = controller;
+                          },
+                          onUserLocationChange: _onUserLocationChange,
+                          onCameraChangeFinish: _onCameraChangeFinish,
                         ),
-                        zoomControlEnabled: false,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                        },
-                        onUserLocationChange: _onUserLocationChange,
-                        onCameraChangeFinish: _onCameraChangeFinish,
                       ),
                     ),
                     Center(
@@ -550,16 +599,11 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               ),
             ],
           ),
-          child: SizedBox(
-            width: 20,
-            height: 20,
-          ),
+          child: SizedBox(width: 20, height: 20),
         ),
         CustomPaint(
           size: ui.Size(12, 8),
-          painter: MarkerPointerPainter(
-            color: Color(0xFF07C160),
-          ),
+          painter: MarkerPointerPainter(color: Color(0xFF07C160)),
         ),
       ],
     );
@@ -618,11 +662,11 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
 
   /// 构建 POI 列表
   Widget _buildPoiList() {
-    if (_isLoading) {
+    if (_isLoading && !_preserveInitialPoi) {
       return const _MapPlacePickerLoadingView();
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage != null && !_preserveInitialPoi) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -654,10 +698,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
               ),
             ),
             const SizedBox(height: 16),
-            TextButton(
-              onPressed: _onRetrySearch,
-              child: const Text('重试'),
-            ),
+            TextButton(onPressed: _onRetrySearch, child: const Text('重试')),
           ],
         ),
       );
@@ -675,7 +716,7 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
           )
         : null;
 
-    return ListView.builder(
+    final list = ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: _poiList.length,
       itemBuilder: (context, index) {
@@ -690,6 +731,21 @@ class _AMapMapPlacePickerState extends State<AMapMapPlacePicker> {
         );
       },
     );
+    if (_preserveInitialPoi && _errorMessage != null) {
+      return Column(
+        children: [
+          ListTile(
+            title: const Text('周边搜索失败'),
+            trailing: TextButton(
+              onPressed: _onRetrySearch,
+              child: const Text('重试'),
+            ),
+          ),
+          Expanded(child: list),
+        ],
+      );
+    }
+    return list;
   }
 }
 
@@ -704,16 +760,11 @@ class _MapPlacePickerLoadingView extends StatelessWidget {
     );
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     if (!isKeyboardVisible) {
-      return Center(
-        child: indicator,
-      );
+      return Center(child: indicator);
     }
     return Padding(
       padding: const EdgeInsets.only(top: 24),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: indicator,
-      ),
+      child: Align(alignment: Alignment.topCenter, child: indicator),
     );
   }
 }

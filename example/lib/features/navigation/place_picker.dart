@@ -26,7 +26,7 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
       config: MapPlacePickerConfig(
         title: '选择导航终点',
         hintText: '搜索目的地',
-        initialPosition: _navigationDestination?.position,
+        initialPoi: _navigationDestination,
       ),
     );
     if (result != null && mounted) {
@@ -63,7 +63,11 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   Future<void> _selectHomeAddress() async {
     final result = await AMapMapPlacePicker.show(
       context,
-      config: const MapPlacePickerConfig(title: '选择家庭地址', hintText: '搜索小区、街道等'),
+      config: MapPlacePickerConfig(
+        title: '选择家庭地址',
+        hintText: '搜索小区、街道等',
+        initialPoi: _homeAddress,
+      ),
     );
 
     if (result != null) {
@@ -76,7 +80,8 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   Future<void> _selectCompanyAddress() async {
     final result = await AMapMapPlacePicker.show(
       context,
-      config: const MapPlacePickerConfig(
+      config: MapPlacePickerConfig(
+        initialPoi: _companyAddress,
         title: '选择公司地址',
         hintText: '搜索公司、写字楼等',
       ),
