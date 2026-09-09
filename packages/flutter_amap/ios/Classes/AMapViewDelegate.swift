@@ -92,6 +92,10 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         mapView.deselectAnnotation(ann, animated: true)
       }
     }
+    if let id = hitPolyline(at: coordinate) {
+      controller.onPolylineClick(id: id)
+      return
+    }
     controller.onMapPress(position: coordinate.position)
   }
 
@@ -233,26 +237,15 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
       return renderer
     }
     if let line = overlay as? MAPolyline, let style = controller.api.polylineStyle(for: line) {
-      let renderer: MAPolylineRenderer? = {
-        if let multiLine = line as? MAMultiPolyline, style.useTexture, !style.textures.isEmpty {
-          let renderer = MAMultiTexturePolylineRenderer(multiPolyline: multiLine)
-          renderer?.strokeTextureImages = style.textures.compactMap { $0.toUIImage(registrar: registrar) }
-          return renderer
-        }
-        if let multiLine = line as? MAMultiPolyline, !style.colors.isEmpty {
-          let renderer = MAMultiColoredPolylineRenderer(multiPolyline: multiLine)
-          renderer?.strokeColors = style.colors
-          renderer?.isGradient = style.gradient
-          return renderer
-        }
-        return MAPolylineRenderer(polyline: line)
-      }()
-      renderer?.strokeColor = style.color
-      renderer?.lineWidth = amapOverlayLineWidth(style.width)
-      renderer?.lineDashType = style.dottedLine ? kMALineDashTypeSquare : kMALineDashTypeNone
-      if style.useTexture, let image = style.texture?.toUIImage(registrar: registrar) {
-        renderer?.strokeImage = image
+      let renderer: MAPolylineRenderer?
+      if let multi = line as? MAMultiPolyline, style.useTexture, !style.textures.isEmpty {
+        renderer = MAMultiTexturePolylineRenderer(multiPolyline: multi)
+      } else if let multi = line as? MAMultiPolyline, !style.colors.isEmpty {
+        renderer = MAMultiColoredPolylineRenderer(multiPolyline: multi)
+      } else {
+        renderer = MAPolylineRenderer(polyline: line)
       }
+      if let renderer = renderer { applyPolylineStyle(renderer, style: style) }
       return renderer
     }
     if let arc = overlay as? MAArc, let style = controller.api.arcStyle(for: arc) {
@@ -269,6 +262,50 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
       return renderer
     }
     return nil
+  }
+
+  // iOS uses screen-space hit testing against the SDK overlay geometry, including
+  // the SDK's interpolated geodesic points. The topmost eligible line wins.
+  private func hitPolyline(at coordinate: CLLocationCoordinate2D) -> String? {
+    let tap = mapView.convert(coordinate, toPointTo: mapView)
+    let styles = controller.api.polylineStyles.values.filter { $0.visible && $0.clickable }
+      .sorted { $0.zIndex == $1.zIndex ? $0.id > $1.id : $0.zIndex > $1.zIndex }
+    for style in styles {
+      guard let line = controller.api.polylines[style.id], line.pointCount >= 2 else { continue }
+      let tolerance = max(8, amapOverlayLineWidth(style.width) / 2)
+      for i in 1..<Int(line.pointCount) {
+        let a = mapView.convert(MACoordinateForMapPoint(line.points[i - 1]), toPointTo: mapView)
+        let b = mapView.convert(MACoordinateForMapPoint(line.points[i]), toPointTo: mapView)
+        let dx = b.x - a.x, dy = b.y - a.y
+        let length = dx * dx + dy * dy
+        let t = length > 0 ? max(0, min(1, ((tap.x - a.x) * dx + (tap.y - a.y) * dy) / length)) : 0
+        if hypot(tap.x - a.x - t * dx, tap.y - a.y - t * dy) <= tolerance { return style.id }
+      }
+    }
+    return nil
+  }
+
+  func applyPolylineStyle(_ renderer: MAPolylineRenderer, style: Polyline, updateTextures: Bool = true) {
+    if updateTextures, let multi = renderer as? MAMultiTexturePolylineRenderer {
+      let images = controller.api.polylineImages[style.id] ?? []
+      multi.strokeTextureImages = style.styleRuns.map { images[$0.style] }
+    }
+    if let multi = renderer as? MAMultiColoredPolylineRenderer {
+      multi.strokeColors = style.strokeColors
+      multi.isGradient = style.gradient
+    }
+    renderer.strokeColor = style.color
+    renderer.lineWidth = amapOverlayLineWidth(style.width)
+    renderer.lineDashType = !style.dottedLine ? kMALineDashTypeNone :
+      (style.dashType == 1 ? kMALineDashTypeDot : kMALineDashTypeSquare)
+    renderer.lineCapType = style.lineCap == 1 ? kMALineCapSquare :
+      (style.lineCap == 2 ? kMALineCapRound : kMALineCapButt)
+    renderer.lineJoinType = style.lineJoin == 1 ? kMALineJoinMiter :
+      (style.lineJoin == 2 ? kMALineJoinRound : kMALineJoinBevel)
+    if updateTextures, !(renderer is MAMultiTexturePolylineRenderer) {
+      renderer.strokeImage = style.useTexture && style.texture != nil ?
+        controller.api.polylineImages[style.id]?.first : nil
+    }
   }
 
   /// 当mapView新添加overlay renderers时，调用此接口

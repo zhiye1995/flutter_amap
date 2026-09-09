@@ -73,6 +73,11 @@ class AMapFlutter(
   private fun setTencentMapListener() {
     val mapListener = AMapListener(this)
     mapView.map.setOnMapLoadedListener(mapListener)
+    mapView.map.setOnPolylineClickListener { line ->
+      polylines.entries.firstOrNull { it.value.id == line.id }?.key?.let { id ->
+        controller.onPolylineClick(id)
+      }
+    }
     mapView.map.setOnMapClickListener(mapListener)
     mapView.map.setOnMapLongClickListener(mapListener)
     mapView.map.setOnCameraChangeListener(mapListener)

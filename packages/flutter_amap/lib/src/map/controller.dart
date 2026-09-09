@@ -3,10 +3,7 @@ part of '../../flutter_amap.dart';
 /// Controller for a single AMap instance running on the host platform,
 /// which passed in [AMapWidget.onMapCreated] callback.
 class AMapController {
-  AMapController(
-    this._aMapFlutter, {
-    required this.mapId,
-  }) {
+  AMapController(this._aMapFlutter, {required this.mapId}) {
     _connectStreams(mapId);
   }
 
@@ -50,12 +47,14 @@ class AMapController {
   /// - 本方法用于在 Dart 侧统一等待地图完成事件后再执行。
   Future<void> waitForMapCompleted({
     Duration timeout = const Duration(seconds: 10),
+    bool throwOnTimeout = false,
   }) async {
     if (_isDestroyed) return;
     // 若已经完成，直接返回；否则等待一次完成事件。
     try {
       await _mapCompletedCompleter.future.timeout(timeout);
     } catch (_) {
+      if (throwOnTimeout) rethrow;
       // 超时不抛错：保持兼容性（调用方可能未 await），同时允许继续走原生调用（但可能仍不生效）。
       // 真正稳定的做法是确保 onMapCompleted 能按预期触发。
     }
@@ -77,6 +76,9 @@ class AMapController {
               _mapCompletedCompleter.complete();
             }
             _aMapFlutter.onMapCompleted?.call();
+          case PolylineClickEvent():
+            _aMapFlutter.onPolylineClick?.call(event.value);
+            break;
           case MapPressEvent():
             _aMapFlutter.onMapPress?.call(event.position);
           case MapLongPressEvent():
@@ -158,9 +160,13 @@ class AMapController {
   }
 
   /// 移动地图视野到包含一组坐标点的某个地图区域
-  void moveCameraToFitPosition(List<Position>? positions, EdgePadding padding,
-      [Duration? duration]) {
-    AMapFlutterPlatformInterface.instance.moveCameraToFitPosition(
+  Future<void> moveCameraToFitPosition(
+    List<Position>? positions,
+    EdgePadding padding, [
+    Duration? duration,
+  ]) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.moveCameraToFitPosition(
       positions,
       padding,
       duration?.inMilliseconds ?? 0,
@@ -182,16 +188,15 @@ class AMapController {
   }
 
   /// 添加标记
-  void addMarker(Marker marker) {
-    AMapFlutterPlatformInterface.instance.addMarker(
-      marker,
-      mapId: mapId,
-    );
+  Future<void> addMarker(Marker marker) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.addMarker(marker, mapId: mapId);
   }
 
   /// 移除标记点
-  void removeMarker(String markerId) {
-    AMapFlutterPlatformInterface.instance.removeMarker(
+  Future<void> removeMarker(String markerId) async {
+    if (_isDestroyed) return;
+    await AMapFlutterPlatformInterface.instance.removeMarker(
       markerId,
       mapId: mapId,
     );
@@ -282,8 +287,13 @@ class AMapController {
     }
   }
 
-  /// 添加折线
+  /// 按 ID 更新完整折线配置；ID 尚不存在时创建。
+  /// 基本样式原地更新，原生渲染类型变化时只重建该折线。
+  Future<void> updatePolyline(Polyline polyline) => addPolyline(polyline);
+
+  /// 添加折线；同 ID 已存在时更新。
   Future<void> addPolyline(Polyline polyline) async {
+    polyline.validate();
     if (_isDestroyed) return;
     await AMapFlutterPlatformInterface.instance.addPolyline(
       polyline,
@@ -302,6 +312,7 @@ class AMapController {
 
   /// 添加导航箭头
   Future<void> addNavigateArrow(NavigateArrow arrow) async {
+    arrow.validate();
     if (_isDestroyed) return;
     await AMapFlutterPlatformInterface.instance.addNavigateArrow(
       arrow,
@@ -320,20 +331,15 @@ class AMapController {
 
   /// 添加弧线
   Future<void> addArc(Arc arc) async {
+    arc.validate();
     if (_isDestroyed) return;
-    await AMapFlutterPlatformInterface.instance.addArc(
-      arc,
-      mapId: mapId,
-    );
+    await AMapFlutterPlatformInterface.instance.addArc(arc, mapId: mapId);
   }
 
   /// 移除弧线
   Future<void> removeArc(String arcId) async {
     if (_isDestroyed) return;
-    await AMapFlutterPlatformInterface.instance.removeArc(
-      arcId,
-      mapId: mapId,
-    );
+    await AMapFlutterPlatformInterface.instance.removeArc(arcId, mapId: mapId);
   }
 
   /// 添加多边形
@@ -486,8 +492,9 @@ class AMapController {
 
   /// 停止当前相机动画（Android 对应 [AMap.stopAnimation]；iOS 无 SDK 等价能力，为兼容调用空实现）
   Future<void> stopCameraAnimation() {
-    return AMapFlutterPlatformInterface.instance
-        .stopCameraAnimation(mapId: mapId);
+    return AMapFlutterPlatformInterface.instance.stopCameraAnimation(
+      mapId: mapId,
+    );
   }
 
   /// 获取当前缩放级别
@@ -504,10 +511,7 @@ class AMapController {
   ///
   /// [duration] 动画持续时间，默认无动画
   /// [zoomDelta] 缩放增量，默认为 1
-  Future<void> zoomIn({
-    Duration? duration,
-    double zoomDelta = 1,
-  }) async {
+  Future<void> zoomIn({Duration? duration, double zoomDelta = 1}) async {
     if (_isDestroyed) return;
     final currentZoom = _currentCamera?.zoom;
     if (currentZoom == null) {
@@ -529,10 +533,7 @@ class AMapController {
   ///
   /// [duration] 动画持续时间，默认无动画
   /// [zoomDelta] 缩放减量，默认为 1
-  Future<void> zoomOut({
-    Duration? duration,
-    double zoomDelta = 1,
-  }) async {
+  Future<void> zoomOut({Duration? duration, double zoomDelta = 1}) async {
     if (_isDestroyed) return;
     final currentZoom = _currentCamera?.zoom;
     if (currentZoom == null) {
@@ -554,16 +555,10 @@ class AMapController {
   ///
   /// [zoom] 目标缩放级别（范围通常为 2-20）
   /// [duration] 动画持续时间，默认无动画
-  Future<void> setZoom(
-    double zoom, {
-    Duration? duration,
-  }) async {
+  Future<void> setZoom(double zoom, {Duration? duration}) async {
     if (_isDestroyed) return;
     final clampedZoom = zoom.clamp(2.0, 20.0);
-    await moveCamera(
-      CameraPosition.zoom(clampedZoom),
-      duration,
-    );
+    await moveCamera(CameraPosition.zoom(clampedZoom), duration);
   }
 
   /// 开始地图渲染

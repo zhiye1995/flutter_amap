@@ -148,8 +148,12 @@ class AMapController: NSObject {
     else if(call.method == "addPolyline") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
       let polyline = arguments["polyline"] as! Polyline
-      api.addPolyline(polyline: polyline)
-      result(nil)
+      do {
+        try api.addPolyline(polyline: polyline)
+        result(nil)
+      } catch {
+        result(FlutterError(code: "polyline_error", message: error.localizedDescription, details: nil))
+      }
     }
     else if(call.method == "removePolyline") {
       let arguments = call.arguments as! Dictionary<String, AnyObject>
@@ -253,6 +257,10 @@ class AMapController: NSObject {
   }
 
   /// 当点击地图上任意地点时会触发该回调，方法会传入点击的坐标点，事件可能被上层覆盖物拦截
+  func onPolylineClick(id: String) {
+    channel.invokeMethod("onPolylineClick", arguments: ["polylineId": id])
+  }
+
   func onMapPress(position: Position) {
     channel.invokeMethod("onMapPress", arguments: [
       "position": position,

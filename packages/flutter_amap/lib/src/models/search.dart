@@ -1119,8 +1119,7 @@ class RoutePath {
       tollDistance: (map['tollDistance'] as num?)?.toDouble(),
       totalTrafficLights: (map['totalTrafficLights'] as num?)?.toInt(),
       restriction: (map['restriction'] as num?)?.toInt(),
-      polyline:
-          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      polyline: _decodeRoutePolyline(rawPolyline),
       steps: rawSteps
           .map((item) =>
               RouteStep.decodeFromMap(Map<String, dynamic>.from(item as Map)))
@@ -1173,8 +1172,7 @@ class RouteStep {
       duration: (map['duration'] as num?)?.toDouble(),
       tolls: (map['tolls'] as num?)?.toDouble(),
       tollDistance: (map['tollDistance'] as num?)?.toDouble(),
-      polyline:
-          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      polyline: _decodeRoutePolyline(rawPolyline),
       tmcs: rawTmcs
           .map((item) =>
               RouteTmc.decodeFromMap(Map<String, dynamic>.from(item as Map)))
@@ -1203,8 +1201,7 @@ class RouteTmc {
     return RouteTmc(
       status: map['status'] as String?,
       distance: (map['distance'] as num?)?.toDouble(),
-      polyline:
-          rawPolyline.map(_positionFromAny).whereType<Position>().toList(),
+      polyline: _decodeRoutePolyline(rawPolyline),
       raw: raw is Map ? Map<String, dynamic>.from(raw) : null,
     );
   }
@@ -1220,6 +1217,23 @@ Position? _positionFromAny(Object? value) {
     }
   }
   return null;
+}
+
+List<Position> _decodeRoutePolyline(List<dynamic> values) {
+  final result = <Position>[];
+  for (final value in values) {
+    final position = _positionFromAny(value);
+    if (position == null) continue;
+    if (result.isNotEmpty) {
+      final previous = result.last;
+      if (previous.latitude == position.latitude &&
+          previous.longitude == position.longitude) {
+        continue;
+      }
+    }
+    result.add(position);
+  }
+  return result;
 }
 
 /// POI 搜索结果项

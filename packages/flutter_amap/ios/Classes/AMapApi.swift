@@ -528,53 +528,124 @@ class _AMapApi: NSObject {
     return dx * dx + dy * dy
   }
 
-  func addPolyline(polyline: Polyline) {
-    removePolyline(id: polyline.id)
-    guard polyline.points.count >= 2 else { return }
-    let overlay = polyline.overlay
+  var polylineImages = [String: [UIImage]]()
+
+  private func sameBitmap(_ a: Bitmap, _ b: Bitmap) -> Bool {
+    return a.asset == b.asset && a.bytes?.data == b.bytes?.data &&
+      a.size?.width == b.size?.width && a.size?.height == b.size?.height
+  }
+
+  private func textureSources(_ style: Polyline) -> [Bitmap] {
+    guard style.useTexture else { return [] }
+    return style.texture.map { [$0] } ?? style.textures
+  }
+
+  func addPolyline(polyline: Polyline) throws {
+    guard polyline.points.count >= 2 else {
+      throw NSError(domain: "polyline", code: 1, userInfo: [NSLocalizedDescriptionKey: "Polyline needs at least two points"])
+    }
+    let previous = polylineStyles[polyline.id]
+    let sources = textureSources(polyline)
+    let oldSources = previous.map { textureSources($0) } ?? []
+    let sourcesChanged = sources.count != oldSources.count ||
+      !zip(sources, oldSources).allSatisfy { sameBitmap($0.0, $0.1) }
+    var images = polylineImages[polyline.id] ?? []
+    if previous == nil || sourcesChanged {
+      images = try sources.map {
+        guard let image = $0.toUIImage(registrar: registrar) else {
+          throw NSError(domain: "polyline", code: 2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode polyline texture"])
+        }
+        return image
+      }
+    }
+    // Renderer kind is the only reason to replace an existing overlay.
+    func kind(_ style: Polyline) -> Int {
+      if style.useTexture && !style.textures.isEmpty { return 3 }
+      if !style.colors.isEmpty { return 2 }
+      if style.geodesic { return 1 }
+      return 0
+    }
+    let existing = polylines[polyline.id]
+    let reuse = existing != nil && previous != nil && kind(previous!) == kind(polyline)
+    let overlay = reuse ? existing! : polyline.overlay
+    let geometryChanged = previous?.points.count != polyline.points.count ||
+      !zip(previous?.points ?? [], polyline.points).allSatisfy {
+        $0.0.latitude == $0.1.latitude && $0.0.longitude == $0.1.longitude
+      }
+    let boundariesChanged = previous?.drawStyleIndexes != polyline.drawStyleIndexes
+    if reuse && (geometryChanged || boundariesChanged) {
+      var coordinates = polyline.points.map { $0.coordinate }
+      let count = coordinates.count
+      let updated: Bool
+      if let multi = overlay as? MAMultiPolyline {
+        updated = multi.setPolylineWithCoordinates(&coordinates, count: UInt(count), drawStyleIndexes: polyline.drawStyleIndexes)
+      } else {
+        updated = overlay.setPolylineWithCoordinates(&coordinates, count: count)
+      }
+      guard updated else {
+        throw NSError(domain: "polyline", code: 3, userInfo: [NSLocalizedDescriptionKey: "SDK rejected polyline coordinates"])
+      }
+    } else if !reuse, let existing = existing {
+      mapView.remove(existing)
+    }
+    polylineImages[polyline.id] = images
     polylines[polyline.id] = overlay
     polylineStyles[polyline.id] = polyline
-    if polyline.visible {
-      reloadVisiblePolylines()
+    if !polyline.visible {
+      mapView.remove(overlay)
+    } else if !reuse || previous?.visible != true || previous?.zIndex != polyline.zIndex {
+      if reuse { mapView.remove(overlay) }
+      insertPolyline(overlay, style: polyline)
+    }
+    if polyline.visible, let renderer = mapView.renderer(for: overlay) as? MAPolylineRenderer {
+      mapViewDelegate?.applyPolylineStyle(renderer, style: polyline,
+        updateTextures: sourcesChanged || previous?.textureIndexes != polyline.textureIndexes)
+      renderer.setNeedsUpdate()
+    }
+  }
+
+  // Insert only the affected line. Other overlays retain their renderer and textures.
+  private func insertPolyline(_ overlay: MAPolyline, style: Polyline) {
+    let higher = polylines.keys.filter { id in
+      guard id != style.id, let other = polylineStyles[id], other.visible else { return false }
+      return other.zIndex > style.zIndex || (other.zIndex == style.zIndex && id > style.id)
+    }.sorted { lhs, rhs in
+      let l = polylineStyles[lhs]!.zIndex
+      let r = polylineStyles[rhs]!.zIndex
+      return l == r ? lhs < rhs : l < r
+    }
+    if let id = higher.first, let next = polylines[id] {
+      mapView.insert(overlay, below: next)
+    } else {
+      mapView.add(overlay)
     }
   }
 
   func removePolyline(id: String) {
-    if let overlay = polylines[id] {
-      mapView.remove(overlay)
-      polylines.removeValue(forKey: id)
-      polylineStyles.removeValue(forKey: id)
-    }
-  }
-
-  private func reloadVisiblePolylines() {
-    let visibleOverlays: [MAPolyline] = polylines.compactMap { entry -> MAPolyline? in
-      guard polylineStyles[entry.key]?.visible == true else { return nil }
-      return entry.value
-    }
-    if !visibleOverlays.isEmpty {
-      mapView.removeOverlays(visibleOverlays)
-    }
-    let sortedIds = polylines.keys.sorted {
-      let lhs = polylineStyles[$0]?.zIndex ?? 0
-      let rhs = polylineStyles[$1]?.zIndex ?? 0
-      if lhs == rhs { return $0 < $1 }
-      return lhs < rhs
-    }
-    for id in sortedIds {
-      guard let style = polylineStyles[id], style.visible, let overlay = polylines[id] else { continue }
-      mapView.add(overlay)
-    }
+    if let overlay = polylines.removeValue(forKey: id) { mapView.remove(overlay) }
+    polylineStyles.removeValue(forKey: id)
+    polylineImages.removeValue(forKey: id)
   }
 
   func addNavigateArrow(arrow: NavigateArrow) {
-    removeNavigateArrow(id: arrow.id)
     guard arrow.points.count >= 2 else { return }
-    let overlay = arrow.overlay
+    let existing = navigateArrows[arrow.id]
+    let previous = navigateArrowStyles[arrow.id]
+    let overlay = existing ?? arrow.overlay
+    if existing != nil {
+      var coordinates = arrow.points.map { $0.coordinate }
+      let count = coordinates.count
+      _ = overlay.setPolylineWithCoordinates(&coordinates, count: count)
+    }
     navigateArrows[arrow.id] = overlay
     navigateArrowStyles[arrow.id] = arrow
-    if arrow.visible {
-      mapView.add(overlay)
+    if !arrow.visible { mapView.remove(overlay) }
+    else if existing == nil || previous?.visible != true { mapView.add(overlay) }
+    else if let renderer = mapView.renderer(for: overlay) as? MAPolylineRenderer {
+      renderer.strokeColor = arrow.color
+      renderer.sideColor = arrow.sideColor
+      renderer.lineWidth = CGFloat(arrow.width) / UIScreen.main.scale
+      renderer.setNeedsUpdate()
     }
   }
 

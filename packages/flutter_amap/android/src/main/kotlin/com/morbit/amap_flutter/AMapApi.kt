@@ -375,20 +375,48 @@ class AMapApi(private val amap: AMapFlutter, private val config: MapInitConfig?)
     }
   }
 
+  fun isPolylineClickable(id: String): Boolean = polylineStyles[id]?.clickable == true
+
+  private val polylineStyles = mutableMapOf<String, Polyline>()
+
   fun addPolyline(polyline: Polyline) {
-    removePolyline(polyline.id)
-    if (polyline.points.size < 2) return
-    amap.polylines[polyline.id] = mapView.map.addPolyline(polyline.toPolylineOptions(amap.binding))
+    require(polyline.points.size >= 2) { "Polyline needs at least two points" }
+    val existing = amap.polylines[polyline.id]
+    val previous = polylineStyles[polyline.id]
+    if (existing != null && previous != null &&
+        previous.copy(points = polyline.points, width = polyline.width,
+          color = polyline.color, visible = polyline.visible, zIndex = polyline.zIndex) == polyline) {
+      if (previous.points != polyline.points) existing.points = polyline.points.map { it.toPosition() }
+      if (previous.width != polyline.width) existing.width = polyline.width.toFloat()
+      if (previous.color != polyline.color) existing.color = polyline.color.toArgb()
+      if (previous.visible != polyline.visible) existing.isVisible = polyline.visible
+      if (previous.zIndex != polyline.zIndex) existing.zIndex = polyline.zIndex.toFloat()
+    } else {
+      // Build/decode before touching the existing overlay, so failure preserves it.
+      val options = polyline.toPolylineOptions(amap.binding)
+      if (existing != null) existing.setOptions(options)
+      else amap.polylines[polyline.id] = mapView.map.addPolyline(options)
+    }
+    polylineStyles[polyline.id] = polyline
   }
 
   fun removePolyline(id: String) {
+    polylineStyles.remove(id)
     amap.polylines.remove(id)?.remove()
   }
 
   fun addNavigateArrow(arrow: NavigateArrow) {
-    removeNavigateArrow(arrow.id)
-    if (arrow.points.size < 2) return
-    amap.navigateArrows[arrow.id] = mapView.map.addNavigateArrow(arrow.toNavigateArrowOptions())
+    require(arrow.points.size >= 2)
+    val existing = amap.navigateArrows[arrow.id]
+    if (existing == null) {
+      amap.navigateArrows[arrow.id] = mapView.map.addNavigateArrow(arrow.toNavigateArrowOptions())
+    } else {
+      existing.points = arrow.points.map { it.toPosition() }
+      existing.topColor = arrow.color.toArgb()
+      existing.sideColor = arrow.sideColor.toArgb()
+      existing.width = arrow.width.toFloat()
+      existing.isVisible = arrow.visible
+    }
   }
 
   fun removeNavigateArrow(id: String) {

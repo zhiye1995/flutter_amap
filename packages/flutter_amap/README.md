@@ -100,3 +100,7 @@ await progressSubscription.cancel();
 ## License
 
 见 [LICENSE](LICENSE)。
+
+### 折线覆盖物
+
+新增样式、逐段纹理/颜色编号、原地更新与迁移规则见 [折线、导航箭头和弧线](doc/polylines.md)。

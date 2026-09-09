@@ -296,6 +296,54 @@ void main() {
     expect(result.paths.single.steps.single.tmcs.single.status, '畅通');
   });
 
+  test('RoutePlanResult removes consecutive duplicate polyline points', () {
+    final pointA = <String, dynamic>{
+      'latitude': 29.468220,
+      'longitude': 106.648317,
+    };
+    final pointB = <String, dynamic>{
+      'latitude': 29.500000,
+      'longitude': 106.700000,
+    };
+    final result = RoutePlanResult.decodeFromMap(<String, dynamic>{
+      'type': 'drive',
+      'paths': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'polyline': <Map<String, dynamic>>[pointA, pointA, pointB, pointA],
+          'steps': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'polyline': <Map<String, dynamic>>[
+                pointA,
+                pointA,
+                pointB,
+                pointA,
+              ],
+              'tmcs': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'polyline': <Map<String, dynamic>>[
+                    pointA,
+                    pointA,
+                    pointB,
+                    pointA,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    final path = result.paths.single;
+    expect(path.polyline, <Position>[
+      Position(latitude: 29.468220, longitude: 106.648317),
+      Position(latitude: 29.500000, longitude: 106.700000),
+      Position(latitude: 29.468220, longitude: 106.648317),
+    ]);
+    expect(path.steps.single.polyline, path.polyline);
+    expect(path.steps.single.tmcs.single.polyline, path.polyline);
+  });
+
   test('GeocodeResult decodes map fields', () {
     final result = GeocodeResult.decodeFromMap(<String, dynamic>{
       'formattedAddress': '北京市东城区天安门',

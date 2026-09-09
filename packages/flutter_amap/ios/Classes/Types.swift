@@ -501,6 +501,11 @@ struct Polyline {
   var textureIndexes: [Int]
   var dottedLine: Bool
   var zIndex: Double
+  var colorIndexes: [Int]
+  var lineCap: Int
+  var lineJoin: Int
+  var dashType: Int
+  var clickable: Bool
 
   static func fromList(_ list: [Any?]) -> Polyline {
     let id = list[0] as! String
@@ -540,7 +545,12 @@ struct Polyline {
       textures: textures,
       textureIndexes: textureIndexes,
       dottedLine: dottedLine,
-      zIndex: zIndex
+      zIndex: zIndex,
+      colorIndexes: list.count > 14 ? (list[14] as! [NSNumber]).map { $0.intValue } : [],
+      lineCap: list.count > 15 ? (list[15] as! NSNumber).intValue : 0,
+      lineJoin: list.count > 16 ? (list[16] as! NSNumber).intValue : 0,
+      dashType: list.count > 17 ? (list[17] as! NSNumber).intValue : 0,
+      clickable: list.count > 18 ? list[18] as! Bool : false
     )
   }
 
@@ -560,6 +570,7 @@ struct Polyline {
       textureIndexes,
       dottedLine,
       zIndex,
+      colorIndexes, lineCap, lineJoin, dashType, clickable,
     ]
   }
 }

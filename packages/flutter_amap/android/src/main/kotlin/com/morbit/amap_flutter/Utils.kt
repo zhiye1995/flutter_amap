@@ -108,7 +108,7 @@ fun Polyline.toPolylineOptions(binding: FlutterPluginBinding): PolylineOptions {
         options.addAll(points.map { it.toPosition() })
         options.color(color.toArgb())
         if (colors.isNotEmpty()) {
-            options.colorValues(colors.map { it.toArgb() })
+            options.colorValues((if (colorIndexes.isEmpty()) colors else colorIndexes.map { colors[it] }).map { it.toArgb() })
             options.useGradient(gradient)
         }
         options.geodesic(geodesic)
@@ -116,13 +116,31 @@ fun Polyline.toPolylineOptions(binding: FlutterPluginBinding): PolylineOptions {
         options.visible(visible)
         options.zIndex(zIndex.toFloat())
         options.setDottedLine(dottedLine)
+        options.setDottedLineType(dashType)
+        options.lineCapType(when (lineCap) {
+            1 -> PolylineOptions.LineCapType.LineCapSquare
+            2 -> PolylineOptions.LineCapType.LineCapRound
+            else -> PolylineOptions.LineCapType.LineCapButt
+        })
+        options.lineJoinType(when (lineJoin) {
+            1 -> PolylineOptions.LineJoinType.LineJoinMiter
+            2 -> PolylineOptions.LineJoinType.LineJoinRound
+            else -> PolylineOptions.LineJoinType.LineJoinBevel
+        })
         options.setUseTexture(useTexture)
-        texture?.toBitmapDescriptor(binding)?.let { options.setCustomTexture(it) }
-        if (textures.isNotEmpty()) {
-            options.setCustomTextureList(textures.mapNotNull { it.toBitmapDescriptor(binding) })
-        }
-        if (textureIndexes.isNotEmpty()) {
-            options.setCustomTextureIndex(textureIndexes)
+        if (useTexture) {
+            texture?.let {
+                options.setCustomTexture(requireNotNull(it.toBitmapDescriptor(binding)) {
+                    "Unable to decode polyline texture"
+                })
+            }
+            if (textures.isNotEmpty()) {
+                options.setCustomTextureList(textures.map {
+                    requireNotNull(it.toBitmapDescriptor(binding)) { "Unable to decode polyline texture" }
+                })
+                options.setCustomTextureIndex(if (textureIndexes.isEmpty())
+                    List(points.size - 1) { 0 } else textureIndexes)
+            }
         }
         options
     }

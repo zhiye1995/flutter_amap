@@ -159,6 +159,12 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
         );
         break;
 
+      case "onPolylineClick":
+        final arguments = _getArgumentDictionary(call);
+        mapEventStreamController.add(
+          PolylineClickEvent(mapId, arguments["polylineId"] as String),
+        );
+        break;
       case "onMarkerClick":
         final Map<String, Object?> arguments = _getArgumentDictionary(call);
         mapEventStreamController.add(
@@ -386,6 +392,7 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   /// 添加折线
   @override
   Future<void> addPolyline(Polyline polyline, {required int mapId}) {
+    polyline.validate();
     return _channel(
       mapId,
     ).invokeMethod("addPolyline", <String, dynamic>{"polyline": polyline});
@@ -402,6 +409,7 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   /// 添加导航箭头
   @override
   Future<void> addNavigateArrow(NavigateArrow arrow, {required int mapId}) {
+    arrow.validate();
     return _channel(
       mapId,
     ).invokeMethod("addNavigateArrow", <String, dynamic>{"arrow": arrow});
@@ -418,6 +426,7 @@ class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {
   /// 添加弧线
   @override
   Future<void> addArc(Arc arc, {required int mapId}) {
+    arc.validate();
     return _channel(
       mapId,
     ).invokeMethod("addArc", <String, dynamic>{"arc": arc});

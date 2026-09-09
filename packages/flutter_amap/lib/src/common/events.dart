@@ -166,3 +166,8 @@ class UserLocationClickEvent extends _PositionedMapEvent<void> {
   UserLocationClickEvent(int mapId, Position position)
     : super(mapId, position, null);
 }
+
+/// 折线点击事件。
+class PolylineClickEvent extends MapEvent<String> {
+  PolylineClickEvent(super.mapId, super.value);
+}

@@ -184,6 +184,13 @@ class Marker {
   int get hashCode => Object.hash(id, position, bitmap, anchor, title, snippet);
 }
 
+/// 折线端点形状。
+enum PolylineCap { butt, square, round }
+
+enum PolylineJoin { bevel, miter, round }
+
+enum PolylineDash { square, circle }
+
 /// 折线覆盖物配置。
 class Polyline {
   Polyline({
@@ -201,6 +208,11 @@ class Polyline {
     this.textureIndexes = const <int>[],
     this.dottedLine = false,
     this.zIndex = 0,
+    this.colorIndexes = const <int>[],
+    this.lineCap = PolylineCap.butt,
+    this.lineJoin = PolylineJoin.bevel,
+    this.dashType = PolylineDash.square,
+    this.clickable = false,
   });
 
   /// 折线ID
@@ -212,7 +224,9 @@ class Polyline {
   /// 折线颜色
   Color color;
 
-  /// 分段颜色。为空时使用 [color] 绘制单色线。
+  /// 分段颜色表。未指定 colorIndexes 时，每段一种颜色。
+  /// 渐变模式下必须为每个坐标点提供一个颜色，作为颜色锚点。
+  /// 为空时使用 [color] 绘制单色线。
   ///
   /// Android 使用 `PolylineOptions.colorValues`；iOS 使用
   /// `MAMultiColoredPolylineRenderer.strokeColors`。
@@ -230,7 +244,7 @@ class Polyline {
   /// 是否按大地曲线绘制。
   ///
   /// Android 对应 `PolylineOptions.geodesic`；iOS 对应
-  /// `MAGeodesicPolyline`。多彩线与大地曲线同时设置时，iOS 优先按多彩线绘制。
+  /// `MAGeodesicPolyline`。不能与多彩线、渐变或纹理组合。
   bool geodesic;
 
   /// 是否启用纹理贴图。
@@ -252,10 +266,8 @@ class Polyline {
   /// `MAMultiTexturePolylineRenderer.strokeTextureImages`。
   List<Bitmap> textures;
 
-  /// 分段纹理索引。
-  ///
-  /// Android 对应 `PolylineOptions.setCustomTextureIndex`；iOS 用作
-  /// `MAMultiPolyline.drawStyleIndexes`。
+  /// 每段使用的纹理编号（从 0 开始），长度必须为 points.length - 1。
+  /// 为空时所有段使用第一张纹理。iOS 自动转换为样式边界和图片序列。
   List<int> textureIndexes;
 
   /// 是否绘制虚线。
@@ -269,6 +281,102 @@ class Polyline {
   /// Android 对应 `PolylineOptions.zIndex`；iOS 会按该值重排折线覆盖物，
   /// 仅保证折线之间的相对层级。
   double zIndex;
+
+  /// 每段的颜色表编号；为空时按颜色表顺序逐段绘制。渐变时不可设置。
+  List<int> colorIndexes;
+  PolylineCap lineCap;
+  PolylineJoin lineJoin;
+  PolylineDash dashType;
+
+  /// 是否发送 onPolylineClick。默认关闭；点击容差由平台决定。
+  bool clickable;
+
+  /// 在进入原生 SDK 前校验。失败不会删除已存在的同 ID 折线。
+  void validate() {
+    if (id.trim().isEmpty) throw ArgumentError('Polyline.id must not be empty');
+    if (points.length < 2) {
+      throw ArgumentError('Polyline needs at least two points');
+    }
+    if (!width.isFinite || width <= 0 || !zIndex.isFinite) {
+      throw ArgumentError(
+        'Polyline width must be positive and finite; zIndex must be finite',
+      );
+    }
+    for (var i = 0; i < points.length; i++) {
+      final p = points[i];
+      if (!p.latitude.isFinite ||
+          !p.longitude.isFinite ||
+          p.latitude.abs() > 90 ||
+          p.longitude.abs() > 180) {
+        throw ArgumentError('Invalid polyline coordinate at $i');
+      }
+      if (i > 0 &&
+          p.latitude == points[i - 1].latitude &&
+          p.longitude == points[i - 1].longitude) {
+        throw ArgumentError('Consecutive duplicate polyline points at $i');
+      }
+    }
+    void checkIndexes(List<int> indexes, int count, String name) {
+      if (indexes.isNotEmpty &&
+          (indexes.length != points.length - 1 ||
+              indexes.any((i) => i < 0 || i >= count))) {
+        throw ArgumentError(
+          '$name must contain one valid style index per segment',
+        );
+      }
+    }
+
+    if (geodesic && (colors.isNotEmpty || gradient || useTexture)) {
+      throw ArgumentError(
+        'Geodesic cannot be combined with colors, gradient or texture',
+      );
+    }
+    if (useTexture && (colors.isNotEmpty || gradient || dottedLine)) {
+      throw ArgumentError(
+        'Texture cannot be combined with colors, gradient or dashed lines',
+      );
+    }
+    if (useTexture) {
+      for (final image in [?texture, ...textures]) {
+        if ((image.asset == null || image.asset!.isEmpty) &&
+            (image.bytes == null || image.bytes!.isEmpty)) {
+          throw ArgumentError('Texture requires a nonempty asset or bytes');
+        }
+        final size = image.size;
+        if (size != null &&
+            (!size.width.isFinite ||
+                !size.height.isFinite ||
+                size.width < 1 ||
+                size.height < 1)) {
+          throw ArgumentError(
+            'Texture dimensions must be finite and at least one pixel',
+          );
+        }
+      }
+      if ((texture == null) == textures.isEmpty) {
+        throw ArgumentError('Provide exactly one texture source');
+      }
+      checkIndexes(textureIndexes, textures.length, 'textureIndexes');
+    } else if (textureIndexes.isNotEmpty) {
+      throw ArgumentError('textureIndexes requires useTexture');
+    }
+    if (gradient) {
+      if (colors.length != points.length || colorIndexes.isNotEmpty) {
+        throw ArgumentError(
+          'Gradient requires one color per point and no colorIndexes',
+        );
+      }
+    } else {
+      checkIndexes(colorIndexes, colors.length, 'colorIndexes');
+      if (colors.isNotEmpty &&
+          colorIndexes.isEmpty &&
+          colors.length != points.length - 1) {
+        throw ArgumentError(
+          'Provide one color per segment or explicit colorIndexes',
+        );
+      }
+    }
+  }
 
   Object encode() {
     return <Object?>[
@@ -286,6 +394,11 @@ class Polyline {
       textureIndexes,
       dottedLine,
       zIndex,
+      colorIndexes,
+      lineCap.index,
+      lineJoin.index,
+      dashType.index,
+      clickable,
     ];
   }
 
@@ -300,8 +413,8 @@ class Polyline {
       visible: result[4]! as bool,
       colors: result.length > 5 && result[5] != null
           ? (result[5]! as List<Object?>)
-              .map((color) => Color(color! as int))
-              .toList()
+                .map((color) => Color(color! as int))
+                .toList()
           : const <Color>[],
       gradient: result.length > 6 ? result[6]! as bool : false,
       geodesic: result.length > 7 ? result[7]! as bool : false,
@@ -311,16 +424,29 @@ class Polyline {
           : null,
       textures: result.length > 10 && result[10] != null
           ? (result[10]! as List<Object?>)
-              .map((texture) => Bitmap.decode(texture! as List<Object?>))
-              .toList()
+                .map((texture) => Bitmap.decode(texture! as List<Object?>))
+                .toList()
           : const <Bitmap>[],
       textureIndexes: result.length > 11 && result[11] != null
           ? (result[11]! as List<Object?>)
-              .map((index) => index! as int)
-              .toList()
+                .map((index) => index! as int)
+                .toList()
           : const <int>[],
       dottedLine: result.length > 12 ? result[12]! as bool : false,
-      zIndex: result.length > 13 ? result[13]! as double : 0,
+      zIndex: result.length > 13 ? (result[13]! as num).toDouble() : 0,
+      clickable: result.length > 18 ? result[18]! as bool : false,
+      colorIndexes: result.length > 14
+          ? (result[14]! as List).cast<int>()
+          : const <int>[],
+      lineCap: result.length > 15
+          ? PolylineCap.values[result[15]! as int]
+          : PolylineCap.butt,
+      lineJoin: result.length > 16
+          ? PolylineJoin.values[result[16]! as int]
+          : PolylineJoin.bevel,
+      dashType: result.length > 17
+          ? PolylineDash.values[result[17]! as int]
+          : PolylineDash.square,
     );
   }
 
@@ -339,6 +465,12 @@ class Polyline {
     List<int>? textureIndexes,
     bool? dottedLine,
     double? zIndex,
+    List<int>? colorIndexes,
+    PolylineCap? lineCap,
+    PolylineJoin? lineJoin,
+    PolylineDash? dashType,
+    bool clearTexture = false,
+    bool? clickable,
   }) {
     return Polyline(
       id: id ?? this.id,
@@ -350,11 +482,16 @@ class Polyline {
       gradient: gradient ?? this.gradient,
       geodesic: geodesic ?? this.geodesic,
       useTexture: useTexture ?? this.useTexture,
-      texture: texture ?? this.texture,
+      texture: clearTexture ? null : (texture ?? this.texture),
       textures: textures ?? this.textures,
       textureIndexes: textureIndexes ?? this.textureIndexes,
       dottedLine: dottedLine ?? this.dottedLine,
       zIndex: zIndex ?? this.zIndex,
+      colorIndexes: colorIndexes ?? this.colorIndexes,
+      lineCap: lineCap ?? this.lineCap,
+      lineJoin: lineJoin ?? this.lineJoin,
+      dashType: dashType ?? this.dashType,
+      clickable: clickable ?? this.clickable,
     );
   }
 
@@ -377,28 +514,36 @@ class Polyline {
         listEquals(textures, other.textures) &&
         listEquals(textureIndexes, other.textureIndexes) &&
         dottedLine == other.dottedLine &&
-        zIndex == other.zIndex;
+        zIndex == other.zIndex &&
+        listEquals(colorIndexes, other.colorIndexes) &&
+        lineCap == other.lineCap &&
+        lineJoin == other.lineJoin &&
+        dashType == other.dashType &&
+        clickable == other.clickable;
   }
 
   @override
-  int get hashCode => Object.hashAll(
-        <Object?>[
-          id,
-          Object.hashAll(points),
-          color,
-          Object.hashAll(colors),
-          width,
-          visible,
-          gradient,
-          geodesic,
-          useTexture,
-          texture,
-          Object.hashAll(textures),
-          Object.hashAll(textureIndexes),
-          dottedLine,
-          zIndex,
-        ],
-      );
+  int get hashCode => Object.hashAll(<Object?>[
+    id,
+    Object.hashAll(points),
+    color,
+    Object.hashAll(colors),
+    width,
+    visible,
+    gradient,
+    geodesic,
+    useTexture,
+    texture,
+    Object.hashAll(textures),
+    Object.hashAll(textureIndexes),
+    dottedLine,
+    zIndex,
+    Object.hashAll(colorIndexes),
+    lineCap,
+    lineJoin,
+    dashType,
+    clickable,
+  ]);
 }
 
 /// 导航箭头覆盖物配置。
@@ -429,6 +574,10 @@ class NavigateArrow {
 
   /// 是否可见。
   bool visible;
+
+  void validate() {
+    Polyline(id: id, points: points, width: width).validate();
+  }
 
   Object encode() {
     return <Object?>[
@@ -487,14 +636,8 @@ class NavigateArrow {
   }
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        Object.hashAll(points),
-        color,
-        sideColor,
-        width,
-        visible,
-      );
+  int get hashCode =>
+      Object.hash(id, Object.hashAll(points), color, sideColor, width, visible);
 }
 
 /// 弧线覆盖物配置。
@@ -529,6 +672,23 @@ class Arc {
 
   /// 是否可见
   bool visible;
+
+  void validate() {
+    Polyline(id: id, points: [start, passed, end], width: width).validate();
+    double mercatorY(Position p) {
+      final latitude = p.latitude.clamp(-85.05112878, 85.05112878);
+      return math.log(math.tan(math.pi / 4 + latitude * math.pi / 360));
+    }
+
+    final ax = (passed.longitude - start.longitude) * math.pi / 180;
+    final ay = mercatorY(passed) - mercatorY(start);
+    final bx = (end.longitude - start.longitude) * math.pi / 180;
+    final by = mercatorY(end) - mercatorY(start);
+    final scale = math.sqrt((ax * ax + ay * ay) * (bx * bx + by * by));
+    if (scale == 0 || (ax * by - ay * bx).abs() <= scale * 1e-10) {
+      throw ArgumentError('Arc points must be distinct and not collinear');
+    }
+  }
 
   Object encode() {
     return <Object?>[

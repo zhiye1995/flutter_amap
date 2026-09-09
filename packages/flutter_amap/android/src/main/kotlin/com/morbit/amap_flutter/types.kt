@@ -507,6 +507,11 @@ data class Polyline(
   val textureIndexes: List<Int>,
   val dottedLine: Boolean,
   val zIndex: Double,
+  val colorIndexes: List<Int>,
+  val lineCap: Int,
+  val lineJoin: Int,
+  val dashType: Int,
+  val clickable: Boolean,
 ) {
   companion object {
     fun fromList(list: List<Any?>): Polyline {
@@ -551,6 +556,11 @@ data class Polyline(
         textureIndexes,
         dottedLine,
         zIndex,
+        if (list.size > 14) (list[14] as List<*>).map { (it as Number).toInt() } else emptyList(),
+        if (list.size > 15) (list[15] as Number).toInt() else 0,
+        if (list.size > 16) (list[16] as Number).toInt() else 0,
+        if (list.size > 17) (list[17] as Number).toInt() else 0,
+        if (list.size > 18) list[18] as Boolean else false,
       )
     }
   }
@@ -571,6 +581,7 @@ data class Polyline(
       textureIndexes,
       dottedLine,
       zIndex,
+      colorIndexes, lineCap, lineJoin, dashType, clickable,
     )
   }
 }

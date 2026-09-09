@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_amap/flutter_amap.dart';
 
@@ -18,14 +21,27 @@ class PolylinesPage extends StatefulWidget {
   State<PolylinesPage> createState() => _PolylinesPageState();
 }
 
-class _PolylinesPageState extends State<PolylinesPage> {
+class _PolylinesPageState extends State<PolylinesPage>
+    with _OverlayActions<PolylinesPage> {
   static const _lineId = 'polyline_basic_demo';
   static const _minLineWidth = 4.0;
   static const _maxLineWidth = 30.0;
 
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
+
   AMapController? _controller;
   var _ready = false;
   var _visible = true;
+  var _hidden = false;
   var _lineWidth = 10.0;
   var _red = false;
   var _points = <Position>[
@@ -47,9 +63,10 @@ class _PolylinesPageState extends State<PolylinesPage> {
                 position: _mapCenter,
                 zoom: 16.4,
               ),
-              onMapCreated: _bootstrap,
-              onMapPress: _appendPoint,
-              onPoiClick: (poi) => _appendPoint(poi.position),
+              onMapCreated: (c) => run(() => _bootstrap(c)),
+              onPolylineClick: (id) => context.snackBar('已选中折线：$id'),
+              onMapPress: (point) => run(() => _appendPoint(point)),
+              onPoiClick: (poi) => run(() => _appendPoint(poi.position)),
             ),
           ),
           SafeArea(
@@ -60,25 +77,75 @@ class _PolylinesPageState extends State<PolylinesPage> {
                 value: _lineWidth,
                 min: _minLineWidth,
                 max: _maxLineWidth,
-                enabled: _ready && _visible,
-                onChanged: (value) => setState(() => _lineWidth = value),
-                onChangeEnd: _setLineWidth,
+                enabled: _ready && !busy && _visible,
+                onChanged: (value) => preview(() => _setLineWidth(value)),
+                onChangeEnd: (value) =>
+                    preview(() => _setLineWidth(value), immediate: true),
               ),
               children: [
+                ...actionStatus,
+                OutlinedButton(
+                  onPressed: !_ready || busy || _points.isEmpty
+                      ? null
+                      : () => run(() async {
+                          setState(
+                            () => _points = _points.sublist(
+                              0,
+                              _points.length - 1,
+                            ),
+                          );
+                          await _draw();
+                        }),
+                  child: const Text('撤销末点'),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy || _points.isEmpty
+                      ? null
+                      : () => run(() async {
+                          setState(() => _points = []);
+                          await _draw();
+                        }),
+                  child: const Text('清空节点'),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy || !_visible || _points.length < 2
+                      ? null
+                      : () => run(() async {
+                          setState(() => _hidden = !_hidden);
+                          await _draw();
+                        }),
+                  child: Text(_hidden ? '显示折线' : '隐藏折线'),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy || _points.length < 2
+                      ? null
+                      : () => run(() async {
+                          await _controller!.moveCameraToFitPosition(
+                            _points,
+                            _linePadding,
+                            const Duration(milliseconds: 300),
+                          );
+                        }),
+                  child: const Text('适配视野'),
+                ),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleVisible,
+                  onPressed: !_ready || busy ? null : () => run(_toggleVisible),
                   child: Text(_visible ? '移除折线' : '添加折线'),
                 ),
                 FilledButton(
-                  onPressed: !_ready || !_visible ? null : _toggleWidth,
+                  onPressed: !_ready || busy || !_visible
+                      ? null
+                      : () => run(_toggleWidth),
                   child: Text(_lineWidth > 14 ? '细线' : '粗线'),
                 ),
                 FilledButton(
-                  onPressed: !_ready || !_visible ? null : _toggleColor,
+                  onPressed: !_ready || busy || !_visible
+                      ? null
+                      : () => run(_toggleColor),
                   child: Text(_red ? '蓝色' : '红色'),
                 ),
                 OutlinedButton(
-                  onPressed: !_ready ? null : _reset,
+                  onPressed: !_ready || busy ? null : () => run(_reset),
                   child: const Text('重置'),
                 ),
               ],
@@ -91,10 +158,10 @@ class _PolylinesPageState extends State<PolylinesPage> {
 
   Future<void> _bootstrap(AMapController c) async {
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
     await _draw();
-    c.moveCameraToFitPosition(
+    await c.moveCameraToFitPosition(
       _points,
       _linePadding,
       const Duration(milliseconds: 300),
@@ -107,13 +174,19 @@ class _PolylinesPageState extends State<PolylinesPage> {
 
   Future<void> _draw() async {
     final c = _controller;
-    if (c == null || !_visible || _points.length < 2) return;
-    await c.addPolyline(
+    if (c == null) return;
+    if (!_visible || _points.length < 2) {
+      await c.removePolyline(_lineId);
+      return;
+    }
+    await c.updatePolyline(
       Polyline(
         id: _lineId,
         points: _points,
         color: _red ? const Color(0xFFE53935) : const Color(0xFF1976D2),
         width: _lineWidth,
+        visible: !_hidden,
+        clickable: true,
       ),
     );
   }
@@ -121,12 +194,16 @@ class _PolylinesPageState extends State<PolylinesPage> {
   Future<void> _replaceLine() async {
     final c = _controller;
     if (c == null) return;
-    await c.removePolyline(_lineId);
     await _draw();
   }
 
   Future<void> _appendPoint(Position position) async {
     if (!_ready || !_visible) return;
+    if (_points.isNotEmpty &&
+        _points.last.latitude == position.latitude &&
+        _points.last.longitude == position.longitude) {
+      return;
+    }
     setState(() => _points = [..._points, position]);
     await _replaceLine();
   }
@@ -160,6 +237,7 @@ class _PolylinesPageState extends State<PolylinesPage> {
   Future<void> _reset() async {
     setState(() {
       _visible = true;
+      _hidden = false;
       _lineWidth = 10;
       _red = false;
       _points = <Position>[
@@ -183,12 +261,25 @@ class MultiColorPolylinePage extends StatefulWidget {
   State<MultiColorPolylinePage> createState() => _MultiColorPolylinePageState();
 }
 
-class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
+class _MultiColorPolylinePageState extends State<MultiColorPolylinePage>
+    with _OverlayActions<MultiColorPolylinePage> {
   static const _lineId = 'polyline_multicolor_demo';
+
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
 
   AMapController? _controller;
   var _ready = false;
   var _gradient = false;
+  var _grouped = false;
 
   final _points = <Position>[
     Position(latitude: 39.982870, longitude: 116.304980),
@@ -217,17 +308,39 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
                 position: _mapCenter,
                 zoom: 16.2,
               ),
-              onMapCreated: _bootstrap,
+              onMapCreated: (c) => run(() => _bootstrap(c)),
             ),
           ),
           SafeArea(
             top: false,
             child: _Panel(
-              title: _gradient ? '渐变多彩线：颜色在线段之间平滑过渡。' : '分段多彩线：每一段使用一个独立颜色。',
+              title: _gradient
+                  ? '渐变多彩线：五个节点分别设置颜色，末端为紫色。'
+                  : _grouped
+                  ? '前两段红色、后两段蓝色，使用独立颜色编号。'
+                  : '分段多彩线：每一段使用一个独立颜色。',
               children: [
-                for (final color in _colors) _ColorDot(color: color),
+                ...actionStatus,
+                for (final color
+                    in (_gradient
+                        ? [..._colors, const Color(0xFF8E24AA)]
+                        : _grouped
+                        ? [_colors.first, _colors.last]
+                        : _colors))
+                  _ColorDot(color: color),
+                OutlinedButton(
+                  onPressed: !_ready || busy || _gradient
+                      ? null
+                      : () => run(() async {
+                          setState(() => _grouped = !_grouped);
+                          await _draw();
+                        }),
+                  child: Text(_grouped ? '恢复逐段颜色' : '前后各两段同色'),
+                ),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleGradient,
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(_toggleGradient),
                   child: Text(_gradient ? '切换为分段' : '切换为渐变'),
                 ),
               ],
@@ -240,10 +353,10 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
 
   Future<void> _bootstrap(AMapController c) async {
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
     await _draw();
-    c.moveCameraToFitPosition(
+    await c.moveCameraToFitPosition(
       _points,
       _linePadding,
       const Duration(milliseconds: 300),
@@ -254,13 +367,17 @@ class _MultiColorPolylinePageState extends State<MultiColorPolylinePage> {
   Future<void> _draw() async {
     final c = _controller;
     if (c == null) return;
-    await c.removePolyline(_lineId);
-    await c.addPolyline(
+    await c.updatePolyline(
       Polyline(
         id: _lineId,
         points: _points,
         color: _colors.first,
-        colors: _colors,
+        colors: _gradient
+            ? [..._colors, const Color(0xFF8E24AA)]
+            : _grouped
+            ? [_colors.first, _colors.last]
+            : _colors,
+        colorIndexes: !_gradient && _grouped ? const [0, 0, 1, 1] : const [],
         gradient: _gradient,
         width: 16,
       ),
@@ -283,7 +400,8 @@ class PolylineStylePage extends StatefulWidget {
   State<PolylineStylePage> createState() => _PolylineStylePageState();
 }
 
-class _PolylineStylePageState extends State<PolylineStylePage> {
+class _PolylineStylePageState extends State<PolylineStylePage>
+    with _OverlayActions<PolylineStylePage> {
   static const _dottedId = 'polyline_style_dotted';
   static const _textureId = 'polyline_style_texture';
   static const _multiTextureId = 'polyline_style_multi_texture';
@@ -292,11 +410,32 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
   static const _minLineWidth = 4.0;
   static const _maxLineWidth = 30.0;
 
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
+
   AMapController? _controller;
   var _ready = false;
   var _useTexture = true;
   var _frontOnTop = true;
   var _lineWidth = 18.0;
+  var _dashType = PolylineDash.square;
+  var _lineCap = PolylineCap.butt;
+  var _lineJoin = PolylineJoin.bevel;
+  final _drawn = <String, Polyline>{};
+
+  Future<void> _submit(Polyline line) async {
+    if (_drawn[line.id] == line) return;
+    await _controller!.updatePolyline(line);
+    _drawn[line.id] = line;
+  }
 
   final _dottedPoints = <Position>[
     Position(latitude: 39.985130, longitude: 116.303780),
@@ -350,7 +489,7 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
                 position: _mapCenter,
                 zoom: 16.1,
               ),
-              onMapCreated: _bootstrap,
+              onMapCreated: (c) => run(() => _bootstrap(c)),
             ),
           ),
           SafeArea(
@@ -363,20 +502,65 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
                 value: _lineWidth,
                 min: _minLineWidth,
                 max: _maxLineWidth,
-                enabled: _ready,
-                onChanged: (value) => setState(() => _lineWidth = value),
-                onChangeEnd: _setLineWidth,
+                enabled: _ready && !busy,
+                onChanged: (value) => preview(() => _setLineWidth(value)),
+                onChangeEnd: (value) =>
+                    preview(() => _setLineWidth(value), immediate: true),
               ),
               children: [
+                ...actionStatus,
+                OutlinedButton(
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(() async {
+                          setState(
+                            () => _dashType = _dashType == PolylineDash.square
+                                ? PolylineDash.circle
+                                : PolylineDash.square,
+                          );
+                          await _draw();
+                        }),
+                  child: Text(
+                    _dashType == PolylineDash.square ? '方形虚线' : '圆点虚线',
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(() async {
+                          setState(
+                            () => _lineCap =
+                                PolylineCap.values[(_lineCap.index + 1) %
+                                    PolylineCap.values.length],
+                          );
+                          await _draw();
+                        }),
+                  child: Text('端点：${const ['平头', '方头', '圆头'][_lineCap.index]}'),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(() async {
+                          setState(
+                            () => _lineJoin =
+                                PolylineJoin.values[(_lineJoin.index + 1) %
+                                    PolylineJoin.values.length],
+                          );
+                          await _draw();
+                        }),
+                  child: Text(
+                    '连接：${const ['斜面', '尖角', '圆角'][_lineJoin.index]}',
+                  ),
+                ),
                 const _LegendDot(color: Color(0xFF7B1FA2), label: '虚线'),
                 const _LegendDot(color: Color(0xFF00897B), label: '单纹理'),
                 const _LegendDot(color: Color(0xFFFF8F00), label: '分段纹理'),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleTexture,
+                  onPressed: !_ready || busy ? null : () => run(_toggleTexture),
                   child: Text(_useTexture ? '关闭纹理' : '启用纹理'),
                 ),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleZIndex,
+                  onPressed: !_ready || busy ? null : () => run(_toggleZIndex),
                   child: Text(_frontOnTop ? '蓝线置底' : '蓝线置顶'),
                 ),
               ],
@@ -388,11 +572,12 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
   }
 
   Future<void> _bootstrap(AMapController c) async {
+    if (_controller != c) _drawn.clear();
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
     await _draw();
-    c.moveCameraToFitPosition(
+    await c.moveCameraToFitPosition(
       _fitPoints,
       _linePadding,
       const Duration(milliseconds: 300),
@@ -403,31 +588,27 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
   Future<void> _draw() async {
     final c = _controller;
     if (c == null) return;
-    for (final id in [
-      _dottedId,
-      _textureId,
-      _multiTextureId,
-      _zBackId,
-      _zFrontId,
-    ]) {
-      await c.removePolyline(id);
-    }
-    await c.addPolyline(
+    await _submit(
       Polyline(
         id: _dottedId,
         points: _dottedPoints,
         color: const Color(0xFF7B1FA2),
         width: _lineWidth,
+        lineCap: _lineCap,
+        lineJoin: _lineJoin,
         dottedLine: true,
+        dashType: _dashType,
         zIndex: 1,
       ),
     );
-    await c.addPolyline(
+    await _submit(
       Polyline(
         id: _textureId,
         points: _texturePoints,
         color: const Color(0xFF00897B),
         width: _lineWidth,
+        lineCap: _lineCap,
+        lineJoin: _lineJoin,
         useTexture: _useTexture,
         texture: _useTexture
             ? Bitmap(
@@ -438,12 +619,14 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
         zIndex: 2,
       ),
     );
-    await c.addPolyline(
+    await _submit(
       Polyline(
         id: _multiTextureId,
         points: _multiTexturePoints,
         color: const Color(0xFFFF8F00),
         width: _lineWidth,
+        lineCap: _lineCap,
+        lineJoin: _lineJoin,
         useTexture: _useTexture,
         textures: _useTexture
             ? <Bitmap>[
@@ -457,25 +640,29 @@ class _PolylineStylePageState extends State<PolylineStylePage> {
                 ),
               ]
             : const <Bitmap>[],
-        textureIndexes: const <int>[1, 2, 3],
+        textureIndexes: _useTexture ? const <int>[0, 1, 0, 1] : const <int>[],
         zIndex: 3,
       ),
     );
-    await c.addPolyline(
+    await _submit(
       Polyline(
         id: _zBackId,
         points: _zBackPoints,
         color: const Color(0xFFE53935),
         width: _lineWidth,
+        lineCap: _lineCap,
+        lineJoin: _lineJoin,
         zIndex: _frontOnTop ? 4 : 6,
       ),
     );
-    await c.addPolyline(
+    await _submit(
       Polyline(
         id: _zFrontId,
         points: _zFrontPoints,
         color: const Color(0xFF1976D2),
         width: _lineWidth,
+        lineCap: _lineCap,
+        lineJoin: _lineJoin,
         zIndex: _frontOnTop ? 6 : 4,
       ),
     );
@@ -507,8 +694,20 @@ class NavigateArrowPage extends StatefulWidget {
   State<NavigateArrowPage> createState() => _NavigateArrowPageState();
 }
 
-class _NavigateArrowPageState extends State<NavigateArrowPage> {
+class _NavigateArrowPageState extends State<NavigateArrowPage>
+    with _OverlayActions<NavigateArrowPage> {
   static const _arrowId = 'navigate_arrow_demo';
+
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
 
   AMapController? _controller;
   var _ready = false;
@@ -537,7 +736,7 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
                 skew: 38.5,
                 heading: 300,
               ),
-              onMapCreated: _bootstrap,
+              onMapCreated: (c) => run(() => _bootstrap(c)),
             ),
           ),
           SafeArea(
@@ -545,6 +744,7 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
             child: _Panel(
               title: '参考官方 Demo 坐标绘制导航箭头；iOS 使用 3D 箭头线等效展示。',
               children: [
+                ...actionStatus,
                 _LegendDot(
                   color: _red
                       ? const Color(0xFFE53935)
@@ -552,15 +752,19 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
                   label: _red ? '红色箭头' : '蓝色箭头',
                 ),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleVisible,
+                  onPressed: !_ready || busy ? null : () => run(_toggleVisible),
                   child: Text(_visible ? '移除箭头' : '添加箭头'),
                 ),
                 FilledButton(
-                  onPressed: !_ready || !_visible ? null : _toggleWidth,
+                  onPressed: !_ready || busy || !_visible
+                      ? null
+                      : () => run(_toggleWidth),
                   child: Text(_wide ? '细箭头' : '粗箭头'),
                 ),
                 FilledButton(
-                  onPressed: !_ready || !_visible ? null : _toggleColor,
+                  onPressed: !_ready || busy || !_visible
+                      ? null
+                      : () => run(_toggleColor),
                   child: Text(_red ? '蓝色' : '红色'),
                 ),
               ],
@@ -573,10 +777,10 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
 
   Future<void> _bootstrap(AMapController c) async {
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
     await _draw();
-    c.moveCameraToFitPosition(
+    await c.moveCameraToFitPosition(
       _points,
       _linePadding,
       const Duration(milliseconds: 300),
@@ -586,7 +790,11 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
 
   Future<void> _draw() async {
     final c = _controller;
-    if (c == null || !_visible) return;
+    if (c == null) return;
+    if (!_visible) {
+      await c.removeNavigateArrow(_arrowId);
+      return;
+    }
     await c.addNavigateArrow(
       NavigateArrow(
         id: _arrowId,
@@ -601,7 +809,6 @@ class _NavigateArrowPageState extends State<NavigateArrowPage> {
   Future<void> _replaceArrow() async {
     final c = _controller;
     if (c == null) return;
-    await c.removeNavigateArrow(_arrowId);
     await _draw();
   }
 
@@ -637,20 +844,43 @@ class GeodesicPolylinePage extends StatefulWidget {
   State<GeodesicPolylinePage> createState() => _GeodesicPolylinePageState();
 }
 
-class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
+class _GeodesicPolylinePageState extends State<GeodesicPolylinePage>
+    with _OverlayActions<GeodesicPolylinePage> {
   static const _straightId = 'polyline_straight_compare';
   static const _geodesicId = 'polyline_geodesic_demo';
+
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
 
   AMapController? _controller;
   var _ready = false;
   var _showCompare = true;
+  var _twoPoints = false;
 
-  final _points = <Position>[
+  final _cityPoints = <Position>[
     Position(latitude: 39.904211, longitude: 116.407395), // 北京
     Position(latitude: 31.230416, longitude: 121.473701), // 上海
     Position(latitude: 22.543099, longitude: 114.057868), // 深圳
     Position(latitude: 35.689487, longitude: 139.691711), // 东京
   ];
+
+  List<Position> get _points => _twoPoints
+      ? [_cityPoints.first, Position(latitude: 51.5074, longitude: -0.1278)]
+      : _cityPoints;
+
+  Future<void> _fit() => _controller!.moveCameraToFitPosition(
+    _sampleGeodesic(_points),
+    _linePadding,
+    const Duration(milliseconds: 300),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -664,19 +894,35 @@ class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
                 position: Position(latitude: 31.8, longitude: 123.0),
                 zoom: 4.2,
               ),
-              onMapCreated: _bootstrap,
+              onMapCreated: (c) => run(() => _bootstrap(c)),
             ),
           ),
           SafeArea(
             top: false,
             child: _Panel(
-              title: '橙色为大地曲线；蓝色为普通折线对比，远距离航线弯曲更明显。',
+              title: _twoPoints ? '北京—伦敦：两点远距离曲线对比。' : '橙色为大地曲线；蓝色为普通折线对比。',
               children: [
+                ...actionStatus,
+                OutlinedButton(
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(() async {
+                          setState(() => _twoPoints = !_twoPoints);
+                          await _addCityMarkers(_controller!);
+                          await _draw();
+                          await _fit();
+                        }),
+                  child: Text(_twoPoints ? '切换多点路线' : '切换两点远距离'),
+                ),
+                OutlinedButton(
+                  onPressed: !_ready || busy ? null : () => run(_fit),
+                  child: const Text('适配整条曲线'),
+                ),
                 const _LegendDot(color: Color(0xFFFF6F00), label: '大地曲线'),
                 if (_showCompare)
                   const _LegendDot(color: Color(0xFF1976D2), label: '普通折线'),
                 FilledButton(
-                  onPressed: !_ready ? null : _toggleCompare,
+                  onPressed: !_ready || busy ? null : () => run(_toggleCompare),
                   child: Text(_showCompare ? '隐藏普通线' : '显示普通线'),
                 ),
               ],
@@ -689,22 +935,21 @@ class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
 
   Future<void> _bootstrap(AMapController c) async {
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
-    _addCityMarkers(c);
+    await _addCityMarkers(c);
     await _draw();
-    c.moveCameraToFitPosition(
-      _points,
-      _linePadding,
-      const Duration(milliseconds: 300),
-    );
+    await _fit();
     if (mounted) setState(() => _ready = true);
   }
 
-  void _addCityMarkers(AMapController c) {
-    const names = ['北京', '上海', '深圳', '东京'];
+  Future<void> _addCityMarkers(AMapController c) async {
+    final names = _twoPoints ? ['北京', '伦敦'] : ['北京', '上海', '深圳', '东京'];
+    for (var i = 0; i < 4; i++) {
+      await c.removeMarker('geodesic_city_$i');
+    }
     for (var i = 0; i < _points.length; i++) {
-      c.addMarker(
+      await c.addMarker(
         Marker(
           id: 'geodesic_city_$i',
           position: _points[i],
@@ -718,10 +963,9 @@ class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
   Future<void> _draw() async {
     final c = _controller;
     if (c == null) return;
-    await c.removePolyline(_straightId);
-    await c.removePolyline(_geodesicId);
+    if (!_showCompare) await c.removePolyline(_straightId);
     if (_showCompare) {
-      await c.addPolyline(
+      await c.updatePolyline(
         Polyline(
           id: _straightId,
           points: _points,
@@ -730,7 +974,7 @@ class _GeodesicPolylinePageState extends State<GeodesicPolylinePage> {
         ),
       );
     }
-    await c.addPolyline(
+    await c.updatePolyline(
       Polyline(
         id: _geodesicId,
         points: _points,
@@ -757,9 +1001,21 @@ class ArcPolylinePage extends StatefulWidget {
   State<ArcPolylinePage> createState() => _ArcPolylinePageState();
 }
 
-class _ArcPolylinePageState extends State<ArcPolylinePage> {
+class _ArcPolylinePageState extends State<ArcPolylinePage>
+    with _OverlayActions<ArcPolylinePage> {
   static const _arcId = 'arc_demo';
   static const _referenceId = 'arc_reference_line';
+
+  @override
+  Future<void> retryDrawing() async {
+    final c = _controller;
+    if (c == null) return;
+    if (!_ready) {
+      await _bootstrap(c);
+    } else {
+      await _draw();
+    }
+  }
 
   AMapController? _controller;
   var _ready = false;
@@ -786,7 +1042,7 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
                 position: _mapCenter,
                 zoom: 15.8,
               ),
-              onMapCreated: _bootstrap,
+              onMapCreated: (c) => run(() => _bootstrap(c)),
             ),
           ),
           SafeArea(
@@ -796,10 +1052,13 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
                   ? '当前使用北侧途经点，弧线向上拱起。'
                   : '当前使用南侧途经点，弧线向下拱起。',
               children: [
+                ...actionStatus,
                 const _LegendDot(color: Color(0xFFE53935), label: 'Arc'),
                 const _LegendDot(color: Color(0x661976D2), label: '三点参考线'),
                 FilledButton(
-                  onPressed: !_ready ? null : _togglePassedPoint,
+                  onPressed: !_ready || busy
+                      ? null
+                      : () => run(_togglePassedPoint),
                   child: const Text('切换途经点'),
                 ),
               ],
@@ -812,11 +1071,11 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
 
   Future<void> _bootstrap(AMapController c) async {
     setState(() => _controller = c);
-    await c.waitForMapCompleted();
+    await c.waitForMapCompleted(throwOnTimeout: true);
     if (!mounted || _controller != c) return;
-    _addMarkers(c);
+    await _addMarkers(c);
     await _draw();
-    c.moveCameraToFitPosition(
+    await c.moveCameraToFitPosition(
       _fitPoints,
       _linePadding,
       const Duration(milliseconds: 300),
@@ -824,7 +1083,7 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
     if (mounted) setState(() => _ready = true);
   }
 
-  void _addMarkers(AMapController c) {
+  Future<void> _addMarkers(AMapController c) async {
     final markers = <(String, String, Position)>[
       ('arc_start', '起点', _start),
       ('arc_passed_north', '北侧途经点', _northPassed),
@@ -832,16 +1091,14 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
       ('arc_end', '终点', _end),
     ];
     for (final (id, title, position) in markers) {
-      c.addMarker(Marker(id: id, position: position, title: title));
+      await c.addMarker(Marker(id: id, position: position, title: title));
     }
   }
 
   Future<void> _draw() async {
     final c = _controller;
     if (c == null) return;
-    await c.removeArc(_arcId);
-    await c.removePolyline(_referenceId);
-    await c.addPolyline(
+    await c.updatePolyline(
       Polyline(
         id: _referenceId,
         points: [_start, _passed, _end],
@@ -867,6 +1124,110 @@ class _ArcPolylinePageState extends State<ArcPolylinePage> {
   }
 }
 
+// Sample the same great-circle geometry for fitting, without changing SDK inputs.
+List<Position> _sampleGeodesic(List<Position> points) {
+  final result = <Position>[];
+  List<double> vector(Position p) {
+    final lat = p.latitude * math.pi / 180;
+    final lon = p.longitude * math.pi / 180;
+    return [
+      math.cos(lat) * math.cos(lon),
+      math.cos(lat) * math.sin(lon),
+      math.sin(lat),
+    ];
+  }
+
+  for (var i = 1; i < points.length; i++) {
+    final a = vector(points[i - 1]), b = vector(points[i]);
+    final angle = math.acos(
+      (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]).clamp(-1.0, 1.0),
+    );
+    for (var step = 0; step <= 64; step++) {
+      final t = step / 64;
+      if (math.sin(angle).abs() < 1e-10) {
+        result.add(points[i - 1]);
+        continue;
+      }
+      final u = math.sin((1 - t) * angle) / math.sin(angle);
+      final v = math.sin(t * angle) / math.sin(angle);
+      final x = u * a[0] + v * b[0],
+          y = u * a[1] + v * b[1],
+          z = u * a[2] + v * b[2];
+      result.add(
+        Position(
+          latitude: math.atan2(z, math.sqrt(x * x + y * y)) * 180 / math.pi,
+          longitude: math.atan2(y, x) * 180 / math.pi,
+        ),
+      );
+    }
+  }
+  return [...points, ...result];
+}
+
+mixin _OverlayActions<T extends StatefulWidget> on State<T> {
+  bool busy = false;
+  String? _error;
+  Future<void> Function()? _retry;
+  Timer? _previewTimer;
+
+  List<Widget> get actionStatus => [
+    if (busy) const Text('正在更新…'),
+    if (_error != null)
+      Text(_error!, style: const TextStyle(color: Colors.red)),
+    if (_error != null)
+      OutlinedButton(
+        onPressed: busy || _retry == null ? null : () => run(_retry!),
+        child: const Text('重试'),
+      ),
+  ];
+
+  Future<void> run(Future<void> Function() action) async {
+    if (!mounted || busy) return;
+    setState(() {
+      busy = true;
+      _error = null;
+    });
+    try {
+      await action();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error is TimeoutException ? '地图加载超时，请重试。' : '更新未完成，请重试。';
+          _retry = retryDrawing;
+        });
+      }
+      debugPrint('Polyline demo operation failed: $error');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  /// Retry the current desired configuration, never repeat a toggle.
+  Future<void> retryDrawing();
+
+  void preview(Future<void> Function() action, {bool immediate = false}) {
+    _previewTimer?.cancel();
+    if (!mounted) return;
+    if (immediate && !busy) {
+      run(action);
+      return;
+    }
+    _previewTimer = Timer(const Duration(milliseconds: 60), () {
+      if (busy) {
+        preview(action);
+      } else {
+        run(action);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    super.dispose();
+  }
+}
+
 class _Panel extends StatelessWidget {
   const _Panel({required this.title, required this.children, this.footer});
 
@@ -876,27 +1237,34 @@ class _Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.42,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: children,
+              ),
+              if (footer != null) ...[const SizedBox(height: 8), footer!],
+            ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: children,
-          ),
-          if (footer != null) ...[const SizedBox(height: 8), footer!],
-        ],
+        ),
       ),
     );
   }

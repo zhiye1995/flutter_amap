@@ -122,6 +122,7 @@ extension Bitmap {
     if let bytes = self.bytes {
       image = UIImage(data: bytes.data)
     }
+    guard image != nil else { return nil }
     if let effectiveSize = self.size?.cgSize() ?? image?.size {
       let scale = UIScreen.main.scale
       let targetSize = CGSize(width: effectiveSize.width / scale, height: effectiveSize.height / scale)
@@ -160,11 +161,36 @@ extension Marker {
 }
 
 extension Polyline {
-  var drawStyleIndexes: [NSNumber] {
-    if !textureIndexes.isEmpty {
-      return textureIndexes.map { NSNumber(value: max(0, min($0, points.count - 1))) }
+  // Compress equal adjacent segment styles, keeping only actual boundaries.
+  var segmentStyleIndexes: [Int] {
+    if useTexture && !textures.isEmpty {
+      return textureIndexes.isEmpty ? Array(repeating: 0, count: points.count - 1) : textureIndexes
     }
-    return Array(1..<points.count).map { NSNumber(value: $0) }
+    return colorIndexes.isEmpty ? Array(0..<(points.count - 1)) : colorIndexes
+  }
+
+  var styleRuns: [(end: Int, style: Int)] {
+    let indexes = segmentStyleIndexes
+    guard let first = indexes.first else { return [] }
+    var runs: [(end: Int, style: Int)] = []
+    var current = first
+    for i in 1..<indexes.count {
+      if indexes[i] != current {
+        runs.append((i, current))
+        current = indexes[i]
+      }
+    }
+    runs.append((points.count - 1, current))
+    return runs
+  }
+
+  var drawStyleIndexes: [NSNumber] {
+    if gradient { return (0..<points.count).map { NSNumber(value: $0) } }
+    return styleRuns.map { NSNumber(value: $0.end) }
+  }
+
+  var strokeColors: [UIColor] {
+    return gradient ? colors : styleRuns.map { colors[$0.style] }
   }
 
   var overlay: MAPolyline {

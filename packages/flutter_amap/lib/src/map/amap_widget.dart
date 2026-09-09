@@ -122,6 +122,7 @@ class AMapWidget extends StatefulWidget {
     this.onMapInitComplete,
     this.onMapCompleted,
     this.onMapPress,
+    this.onPolylineClick,
     this.onMapLongPress,
     this.onCameraChange,
     this.onCameraChangeStart,
@@ -253,6 +254,9 @@ class AMapWidget extends StatefulWidget {
 
   /// 当地图点击时触发该回调
   final void Function(Position)? onMapPress;
+
+  /// 返回可点击折线的业务 ID。
+  final void Function(String polylineId)? onPolylineClick;
 
   /// 当地图长按时触发该回调
   final void Function(Position)? onMapLongPress;
@@ -613,8 +617,7 @@ class AMapWidgetState extends State<AMapWidget> {
       if (oldLine == null) {
         _controller!.addPolyline(entry.value);
       } else if (oldLine != entry.value) {
-        _controller!.removePolyline(entry.key);
-        _controller!.addPolyline(entry.value);
+        _controller!.updatePolyline(entry.value);
       }
     }
   }

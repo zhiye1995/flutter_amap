@@ -151,8 +151,12 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
 
       "addPolyline" -> {
         val polyline = call.argument<Polyline>("polyline")!!
-        api.addPolyline(polyline)
-        result.success(null)
+        try {
+          api.addPolyline(polyline)
+          result.success(null)
+        } catch (error: Exception) {
+          result.error("polyline_error", error.message, null)
+        }
       }
 
       "removePolyline" -> {
@@ -254,6 +258,10 @@ class AMapController(viewId: Int, binding: FlutterPluginBinding, private val api
   }
 
   /// 当点击地图上任意地点时会触发该回调，方法会传入点击的坐标点，事件可能被上层覆盖物拦截
+  fun onPolylineClick(id: String) {
+    if (api.isPolylineClickable(id)) channel.invokeMethod("onPolylineClick", mapOf("polylineId" to id))
+  }
+
   fun onMapPress(position: Position) {
     channel.invokeMethod(
       "onMapPress",

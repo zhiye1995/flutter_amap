@@ -315,7 +315,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               Expanded(
                 child: result == null || result.paths.isEmpty
                     ? _buildPlanningPanel()
-                    : _buildRouteResultPanel(result),
+                    : SingleChildScrollView(
+                        child: _buildRouteResultPanel(result),
+                      ),
               ),
             ],
           ),
