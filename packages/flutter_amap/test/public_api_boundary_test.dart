@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('map entrypoint does not include navigation parts', () {
     final candidates = <File>[
-      File('lib/flutter_amap.dart'),
-      File('packages/flutter_amap/lib/flutter_amap.dart'),
+      File('lib/flutter_amap_plus.dart'),
+      File('packages/flutter_amap/lib/flutter_amap_plus.dart'),
     ];
     final entrypoint = candidates
         .firstWhere((file) => file.existsSync())

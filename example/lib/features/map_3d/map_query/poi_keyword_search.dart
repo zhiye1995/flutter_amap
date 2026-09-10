@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// POI 关键字搜索：对齐高德 `PoiSearch.Query` / `AMapPOIKeywordsSearchRequest` 参数。

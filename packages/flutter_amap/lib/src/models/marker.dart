@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../flutter_amap_plus.dart';
 
 // ==================== 标记点和POI相关类型 ====================
 

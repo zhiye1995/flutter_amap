@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 
 void main() {
   test('Marker equality compares nested values', () {

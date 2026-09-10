@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart' hide Size;
 import 'package:flutter/services.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 class ScreenLocationPage extends StatefulWidget {

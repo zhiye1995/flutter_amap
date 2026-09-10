@@ -1,4 +1,4 @@
-part of '../../../../flutter_amap.dart';
+part of '../../../../flutter_amap_plus.dart';
 
 const _kMapPlacePickerPanelAnimationDuration = Duration(milliseconds: 280);
 const _kMapPlacePickerCameraAnimationDuration = Duration(milliseconds: 300);

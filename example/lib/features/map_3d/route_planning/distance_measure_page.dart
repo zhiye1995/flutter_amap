@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 距离测量：点击地图添加测量点，使用 Marker 和 Polyline 展示累计距离。

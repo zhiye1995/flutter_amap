@@ -1,4 +1,4 @@
-part of '../../../../flutter_amap.dart';
+part of '../../../../flutter_amap_plus.dart';
 
 /// 位置选择来源。
 enum LocationPickerResultSource {

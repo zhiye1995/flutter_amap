@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 

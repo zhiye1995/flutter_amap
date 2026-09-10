@@ -1,4 +1,4 @@
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter/material.dart';
 
 /// 限制地图显示区域 — 对应高德 Android `AMap.setMapStatusLimits` / 本插件 [AMapController.setRestrictRegion]。

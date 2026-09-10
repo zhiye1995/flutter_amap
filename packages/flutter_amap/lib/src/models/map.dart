@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../flutter_amap_plus.dart';
 
 // ==================== 地图相关类型 ====================
 

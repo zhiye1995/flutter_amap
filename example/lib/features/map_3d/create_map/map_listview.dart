@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 
 /// 地图ListView页面 — 模仿官方 Android Demo UI
 class MapListViewPage extends StatefulWidget {

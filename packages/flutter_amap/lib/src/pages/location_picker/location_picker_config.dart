@@ -1,4 +1,4 @@
-part of '../../../../flutter_amap.dart';
+part of '../../../../flutter_amap_plus.dart';
 
 /// 位置选择器搜索模式。
 enum LocationPickerSearchMode {

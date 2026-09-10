@@ -16,7 +16,7 @@ dependencies:
 请在展示地图前传入平台 Key，并使用应用实际取得的隐私授权状态：
 
 ```dart
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 
 await AMapWidget.init(
   apiKey: ApiKey(

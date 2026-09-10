@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../flutter_amap_plus.dart';
 // ==================== 搜索相关类型 ====================
 
 /// 输入提示结果项

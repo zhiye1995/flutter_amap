@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

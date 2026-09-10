@@ -1,4 +1,4 @@
-import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter/material.dart';
 
 /// 改变地图中心点 — 行为对齐高德 Android_3D_Demo `CameraActivity` 中

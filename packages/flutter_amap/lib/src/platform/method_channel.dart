@@ -1,4 +1,4 @@
-part of '../../flutter_amap.dart';
+part of '../../flutter_amap_plus.dart';
 
 /// An implementation of [AMapFlutterPlatformInterface] that uses method channels.
 class AMapFlutterMethodChannel extends AMapFlutterPlatformInterface {

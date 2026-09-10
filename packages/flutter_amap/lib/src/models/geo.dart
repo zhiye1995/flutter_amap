@@ -1,4 +1,4 @@
-part of '../../../flutter_amap.dart';
+part of '../../../flutter_amap_plus.dart';
 
 // ==================== 基础几何类型 ====================
 
