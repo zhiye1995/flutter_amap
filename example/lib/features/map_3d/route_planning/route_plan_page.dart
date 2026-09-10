@@ -38,7 +38,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     longitude: 106.648317,
   );
   static final _padding = EdgePadding(top: 80, right: 64, bottom: 80, left: 64);
-   final _startEndPadding = EdgePadding(
+  final _startEndPadding = EdgePadding(
     top: 120,
     right: 120,
     bottom: 120,
@@ -806,9 +806,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           color: _routeColor(pathIndex, selected: selected),
           useTexture: true,
           texture: Bitmap(
-            asset: selected
-                ? _routeTextureAsset
-                : _unselectedRouteTextureAsset,
+            asset: selected ? _routeTextureAsset : _unselectedRouteTextureAsset,
             size: Size(width: 64, height: 64),
           ),
           lineCap: PolylineCap.round,
