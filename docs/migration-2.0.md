@@ -8,14 +8,14 @@
 
 ```yaml
 dependencies:
-  flutter_amap_plus: ^2.0.4
+  flutter_amap_plus: ^2.0.5
 ```
 
 同时使用地图和导航：
 
 ```yaml
 dependencies:
-  flutter_amap_plus: ^2.0.4
+  flutter_amap_plus: ^2.0.5
   flutter_amap_navi: ^1.0.0
 ```
 

@@ -23,7 +23,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_amap_plus: ^2.0.4
+  flutter_amap_plus: ^2.0.5
   flutter_amap_navi: ^1.0.1
 
   # The following adds the Cupertino Icons font to your application.

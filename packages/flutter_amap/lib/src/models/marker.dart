@@ -27,11 +27,7 @@ enum MarkerAnimationKind {
 
 /// 图片信息
 class Bitmap {
-  Bitmap({
-    this.asset,
-    this.bytes,
-    this.size,
-  });
+  Bitmap({this.asset, this.bytes, this.size});
 
   /// 图片资源路径
   String? asset;
@@ -43,11 +39,7 @@ class Bitmap {
   Size? size;
 
   Object encode() {
-    return <Object?>[
-      asset,
-      bytes,
-      size,
-    ];
+    return <Object?>[asset, bytes, size];
   }
 
   static Bitmap decode(List<Object?> result) {
@@ -58,11 +50,7 @@ class Bitmap {
     );
   }
 
-  Bitmap copyWith({
-    String? asset,
-    Uint8List? bytes,
-    Size? size,
-  }) {
+  Bitmap copyWith({String? asset, Uint8List? bytes, Size? size}) {
     return Bitmap(
       asset: asset ?? this.asset,
       bytes: bytes ?? this.bytes,
@@ -82,11 +70,8 @@ class Bitmap {
   }
 
   @override
-  int get hashCode => Object.hash(
-        asset,
-        bytes == null ? null : Object.hashAll(bytes!),
-        size,
-      );
+  int get hashCode =>
+      Object.hash(asset, bytes == null ? null : Object.hashAll(bytes!), size);
 }
 
 /// 标记点配置属性
@@ -145,14 +130,16 @@ class Marker {
     return Marker(
       id: result[0]! as String,
       position: Position.decode(result[1]! as List<Object?>),
-      bitmap:
-          result[2] != null ? Bitmap.decode(result[2]! as List<Object?>) : null,
+      bitmap: result[2] != null
+          ? Bitmap.decode(result[2]! as List<Object?>)
+          : null,
       anchor: anchorValue is List
           ? Anchor.decode(anchorValue.cast<Object?>())
           : null,
       title: result.length > titleIndex ? result[titleIndex] as String? : null,
-      snippet:
-          result.length > snippetIndex ? result[snippetIndex] as String? : null,
+      snippet: result.length > snippetIndex
+          ? result[snippetIndex] as String?
+          : null,
       zIndex: result.length > zIndexIndex
           ? (result[zIndexIndex] as num?)?.toDouble() ?? 0
           : 0,
@@ -305,6 +292,52 @@ class Polyline {
 
   /// 是否发送 onPolylineClick。默认关闭；点击容差由平台决定。
   bool clickable;
+
+  /// 折叠相邻重复坐标，并同步缩短分段颜色/纹理索引。
+  ///
+  /// 高德路线和官方轨迹示例经常带零长度段；原生 SDK 也无法绘制这些段。
+  Polyline withoutConsecutiveDuplicates() {
+    if (points.length < 2) return this;
+    final keepIncomingSegment = <bool>[];
+    final newPoints = <Position>[points.first];
+    for (var i = 1; i < points.length; i++) {
+      final current = points[i];
+      final previous = newPoints.last;
+      final duplicate =
+          current.latitude == previous.latitude &&
+          current.longitude == previous.longitude;
+      keepIncomingSegment.add(!duplicate);
+      if (!duplicate) newPoints.add(current);
+    }
+    if (newPoints.length == points.length) return this;
+
+    List<T> keepSegments<T>(List<T> values) {
+      if (values.isEmpty || values.length != keepIncomingSegment.length) {
+        return values;
+      }
+      return <T>[
+        for (var i = 0; i < values.length; i++)
+          if (keepIncomingSegment[i]) values[i],
+      ];
+    }
+
+    var newColors = colors;
+    if (gradient && colors.length == points.length) {
+      newColors = <Color>[colors.first];
+      for (var i = 1; i < points.length; i++) {
+        if (keepIncomingSegment[i - 1]) newColors.add(colors[i]);
+      }
+    } else if (!gradient && colors.isNotEmpty && colorIndexes.isEmpty) {
+      newColors = keepSegments(colors);
+    }
+
+    return copyWith(
+      points: newPoints,
+      colors: newColors,
+      textureIndexes: keepSegments(textureIndexes),
+      colorIndexes: keepSegments(colorIndexes),
+    );
+  }
 
   /// 在进入原生 SDK 前校验。失败不会删除已存在的同 ID 折线。
   void validate() {
@@ -856,21 +889,18 @@ class Polygon {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        Object.hashAll(points),
-        strokeWidth,
-        strokeColor,
-        fillColor,
-        visible,
-      );
+    id,
+    Object.hashAll(points),
+    strokeWidth,
+    strokeColor,
+    fillColor,
+    visible,
+  );
 }
 
 /// 地图兴趣点
 class Poi {
-  Poi({
-    required this.name,
-    required this.position,
-  });
+  Poi({required this.name, required this.position});
 
   /// 兴趣点的名称
   String name;
@@ -879,10 +909,7 @@ class Poi {
   Position position;
 
   Object encode() {
-    return <Object?>[
-      name,
-      position.encode(),
-    ];
+    return <Object?>[name, position.encode()];
   }
 
   static Poi decode(List<Object?> result) {
@@ -892,13 +919,7 @@ class Poi {
     );
   }
 
-  Poi copyWith({
-    String? name,
-    Position? position,
-  }) {
-    return Poi(
-      name: name ?? this.name,
-      position: position ?? this.position,
-    );
+  Poi copyWith({String? name, Position? position}) {
+    return Poi(name: name ?? this.name, position: position ?? this.position);
   }
 }

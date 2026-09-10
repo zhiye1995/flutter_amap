@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_amap_plus: ^2.0.4
+  flutter_amap_plus: ^2.0.5
 
 dev_dependencies:
   flutter_test:

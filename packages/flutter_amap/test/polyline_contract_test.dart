@@ -113,6 +113,20 @@ void main() {
       expect(bad.validate, throwsArgumentError);
     }
     expect(line().copyWith(geodesic: true).validate, returnsNormally);
+    expect(
+      line()
+          .copyWith(
+            points: <Position>[
+              points.first,
+              points.first,
+              points[1],
+              points[2],
+            ],
+          )
+          .withoutConsecutiveDuplicates()
+          .validate,
+      returnsNormally,
+    );
   });
 
   test('arc rejects repeated and collinear points', () {
@@ -207,6 +221,30 @@ void main() {
       (calls.last.arguments as Map)['polyline'],
       line().copyWith(width: 18),
     );
+  });
+
+  test('collapses consecutive duplicate points before native add', () async {
+    final duplicated = line().copyWith(
+      points: <Position>[
+        points[0],
+        points[0],
+        points[1],
+        points[2],
+        points[2],
+        points[3],
+        points[4],
+      ],
+      useTexture: true,
+      textures: [
+        Bitmap(asset: 'a.png'),
+        Bitmap(asset: 'b.png'),
+      ],
+      textureIndexes: const [0, 1, 0, 1, 0, 1],
+    );
+    await controller.addPolyline(duplicated);
+    final sent = (calls.single.arguments as Map)['polyline'] as Polyline;
+    expect(sent.points, points);
+    expect(sent.textureIndexes, const [1, 0, 0, 1]);
   });
 
   test('strict wait reports timeout then recovers on completion', () async {

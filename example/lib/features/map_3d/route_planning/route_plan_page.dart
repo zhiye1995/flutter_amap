@@ -872,8 +872,18 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   }
 
   List<Position> _pathPoints(RoutePath path) {
-    if (path.polyline.length >= 2) return path.polyline;
-    return path.steps.expand((step) => step.polyline).toList();
+    final source = path.polyline.length >= 2
+        ? path.polyline
+        : path.steps.expand((step) => step.polyline).toList();
+    final points = <Position>[];
+    for (final point in source) {
+      if (points.isEmpty ||
+          points.last.latitude != point.latitude ||
+          points.last.longitude != point.longitude) {
+        points.add(point);
+      }
+    }
+    return points;
   }
 
   Future<void> _selectRoute(int index) async {

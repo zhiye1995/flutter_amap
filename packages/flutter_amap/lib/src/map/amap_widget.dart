@@ -615,10 +615,25 @@ class AMapWidgetState extends State<AMapWidget> {
     for (final entry in newById.entries) {
       final Polyline? oldLine = oldById[entry.key];
       if (oldLine == null) {
-        _controller!.addPolyline(entry.value);
+        unawaited(_syncPolyline(entry.value));
       } else if (oldLine != entry.value) {
-        _controller!.updatePolyline(entry.value);
+        unawaited(_syncPolyline(entry.value));
       }
+    }
+  }
+
+  Future<void> _syncPolyline(Polyline polyline) async {
+    try {
+      await _controller!.addPolyline(polyline);
+    } catch (error, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'flutter_amap_plus',
+          context: ErrorDescription('while syncing polyline ${polyline.id}'),
+        ),
+      );
     }
   }
 

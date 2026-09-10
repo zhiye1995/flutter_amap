@@ -4,7 +4,7 @@
 
 | 包 | 版本 | 职责 |
 | --- | --- | --- |
-| [`flutter_amap_plus`](packages/flutter_amap/README.md) | 2.0.4 | 地图、覆盖物、定位、搜索、天气、路线查询、地点选择 |
+| [`flutter_amap_plus`](packages/flutter_amap/README.md) | 2.0.5 | 地图、覆盖物、定位、搜索、天气、路线查询、地点选择 |
 | [`flutter_amap_navi`](packages/flutter_amap_navi/README.md) | 1.0.0 | 驾车/步行/骑行导航、路线页、智能巡航、导航事件 |
 
 根目录 [`example`](example/) 同时集成两个插件；每个包的 `example/` 则只依赖自身，用于验证独立集成。

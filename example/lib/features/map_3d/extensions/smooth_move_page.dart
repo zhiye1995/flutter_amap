@@ -18,6 +18,18 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
   static const _lineId = 'smooth_move_line';
   static const _duration = Duration(seconds: 8);
 
+  static List<Position> get _linePoints {
+    final points = <Position>[];
+    for (final point in _points) {
+      if (points.isEmpty ||
+          points.last.latitude != point.latitude ||
+          points.last.longitude != point.longitude) {
+        points.add(point);
+      }
+    }
+    return points;
+  }
+
   static final List<Position> _points = <Position>[
     Position(latitude: 39.997761, longitude: 116.478935),
     Position(latitude: 39.997825, longitude: 116.478939),
@@ -74,7 +86,7 @@ class _SmoothMovePageState extends State<SmoothMovePage> {
               polylines: <Polyline>{
                 Polyline(
                   id: _lineId,
-                  points: _points,
+                  points: _linePoints,
                   color: const Color(0xFF3F8CFF),
                   width: 10,
                 ),

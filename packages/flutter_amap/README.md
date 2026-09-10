@@ -8,7 +8,7 @@
 
 ```yaml
 dependencies:
-  flutter_amap_plus: ^2.0.4
+  flutter_amap_plus: ^2.0.5
 ```
 
 ## 初始化

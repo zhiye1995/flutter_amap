@@ -229,7 +229,9 @@ class AMapController {
       }
     }
     final firstPoint = points.first;
-    if (!points.skip(1).any(
+    if (!points
+        .skip(1)
+        .any(
           (point) =>
               point.latitude != firstPoint.latitude ||
               point.longitude != firstPoint.longitude,
@@ -293,12 +295,10 @@ class AMapController {
 
   /// 添加折线；同 ID 已存在时更新。
   Future<void> addPolyline(Polyline polyline) async {
-    polyline.validate();
+    final line = polyline.withoutConsecutiveDuplicates();
+    line.validate();
     if (_isDestroyed) return;
-    await AMapFlutterPlatformInterface.instance.addPolyline(
-      polyline,
-      mapId: mapId,
-    );
+    await AMapFlutterPlatformInterface.instance.addPolyline(line, mapId: mapId);
   }
 
   /// 移除折线
