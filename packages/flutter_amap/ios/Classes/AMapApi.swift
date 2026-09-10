@@ -567,11 +567,26 @@ class _AMapApi: NSObject {
     }
     let existing = polylines[polyline.id]
     let reuse = existing != nil && previous != nil && kind(previous!) == kind(polyline)
-    let overlay = reuse ? existing! : polyline.overlay
-    let geometryChanged = previous?.points.count != polyline.points.count ||
-      !zip(previous?.points ?? [], polyline.points).allSatisfy {
-        $0.0.latitude == $0.1.latitude && $0.0.longitude == $0.1.longitude
+    // Keep the two branches explicit: Swift can otherwise spend excessive time
+    // inferring the common Objective-C overlay type for this conditional.
+    let overlay: MAPolyline
+    if reuse, let existing = existing {
+      overlay = existing
+    } else {
+      overlay = polyline.overlay
+    }
+    let geometryChanged: Bool
+    if let previous = previous {
+      let oldPoints = previous.points
+      let newPoints = polyline.points
+      let samePointCount = oldPoints.count == newPoints.count
+      let sameCoordinates = zip(oldPoints, newPoints).allSatisfy { oldPoint, newPoint in
+        oldPoint.latitude == newPoint.latitude && oldPoint.longitude == newPoint.longitude
       }
+      geometryChanged = !samePointCount || !sameCoordinates
+    } else {
+      geometryChanged = true
+    }
     let boundariesChanged = previous?.drawStyleIndexes != polyline.drawStyleIndexes
     if reuse && (geometryChanged || boundariesChanged) {
       var coordinates = polyline.points.map { $0.coordinate }
