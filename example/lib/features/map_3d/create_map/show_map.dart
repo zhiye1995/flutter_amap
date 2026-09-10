@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 显示地图页面 — 高度模仿官方 Android Demo UI（仅 iOS / Android）

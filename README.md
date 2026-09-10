@@ -4,7 +4,7 @@
 
 | 包 | 版本 | 职责 |
 | --- | --- | --- |
-| [`flutter_amap`](packages/flutter_amap/README.md) | 2.0.0 | 地图、覆盖物、定位、搜索、天气、路线查询、地点选择 |
+| [`flutter_amap_plus`](packages/flutter_amap/README.md) | 2.0.4 | 地图、覆盖物、定位、搜索、天气、路线查询、地点选择 |
 | [`flutter_amap_navi`](packages/flutter_amap_navi/README.md) | 1.0.0 | 驾车/步行/骑行导航、路线页、智能巡航、导航事件 |
 
 根目录 [`example`](example/) 同时集成两个插件；每个包的 `example/` 则只依赖自身，用于验证独立集成。
@@ -65,7 +65,7 @@ ENV['FLUTTER_AMAP_USE_NAVI_SDK'] = 'true'
 
 ## 发布标签
 
-- `flutter_amap-v*`：校验并发布 `packages/flutter_amap`
+- `flutter_amap_plus-v*`：校验并发布 `packages/flutter_amap`
 - `flutter_amap_navi-v*`：校验并发布 `packages/flutter_amap_navi`
 
 本次重构不创建标签，也不会实际发布。

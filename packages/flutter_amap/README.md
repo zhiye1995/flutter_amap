@@ -1,4 +1,4 @@
-# flutter_amap
+# flutter_amap_plus
 
 面向 Android、iOS 的 Flutter 高德地图插件，提供地图、覆盖物、定位、搜索、天气、路线查询与地点选择能力。
 
@@ -8,7 +8,7 @@
 
 ```yaml
 dependencies:
-  flutter_amap: ^2.0.0
+  flutter_amap_plus: ^2.0.4
 ```
 
 ## 初始化
@@ -16,7 +16,7 @@ dependencies:
 请在展示地图前传入平台 Key，并使用应用实际取得的隐私授权状态：
 
 ```dart
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 
 await AMapWidget.init(
   apiKey: ApiKey(

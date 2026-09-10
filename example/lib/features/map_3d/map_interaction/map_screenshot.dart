@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 地图截屏 — 行为对齐高德 Android / iOS Demo「地图截图」：截取当前可视地图区域并预览。

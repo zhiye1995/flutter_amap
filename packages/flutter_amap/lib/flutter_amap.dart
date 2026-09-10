@@ -4,7 +4,7 @@ import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:flutter/cupertino.dart";
-import "package:flutter_amap/src/platform/message_codec.dart";
+import "package:flutter_amap_plus/src/platform/message_codec.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import 'package:flutter/services.dart';

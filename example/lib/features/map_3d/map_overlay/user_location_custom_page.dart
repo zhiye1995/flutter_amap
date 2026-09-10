@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/flutter_amap.dart' as amap;
+import 'package:flutter_amap_plus/flutter_amap.dart' as amap;
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 演示 Location 小蓝点自定义能力。

@@ -1,4 +1,4 @@
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 自定义缩放 — 与高德 Android 3D Demo「自定义缩放」一致的核心行为：

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 
 /// 地图多实例页面 — 模仿官方 Android Demo UI
 class TwoMapPage extends StatefulWidget {

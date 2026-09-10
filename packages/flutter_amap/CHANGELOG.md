@@ -1,5 +1,6 @@
 ## 2.0.4
 
+- 因 pub.dev 上 `flutter_amap` 名称已被占用，本版本以 `flutter_amap_plus` 发布。
 - 因 2.0.3 已占用，重新发布包含 iOS polyline Swift 编译超时修复的版本。
 - 内容覆盖 2.0.3：逐段纹理与折线样式增强、Marker `zIndex`，以及折线绘制校验。
 

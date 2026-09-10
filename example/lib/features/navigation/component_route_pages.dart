@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 
 /// 地图初始化设置页面（地图全屏 + Stack 浮层；右上角 UI 与 [ShowMapPage] 地图类型按钮组一致）
 class MapSettingPage extends StatefulWidget {

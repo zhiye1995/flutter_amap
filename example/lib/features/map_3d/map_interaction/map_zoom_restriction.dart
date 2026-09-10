@@ -1,4 +1,4 @@
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter/material.dart';
 
 /// 限制缩放级别 — 对齐高德 Android 3D Demo：运行时设置最小/最大缩放级别；关闭时恢复为 SDK 常用全量范围 3–20。

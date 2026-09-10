@@ -8,21 +8,21 @@
 
 ```yaml
 dependencies:
-  flutter_amap: ^2.0.0
+  flutter_amap_plus: ^2.0.4
 ```
 
 同时使用地图和导航：
 
 ```yaml
 dependencies:
-  flutter_amap: ^2.0.0
+  flutter_amap_plus: ^2.0.4
   flutter_amap_navi: ^1.0.0
 ```
 
 ## 2. 更新 import
 
 ```dart
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 ```
 

@@ -484,14 +484,14 @@ class WeatherIcon extends StatelessWidget {
         'assets/weather/weather${iconId.toString().padLeft(2, '0')}.png';
     return Image.asset(
       iconName,
-      package: 'flutter_amap',
+      package: 'flutter_amap_plus',
       width: width,
       height: height,
       errorBuilder: (context, error, stackTrace) {
         // 如果主图标加载失败，尝试加载默认图标
         return Image.asset(
           'assets/weather/weather68.png',
-          package: 'flutter_amap',
+          package: 'flutter_amap_plus',
           width: width,
           height: height,
         );

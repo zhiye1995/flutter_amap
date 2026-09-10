@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// POI 周边搜索：对齐高德圆形范围检索参数。

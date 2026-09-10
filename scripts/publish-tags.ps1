@@ -49,7 +49,7 @@ if ($dirtyFiles.Count -gt 0 -and -not $AllowDirty) {
 }
 
 $packages = @(
-    @{ Name = 'flutter_amap'; Path = 'packages/flutter_amap/pubspec.yaml' },
+    @{ Name = 'flutter_amap_plus'; Path = 'packages/flutter_amap/pubspec.yaml' },
     @{ Name = 'flutter_amap_navi'; Path = 'packages/flutter_amap_navi/pubspec.yaml' }
 )
 

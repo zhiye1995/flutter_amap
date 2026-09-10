@@ -1,4 +1,4 @@
-name: flutter_amap
+name: flutter_amap_plus
 description: A Flutter plugin that integrates Amap SDK for Android and iOS.
 version: 2.0.4
 repository: https://github.com/zhiye1995/flutter_amap/tree/main/packages/flutter_amap

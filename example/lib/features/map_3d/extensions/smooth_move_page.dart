@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_amap/flutter_amap.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
 
 /// 平滑移动：Android 对齐官方 `SmoothMoveMarker`，iOS 使用原生计时插值对齐总时长。

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:flutter_amap/flutter_amap.dart';
-import 'package:flutter_amap/src/platform/message_codec.dart';
+import 'package:flutter_amap_plus/flutter_amap.dart';
+import 'package:flutter_amap_plus/src/platform/message_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
