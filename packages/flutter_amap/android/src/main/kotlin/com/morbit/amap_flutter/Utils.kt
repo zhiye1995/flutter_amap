@@ -99,6 +99,7 @@ fun Marker.toMarkerOptions(binding: FlutterPluginBinding): MarkerOptions {
         anchor?.let { options.anchor(it.x.toFloat(), it.y.toFloat()) }
         title?.takeIf { it.isNotBlank() }?.let { options.title(it) }
         snippet?.takeIf { it.isNotBlank() }?.let { options.snippet(it) }
+        options.zIndex(zIndex.toFloat())
         options
     }
 }

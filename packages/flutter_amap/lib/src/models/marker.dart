@@ -98,6 +98,7 @@ class Marker {
     this.anchor,
     this.title,
     this.snippet,
+    this.zIndex = 0,
   });
 
   /// 标记点ID
@@ -118,6 +119,11 @@ class Marker {
   /// InfoWindow 副标题（Android [MarkerOptions.snippet]；iOS callout `subtitle`）
   String? snippet;
 
+  /// 标记点层级。数值越大越靠上，用于压过折线等覆盖物。
+  ///
+  /// Android 对应 [MarkerOptions.zIndex]；iOS 用于 annotation 视图叠放顺序。
+  double zIndex;
+
   Object encode() {
     return <Object?>[
       id,
@@ -126,6 +132,7 @@ class Marker {
       anchor?.encode(),
       title,
       snippet,
+      zIndex,
     ];
   }
 
@@ -134,6 +141,7 @@ class Marker {
     final bool hasAnchorSlot = result.length > 5 || anchorValue is List;
     final int titleIndex = hasAnchorSlot ? 4 : 3;
     final int snippetIndex = titleIndex + 1;
+    final int zIndexIndex = snippetIndex + 1;
     return Marker(
       id: result[0]! as String,
       position: Position.decode(result[1]! as List<Object?>),
@@ -145,6 +153,9 @@ class Marker {
       title: result.length > titleIndex ? result[titleIndex] as String? : null,
       snippet:
           result.length > snippetIndex ? result[snippetIndex] as String? : null,
+      zIndex: result.length > zIndexIndex
+          ? (result[zIndexIndex] as num?)?.toDouble() ?? 0
+          : 0,
     );
   }
 
@@ -155,6 +166,7 @@ class Marker {
     Anchor? anchor,
     String? title,
     String? snippet,
+    double? zIndex,
   }) {
     return Marker(
       id: id ?? this.id,
@@ -163,6 +175,7 @@ class Marker {
       anchor: anchor ?? this.anchor,
       title: title ?? this.title,
       snippet: snippet ?? this.snippet,
+      zIndex: zIndex ?? this.zIndex,
     );
   }
 
@@ -177,11 +190,13 @@ class Marker {
         bitmap == other.bitmap &&
         anchor == other.anchor &&
         title == other.title &&
-        snippet == other.snippet;
+        snippet == other.snippet &&
+        zIndex == other.zIndex;
   }
 
   @override
-  int get hashCode => Object.hash(id, position, bitmap, anchor, title, snippet);
+  int get hashCode =>
+      Object.hash(id, position, bitmap, anchor, title, snippet, zIndex);
 }
 
 /// 折线端点形状。

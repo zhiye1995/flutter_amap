@@ -10,7 +10,9 @@ class RoutePlanPage extends StatefulWidget {
   const RoutePlanPage({super.key, required this.type});
 
   const RoutePlanPage.drive({super.key}) : type = RoutePlanType.drive;
+
   const RoutePlanPage.walk({super.key}) : type = RoutePlanType.walk;
+
   const RoutePlanPage.ride({super.key}) : type = RoutePlanType.ride;
 
   final RoutePlanType type;
@@ -35,13 +37,22 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     latitude: 29.468220,
     longitude: 106.648317,
   );
-  static final _padding = EdgePadding(
-    top: 170,
-    right: 52,
-    bottom: 230,
-    left: 52,
+  static final _padding = EdgePadding(top: 80, right: 64, bottom: 80, left: 64);
+   final _startEndPadding = EdgePadding(
+    top: 120,
+    right: 120,
+    bottom: 120,
+    left: 120,
+  );
+  static final _userLocationStyle = UserLocationStyle(
+    userLocationType: UserLocationType.locationTypeShow,
   );
   static const _routeLinePrefix = 'route_path_';
+  static const _markerZIndex = 20.0;
+  static const _endIconAsset = 'assets/end.png';
+  static const _routeTextureAsset = 'assets/texture_green.png';
+  static const _unselectedRouteTextureAsset =
+      'assets/amap_navi_lbs_custtexture_green_unselected.png';
   static const _brandBlue = Color(0xFF3478F6);
   static const _selectedRouteColor = Color(0xFF00B86B);
   static const _alternativeRouteColors = <Color>[
@@ -68,6 +79,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   var _driveStrategy = PathPlanningStrategy.drivingMultipleRoutesDefault;
   var _selectedPathIndex = 0;
   var _loading = false;
+  var _didMoveToUser = false;
   var _extensions = RoutePlanExtensions.all;
   String? _errorMessage;
 
@@ -96,24 +108,28 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                   child: AMapWidget(
                     initCameraPosition: CameraPosition(
                       position: _defaultStart,
-                      zoom: 11,
+                      zoom: 17,
                     ),
+                    mapType: MapType.navi,
                     showUserLocation: true,
+                    userLocationStyle: _userLocationStyle,
                     markers: _markers,
                     onMapPress: _selectNearestRoute,
                     onUserLocationChange: _handleUserLocationChange,
-                    onMapCreated: (controller) {
+                    onMapCreated: (controller) async {
                       _controller = controller;
+                      await controller.waitForMapCompleted();
+                      if (!mounted || _controller != controller) return;
                       final result = _result;
                       if (result != null) {
-                        _drawRoute(result, fitSelected: false);
+                        await _drawRoute(result, fitSelected: false);
                       }
                     },
                   ),
                 ),
                 Positioned(
                   left: 6,
-                  bottom: 25,
+                  bottom: 20,
                   child: _buildMapShortcutButtons(),
                 ),
               ],
@@ -128,9 +144,24 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   Set<Marker> get _markers {
     final endPosition = _endPosition;
     return <Marker>{
-      Marker(id: 'route_start', position: _startPosition, title: '起点'),
+      Marker(
+        id: 'route_start',
+        position: _startPosition,
+        title: '起点',
+        zIndex: _markerZIndex,
+      ),
       if (endPosition != null)
-        Marker(id: 'route_end', position: endPosition, title: '终点'),
+        Marker(
+          id: 'route_end',
+          position: endPosition,
+          title: '终点',
+          bitmap: Bitmap(
+            asset: _endIconAsset,
+            size: Size(width: 80, height: 80),
+          ),
+          anchor: Anchor(x: 0.5, y: 1.0),
+          zIndex: _markerZIndex,
+        ),
     };
   }
 
@@ -143,7 +174,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           child: IntrinsicHeight(
             child: Row(
               children: [
@@ -245,7 +276,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isPlaceholder
-                          ? Colors.white.withValues(alpha: 0.55 )
+                          ? Colors.white.withValues(alpha: 0.55)
                           : Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -264,9 +295,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     return Column(
       children: [
         _buildMapButton(Icons.refresh, _searchRoute),
-        const SizedBox(height: 12),
+        const SizedBox(height: 0),
         _buildMapButton(Icons.tune, _showRouteOptions),
-        const SizedBox(height: 12),
+        const SizedBox(height: 0),
         _buildMapButton(Icons.my_location, _moveToCurrentLocation),
       ],
     );
@@ -274,7 +305,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
   Widget _buildMapButton(IconData icon, VoidCallback onPressed) {
     return Transform.scale(
-      scale: 0.82,
+      scale: 0.8,
       child: Material(
         color: Colors.white,
         elevation: 2,
@@ -771,16 +802,57 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         Polyline(
           id: lineId,
           points: points,
-          width: selected ? 14 : 8,
+          width: selected ? 80 : 70,
           color: _routeColor(pathIndex, selected: selected),
+          useTexture: true,
+          texture: Bitmap(
+            asset: selected
+                ? _routeTextureAsset
+                : _unselectedRouteTextureAsset,
+            size: Size(width: 64, height: 64),
+          ),
+          lineCap: PolylineCap.round,
+          lineJoin: PolylineJoin.round,
+          zIndex: selected ? 2 : 1,
         ),
       );
     }
+    await _bringMarkersToFront();
     if (allPoints.length < 2) return;
     final selectedPoints = _pathPoints(result.paths[selectedIndex]);
-    controller.moveCameraToFitPosition(
+    await _fitRouteCamera(
       fitSelected && selectedPoints.length >= 2 ? selectedPoints : allPoints,
-      _padding,
+    );
+  }
+
+  Future<void> _fitStartEndCamera() async {
+    await _fitRouteCamera(const <Position>[], padding: _startEndPadding);
+  }
+
+  Future<void> _fitRouteCamera(
+    List<Position> routePoints, {
+    EdgePadding? padding,
+  }) async {
+    final controller = _controller;
+    if (controller == null) return;
+    final endPosition = _endPosition;
+    final fitPoints = <Position>[
+      _startPosition,
+      if (endPosition != null) endPosition,
+      ...routePoints,
+    ];
+    await controller.waitForMapCompleted();
+    if (!mounted || _controller != controller) return;
+    if (fitPoints.length < 2) {
+      await controller.moveCamera(
+        CameraPosition(position: fitPoints.first, zoom: 14),
+        const Duration(milliseconds: 300),
+      );
+      return;
+    }
+    await controller.moveCameraToFitPosition(
+      fitPoints,
+      padding ?? _padding,
       const Duration(milliseconds: 300),
     );
   }
@@ -790,6 +862,15 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       await controller.removePolyline(id);
     }
     _routePolylineIds.clear();
+  }
+
+  Future<void> _bringMarkersToFront() async {
+    final controller = _controller;
+    if (controller == null) return;
+    for (final marker in _markers) {
+      await controller.removeMarker(marker.id);
+      await controller.addMarker(marker);
+    }
   }
 
   List<Position> _pathPoints(RoutePath path) {
@@ -968,10 +1049,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final controller = _controller;
     if (controller == null) return;
     await _clearRouteOverlays(controller);
-    await controller.moveCamera(
-      CameraPosition(position: result.position, zoom: 14),
-      const Duration(milliseconds: 300),
-    );
+    await _fitStartEndCamera();
   }
 
   Future<void> _swapStartEnd() async {
@@ -995,19 +1073,30 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       _errorMessage = null;
     });
     final controller = _controller;
-    if (controller != null) await _clearRouteOverlays(controller);
+    if (controller == null) return;
+    await _clearRouteOverlays(controller);
+    await _fitStartEndCamera();
   }
 
   void _handleUserLocationChange(Location location) {
     _lastLocation = location;
-    if (_startLocation != null || _startLatController.text.isNotEmpty) return;
-    setState(() {
-      _setPositionText(isStart: true, position: location.position);
-      _startLocation = LocationPickerResult.fromCurrentLocation(
-        position: location.position,
-        name: '我的位置',
-      );
-    });
+    if (_startLocation == null && _startLatController.text.isEmpty) {
+      setState(() {
+        _setPositionText(isStart: true, position: location.position);
+        _startLocation = LocationPickerResult.fromCurrentLocation(
+          position: location.position,
+          name: '我的位置',
+        );
+      });
+    }
+    if (_didMoveToUser || _result != null || _loading || _endPosition != null) {
+      return;
+    }
+    _didMoveToUser = true;
+    _controller?.moveCamera(
+      CameraPosition(position: location.position, zoom: 16),
+      const Duration(milliseconds: 300),
+    );
   }
 
   Future<void> _moveToCurrentLocation() async {
@@ -1153,7 +1242,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final iconName = _routeStepIconAssetName(step);
     return Image.asset(
       'assets/navigation/$iconName.png',
-      package: 'flutter_amap',
+      package: 'flutter_amap_navi',
       width: 18,
       height: 18,
       color: Colors.black,

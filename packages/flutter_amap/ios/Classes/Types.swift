@@ -445,6 +445,8 @@ struct Marker {
   var title: String?
   /// InfoWindow 副标题（iOS callout subtitle）
   var snippet: String?
+  /// 标记点层级，越大越靠上
+  var zIndex: Double
 
   static func fromList(_ list: [Any?]) -> Marker {
     let id = list[0] as! String
@@ -463,13 +465,16 @@ struct Marker {
     }
     let title: String? = list.count > titleIndex ? (list[titleIndex] as? String) : nil
     let snippet: String? = list.count > snippetIndex ? (list[snippetIndex] as? String) : nil
+    let zIndexIndex = snippetIndex + 1
+    let zIndex = list.count > zIndexIndex ? (list[zIndexIndex] as? NSNumber)?.doubleValue ?? 0 : 0
     return Marker(
       id: id,
       position: position,
       bitmap: bitmap,
       anchor: anchor,
       title: title,
-      snippet: snippet
+      snippet: snippet,
+      zIndex: zIndex
     )
   }
 
@@ -481,6 +486,7 @@ struct Marker {
       anchor?.toList(),
       title,
       snippet,
+      zIndex,
     ]
   }
 }

@@ -58,6 +58,7 @@ class AMapViewDelegate: NSObject, MAMapViewDelegate {
         annotationView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: annotation.id)
       }
       annotationView.isDraggable = true
+      annotationView.layer.zPosition = CGFloat(annotation.zIndex)
       annotationView.canShowCallout =
         amapAnnotationLineHasText(_annotation.title) || amapAnnotationLineHasText(_annotation.subtitle)
       return annotationView

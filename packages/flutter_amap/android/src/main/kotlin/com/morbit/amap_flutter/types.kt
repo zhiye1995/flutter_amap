@@ -462,6 +462,7 @@ data class Marker(
   val title: String? = null,
   /** InfoWindow 副标题 */
   val snippet: String? = null,
+  val zIndex: Double = 0.0,
 ) {
   companion object {
     fun fromList(list: List<Any?>): Marker {
@@ -472,10 +473,12 @@ data class Marker(
       val hasAnchorSlot = list.size > 5 || anchorValue is List<*>
       val titleIndex = if (hasAnchorSlot) 4 else 3
       val snippetIndex = titleIndex + 1
+      val zIndexIndex = snippetIndex + 1
       val anchor = if (anchorValue is List<*>) Anchor.fromList(anchorValue as List<Any?>) else null
       val title = if (list.size > titleIndex) list[titleIndex] as? String else null
       val snippet = if (list.size > snippetIndex) list[snippetIndex] as? String else null
-      return Marker(id, position, bitmap, anchor, title, snippet)
+      val zIndex = if (list.size > zIndexIndex) (list[zIndexIndex] as? Number)?.toDouble() ?: 0.0 else 0.0
+      return Marker(id, position, bitmap, anchor, title, snippet, zIndex)
     }
   }
 
@@ -487,6 +490,7 @@ data class Marker(
       anchor?.toList(),
       title,
       snippet,
+      zIndex,
     )
   }
 }
