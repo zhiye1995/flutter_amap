@@ -8,6 +8,7 @@
 
 ## 3D 地图（V5.0.0 之后通用）
 -keep class com.amap.api.maps.** { *; }
+-keep class com.amap.api.col.** { *; }
 -keep class com.autonavi.** { *; }
 -keep class com.amap.api.trace.** { *; }
 
@@ -17,6 +18,7 @@
 
 ## 定位
 -keep class com.amap.api.location.** { *; }
+-keep class com.amap.location.** { *; }
 -keep class com.amap.api.fence.** { *; }
 -keep class com.autonavi.aps.amapapi.model.** { *; }
 
@@ -34,5 +36,10 @@
 
 ## 部分版本 SDK 可能引用 Google 包（按官方建议保留）
 -keep class com.google.** { *; }
+
+## 高德 SDK 的可选能力在部分合包中不存在，避免 R8 因缺少可选类终止构建
+-dontwarn com.amap.**
+-dontwarn com.autonavi.**
+-dontwarn net.jafama.**
 
 

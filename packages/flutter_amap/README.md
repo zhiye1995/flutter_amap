@@ -84,6 +84,24 @@ await progressSubscription.cancel();
 - 如宿主依赖 Manifest Key，可在 `<application>` 中声明 `com.amap.api.v2.apikey`；Dart 初始化仍然必须调用。
 - 本包固定使用 `com.amap.api:3dmap-location-search:11.2.100_loc11.2.100_sea9.8.1`，只包含 3D 地图、定位和搜索，不引入导航 SDK。
 
+#### Release 混淆配置
+
+高德 11.2.100 定位库会通过 JNI 和反射访问内部类。若宿主 release 构建启用了 R8/ProGuard，而规则没有覆盖新版的 `com.amap.location` 与 `com.amap.api.col` 命名空间，可能出现 debug 正常、release 首次定位或打开地图时直接闪退。典型日志包含 `libapssdk.so`、`JNI DETECTED ERROR IN APPLICATION: java_class == null` 和 `SIGABRT`。
+
+插件源码已通过 `consumer-rules.pro` 自动向宿主传递规则。为了兼容尚未包含该修复的已发布版本，使用 `flutter_amap_plus: ^2.0.5` 的应用还应在 `android/app/proguard-rules.pro` 中确认包含：
+
+```proguard
+-keep class com.amap.api.col.** { *; }
+-keep class com.amap.location.** { *; }
+-dontwarn com.amap.**
+-dontwarn com.autonavi.**
+-dontwarn net.jafama.**
+```
+
+前两条防止 JNI/反射目标被改名或移除；后三条只忽略高德合包中未提供的可选能力告警，避免 R8 因 `GnssSoftLocator`、`FastMath` 等非当前合包必需类终止构建。
+
+修改后必须用 release 包在真机上验证地图显示和定位；仅验证 debug 包不能覆盖这类问题。
+
 ### iOS
 
 - 最低 iOS 12.0。

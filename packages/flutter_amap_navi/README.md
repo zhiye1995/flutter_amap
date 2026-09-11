@@ -8,7 +8,7 @@
 
 ```yaml
 dependencies:
-  flutter_amap_navi: ^1.0.0
+  flutter_amap_navi: ^1.0.2
 ```
 
 ## 初始化与启动导航
@@ -83,6 +83,24 @@ final naviStrategy = NaviDrivingStrategy.fromId(mapStrategy.id);
 - 导航 SDK 作为 Android API 依赖暴露，以便宿主实现自定义 `AmapRouteActivity` 容器。
 - 本包固定使用 `com.amap.api:navi-3dmap-location-search:11.2.100_3dmap11.2.100_loc11.2.100_sea9.8.1`。
 - 与 `flutter_amap` 联合使用时，插件会自动用该导航合包替换纯地图合包，防止重复类。
+
+#### Release 混淆配置
+
+导航合包内含地图与定位能力。高德 11.2.100 定位库会通过 JNI 和反射访问内部类；若宿主 release 构建启用了 R8/ProGuard，而规则没有覆盖新版的 `com.amap.location` 与 `com.amap.api.col` 命名空间，可能出现 debug 正常、release 首次定位、路线规划或启动导航时直接闪退。典型日志包含 `libapssdk.so`、`JNI DETECTED ERROR IN APPLICATION: java_class == null` 和 `SIGABRT`。
+
+插件源码已通过 `consumer-rules.pro` 自动向宿主传递规则。为了兼容尚未包含该修复的已发布版本，使用 `flutter_amap_navi: ^1.0.2` 的应用还应在 `android/app/proguard-rules.pro` 中确认包含：
+
+```proguard
+-keep class com.amap.api.col.** { *; }
+-keep class com.amap.location.** { *; }
+-dontwarn com.amap.**
+-dontwarn com.autonavi.**
+-dontwarn net.jafama.**
+```
+
+前两条防止 JNI/反射目标被改名或移除；后三条只忽略高德合包中未提供的可选能力告警，避免 R8 因 `GnssSoftLocator`、`FastMath` 等非当前合包必需类终止构建。
+
+修改后必须用 release 包在真机上验证定位、路线规划与导航启动；仅验证 debug 包不能覆盖这类问题。
 
 ### iOS
 
