@@ -8,8 +8,8 @@
 
 ```yaml
 dependencies:
-  flutter_amap_plus: ^2.0.5
-  flutter_amap_navi: ^1.0.2
+  flutter_amap_plus: ^2.0.6
+  flutter_amap_navi: ^1.0.3
 ```
 
 执行 `flutter pub get` 后分别导入：
@@ -37,7 +37,7 @@ await AMapNavi.init(
 
 ## Android release 配置
 
-使用 `flutter_amap_plus: ^2.0.5` 与 `flutter_amap_navi: ^1.0.2` 时，请在宿主的 `android/app/proguard-rules.pro` 中确认包含以下规则，避免 debug 正常而 release 在高德定位初始化时闪退：
+`flutter_amap_plus 2.0.6` 与 `flutter_amap_navi 1.0.3` 会通过 `consumer-rules.pro` 自动向宿主传递以下规则。仍固定使用更早版本时，请在宿主的 `android/app/proguard-rules.pro` 中确认包含这些规则，避免 debug 正常而 release 在高德定位初始化时闪退：
 
 ```proguard
 -keep class com.amap.api.col.** { *; }
@@ -47,7 +47,7 @@ await AMapNavi.init(
 -dontwarn net.jafama.**
 ```
 
-插件后续版本会通过 `consumer-rules.pro` 自动传递这些规则；当前版本建议宿主显式配置，并使用 release 包进行真机验证。两条 `-keep` 防止 JNI/反射目标被改名或移除，三条 `-dontwarn` 用于高德合包未提供的可选能力，避免 R8 因缺少 `GnssSoftLocator`、`FastMath` 等类而终止构建。
+两条 `-keep` 防止 JNI/反射目标被改名或移除，三条 `-dontwarn` 用于高德合包未提供的可选能力，避免 R8 因缺少 `GnssSoftLocator`、`FastMath` 等类而终止构建。发布前仍应使用 release 包进行真机验证。
 
 ## 运行示例
 

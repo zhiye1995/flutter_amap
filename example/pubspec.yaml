@@ -23,8 +23,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_amap_plus: ^2.0.5
-  flutter_amap_navi: ^1.0.2
+  flutter_amap_plus: ^2.0.6
+  flutter_amap_navi: ^1.0.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
