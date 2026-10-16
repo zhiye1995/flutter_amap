@@ -77,12 +77,21 @@ void main() {
   });
 
   test('navigation cannot start while cruise mode is active', () async {
+    MethodCall? capturedCall;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(naviChannel, (_) async => null);
+    messenger.setMockMethodCallHandler(naviChannel, (call) async {
+      capturedCall = call;
+      return null;
+    });
 
     await AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both);
     expect(AMapNavi.isCruising, true);
+    expect(capturedCall?.method, 'startCruiseMode');
+    expect(
+      capturedCall?.arguments,
+      containsPair('allowsBackgroundLocationUpdates', false),
+    );
     expect(
       () => AMapNavi.startNavigation(config: NaviConfig()),
       throwsStateError,
@@ -205,5 +214,17 @@ void main() {
       (await cameraFuture).cameraInfos.single.source,
       CruiseTrafficFacilitySource.elecCamera,
     );
+  });
+
+  test('native playRing event is exposed to Dart', () async {
+    final platform = AMapNaviMethodChannel();
+    final ringFuture = platform.onCruisePlayRing.first;
+
+    platform.handleNaviEvent(<String, dynamic>{
+      'type': 'playRing',
+      'ringType': 103,
+    });
+
+    expect((await ringFuture).ringType, 103);
   });
 }

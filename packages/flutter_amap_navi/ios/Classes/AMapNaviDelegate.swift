@@ -299,16 +299,22 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
         ]
         let obj = info as NSObject
         var raw = m["raw"] as? [String: Any] ?? [:]
-        if obj.responds(to: NSSelectorFromString("type")),
-           let v = obj.value(forKey: "type") {
-            if let n = v as? NSNumber {
-                m["type"] = n.intValue
-                raw["type"] = n.intValue
-            } else if let e = v as? NSObject,
-                      e.responds(to: NSSelectorFromString("rawValue")),
-                      let rv = e.value(forKey: "rawValue") as? NSNumber {
-                m["type"] = rv.intValue
-                raw["type"] = rv.intValue
+        // 高德 iOS SDK 的公开属性历史拼写为 boardcastType；同时兼容可能的
+        // broadcastType/type 命名，避免设施类型在 Flutter 层恒为 null。
+        for key in ["boardcastType", "broadcastType", "type"]
+            where obj.responds(to: NSSelectorFromString(key)) {
+            if let v = obj.value(forKey: key) {
+                if let n = v as? NSNumber {
+                    m["type"] = n.intValue
+                    raw[key] = n.intValue
+                    break
+                } else if let e = v as? NSObject,
+                          e.responds(to: NSSelectorFromString("rawValue")),
+                          let rv = e.value(forKey: "rawValue") as? NSNumber {
+                    m["type"] = rv.intValue
+                    raw[key] = rv.intValue
+                    break
+                }
             }
         }
         let coordKeys = ["coordinate", "coord", "position"]
@@ -380,13 +386,37 @@ extension AMapNaviDelegate: AMapNaviDriveManagerDelegate {
             }
             return nil
         }
+        func serializeLink(_ link: AMapNaviCruiseLinkStatus) -> [String: Any?] {
+            let linkObject = link as NSObject
+            let status = (linkObject.value(forKey: "status") as? NSNumber)?.intValue
+            let coordinates = (link.shapePoints ?? []).map { point in
+                [
+                    "latitude": Double(point.latitude),
+                    "longitude": Double(point.longitude)
+                ]
+            }
+            return [
+                "status": status,
+                "coords": coordinates,
+                "raw": [
+                    "sdkString": "\(link)",
+                    "sdkClass": String(describing: type(of: link))
+                ]
+            ]
+        }
+        let roadName = stringValue(["roadName", "name", "description"])
+        let length = intValue(["length", "distance"])
+        let status = intValue(["congestionStatus", "status"])
+        let estimatedTimeSeconds = intValue(["etaTime", "time", "estimatedTime", "estimatedTimeSeconds"])
+        let links = (info.linkDataArr ?? []).map(serializeLink)
+        raw["linksCount"] = links.count
         return [
             "type": "cruiseCongestion",
-            "roadName": stringValue(["roadName", "name", "description"]),
-            "lengthMeters": intValue(["length", "distance"]),
-            "status": intValue(["status", "congestionStatus"]),
-            "estimatedTimeSeconds": intValue(["time", "estimatedTime", "estimatedTimeSeconds"]),
-            "links": [],
+            "roadName": roadName,
+            "lengthMeters": length,
+            "status": status,
+            "estimatedTimeSeconds": estimatedTimeSeconds,
+            "links": links,
             "raw": raw
         ]
     }

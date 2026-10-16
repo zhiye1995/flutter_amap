@@ -733,7 +733,9 @@ class AMapNaviApi {
 
             val ctx = activityRef ?: context
             aMapNavi = AMapNavi.getInstance(ctx)
-            aMapNavi?.setUseInnerVoice(useInnerVoice)
+            // 使用双参数新接口：开启内置语音时仍保留 onGetNavigationText，
+            // 供 Flutter 层做文案展示、日志记录或无障碍处理。
+            aMapNavi?.setUseInnerVoice(useInnerVoice, true)
             if (!naviListenerAttached) {
                 attachNaviListener()
                 cruiseAttachedNaviListener = true

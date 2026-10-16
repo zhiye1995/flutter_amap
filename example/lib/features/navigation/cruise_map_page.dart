@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_amap_plus/flutter_amap_plus.dart';
 import 'package:flutter_amap_navi/flutter_amap_navi.dart';
 import 'package:flutter_amap_example/core/utils/utils.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// 智能巡航示例：地图展示自车位置，右上角开启/关闭巡航（依赖插件 [AMapNavi.startCruiseMode]）。
 ///
@@ -22,10 +21,7 @@ class CruiseMapPage extends StatefulWidget {
 typedef _CruiseStatsSnapshot = ({int? distanceMeters, int? timeSeconds});
 
 class _CruiseLogEntry {
-  const _CruiseLogEntry({
-    required this.summary,
-    required this.detail,
-  });
+  const _CruiseLogEntry({required this.summary, required this.detail});
 
   final String summary;
   final String detail;
@@ -33,16 +29,21 @@ class _CruiseLogEntry {
 
 class _CruiseMapPageState extends State<CruiseMapPage> {
   static const int _maxLogLines = 5000;
+  static const String _cruiseVehicleMarkerId = 'cruise_vehicle';
 
   AMapController? _controller;
-  Location? _lastLocation;
   CruiseBroadcastMode _selectedMode = CruiseBroadcastMode.both;
+
+  /// 使用导航引擎回传的道路匹配位置展示巡航自车，而不是地图 SDK 的独立定位点。
+  final ValueNotifier<NaviLocation?> _naviLocation =
+      ValueNotifier<NaviLocation?>(null);
 
   /// 巡航统计：仅驱动统计条局部重绘，不打日志。
   final ValueNotifier<_CruiseStatsSnapshot> _cruiseStats =
-      ValueNotifier<_CruiseStatsSnapshot>(
-    (distanceMeters: null, timeSeconds: null),
-  );
+      ValueNotifier<_CruiseStatsSnapshot>((
+        distanceMeters: null,
+        timeSeconds: null,
+      ));
 
   final List<_CruiseLogEntry> _cruiseLogLines = [];
 
@@ -51,48 +52,62 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   StreamSubscription<CruiseStatisticsEvent>? _subStatistics;
   StreamSubscription<CruiseCongestionEvent>? _subCongestion;
   StreamSubscription<NaviTextEvent>? _subNaviText;
+  StreamSubscription<NaviLocationChangeEvent>? _subNaviLocation;
+  StreamSubscription<CruisePlayRingEvent>? _subPlayRing;
 
   @override
   void initState() {
     super.initState();
-    _subTrafficFacility = AMapNavi.onCruiseTrafficFacility.listen(
-      (CruiseTrafficFacilityEvent e) {
-        _appendCruiseLog(
-          '巡航道路设施: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
-          detail: _stringify(_facilitiesToDetail(e.facilities)),
-        );
-      },
-    );
-    _subElecCameraInfo = AMapNavi.onCruiseElecCameraInfo.listen(
-      (CruiseElecCameraInfoEvent e) {
-        _appendCruiseLog(
-          '巡航电子眼: ${e.cameraInfos.length} 条 ${_summarizeFacilities(e.cameraInfos)}',
-          detail: _stringify(_facilitiesToDetail(e.cameraInfos)),
-        );
-      },
-    );
-    _subStatistics = AMapNavi.onCruiseStatistics.listen(
-      (CruiseStatisticsEvent e) {
-        final CruiseStatisticsInfo s = e.statistics;
-        if (!mounted) return;
-        _cruiseStats.value = (
-          distanceMeters: s.cumulativeDistanceMeters,
-          timeSeconds: s.cumulativeTimeSeconds,
-        );
-      },
-    );
-    _subCongestion = AMapNavi.onCruiseCongestion.listen(
-      (CruiseCongestionEvent e) {
-        _appendCruiseLog(
-          '巡航拥堵信息（主要为 Android）: ${_summarizeCongestion(e.congestion)}',
-          detail: _stringify(_congestionToDetail(e.congestion)),
-        );
-      },
-    );
+    _subTrafficFacility = AMapNavi.onCruiseTrafficFacility.listen((
+      CruiseTrafficFacilityEvent e,
+    ) {
+      _appendCruiseLog(
+        '巡航道路设施: ${e.facilities.length} 条 ${_summarizeFacilities(e.facilities)}',
+        detail: _stringify(_facilitiesToDetail(e.facilities)),
+      );
+    });
+    _subElecCameraInfo = AMapNavi.onCruiseElecCameraInfo.listen((
+      CruiseElecCameraInfoEvent e,
+    ) {
+      _appendCruiseLog(
+        '巡航电子眼: ${e.cameraInfos.length} 条 ${_summarizeFacilities(e.cameraInfos)}',
+        detail: _stringify(_facilitiesToDetail(e.cameraInfos)),
+      );
+    });
+    _subStatistics = AMapNavi.onCruiseStatistics.listen((
+      CruiseStatisticsEvent e,
+    ) {
+      final CruiseStatisticsInfo s = e.statistics;
+      if (!mounted) return;
+      _cruiseStats.value = (
+        distanceMeters: s.cumulativeDistanceMeters,
+        timeSeconds: s.cumulativeTimeSeconds,
+      );
+    });
+    _subCongestion = AMapNavi.onCruiseCongestion.listen((
+      CruiseCongestionEvent e,
+    ) {
+      _appendCruiseLog(
+        '巡航拥堵信息: ${_summarizeCongestion(e.congestion)}',
+        detail: _stringify(_congestionToDetail(e.congestion)),
+      );
+    });
     _subNaviText = AMapNavi.onNaviText.listen(
       (NaviTextEvent e) => _appendCruiseLog(
         'naviText: ${e.text}',
         detail: _stringify(<String, Object?>{'text': e.text}),
+      ),
+    );
+    _subNaviLocation = AMapNavi.onNaviLocationChange.listen((
+      NaviLocationChangeEvent e,
+    ) {
+      if (!mounted) return;
+      _naviLocation.value = e.location;
+    });
+    _subPlayRing = AMapNavi.onCruisePlayRing.listen(
+      (CruisePlayRingEvent e) => _appendCruiseLog(
+        '巡航提示音: ringType=${e.ringType}',
+        detail: _stringify(<String, Object?>{'ringType': e.ringType}),
       ),
     );
   }
@@ -162,10 +177,12 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   }
 
   String _summarizeCongestion(CruiseCongestionInfo info) {
-    final String name =
-        info.roadName?.isNotEmpty == true ? info.roadName! : '未知道路';
-    final String length =
-        info.lengthMeters == null ? '—' : '${info.lengthMeters}m';
+    final String name = info.roadName?.isNotEmpty == true
+        ? info.roadName!
+        : '未知道路';
+    final String length = info.lengthMeters == null
+        ? '—'
+        : '${info.lengthMeters}m';
     final String time = info.estimatedTimeSeconds == null
         ? '—'
         : _formatCruiseDurationSeconds(info.estimatedTimeSeconds);
@@ -219,9 +236,9 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
               child: SelectableText(
                 entry.detail,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                      height: 1.25,
-                    ),
+                  fontFamily: 'monospace',
+                  height: 1.25,
+                ),
               ),
             ),
           ),
@@ -263,17 +280,31 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     return buffer.toString();
   }
 
-  Future<void> _copyCruiseLogs() async {
+  Future<void> _shareCruiseLogs() async {
     if (_cruiseLogLines.isEmpty) {
-      LoadingUtil.showToast('暂无可复制的巡航日志');
+      LoadingUtil.showToast('暂无可分享的巡航日志');
       return;
     }
     try {
-      await Clipboard.setData(ClipboardData(text: _buildExportText()));
-      LoadingUtil.showSuccess('巡航日志已复制');
+      final DateTime now = DateTime.now();
+      final String fileName =
+          'amap_cruise_log_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}.txt';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[
+            XFile.fromData(
+              utf8.encode(_buildExportText()),
+              mimeType: 'text/plain',
+            ),
+          ],
+          fileNameOverrides: <String>[fileName],
+          title: '分享巡航日志',
+          subject: 'AMap 智能巡航日志',
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      LoadingUtil.showError('复制失败：$e');
+      LoadingUtil.showError('导出巡航日志失败：$e');
     }
   }
 
@@ -284,10 +315,13 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
     _subStatistics?.cancel();
     _subCongestion?.cancel();
     _subNaviText?.cancel();
+    _subNaviLocation?.cancel();
+    _subPlayRing?.cancel();
     if (AMapNavi.isCruising) {
       unawaited(AMapNavi.stopCruiseMode());
     }
     _cruiseStats.dispose();
+    _naviLocation.dispose();
     _controller?.destroy();
     super.dispose();
   }
@@ -321,14 +355,21 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   }
 
   Future<void> _moveToCurrentLocation() async {
-    if (_controller == null) return;
+    final AMapController? controller = _controller;
+    final NaviLocation? location = _naviLocation.value;
+    if (controller == null || location == null) {
+      LoadingUtil.showToast('尚未收到巡航引擎定位');
+      return;
+    }
     try {
-      final Location loc = _lastLocation ??
-          await _controller!.waitForUserLocation(
-            timeout: const Duration(seconds: 10),
-          );
-      await _controller!.moveCamera(
-        CameraPosition(position: loc.position, zoom: 16),
+      await controller.moveCamera(
+        CameraPosition(
+          position: Position(
+            latitude: location.position.latitude,
+            longitude: location.position.longitude,
+          ),
+          zoom: 16,
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -345,7 +386,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
           content: const Text(
             '智能巡航无需起终点和算路，但需要联网和真实驾车场景。'
             'Android 通过 AimlessModeListener 下发电子眼、特殊路段、统计和拥堵；'
-            'iOS 通过 AMapNaviDriveManager 的 delegate/dataRepresentative 下发统计、设施、电子眼和部分 SDK 版本支持的巡航拥堵。',
+            'iOS 通过 AMapNaviDriveManager 的 delegate/dataRepresentative 下发统计、设施、电子眼和巡航拥堵。',
           ),
           actions: [
             TextButton(
@@ -359,36 +400,57 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
   }
 
   Widget _buildMap(BuildContext context) {
-    return Stack(
-      children: [
-        AMapWidget(
-          initCameraPosition: CameraPosition(zoom: 16),
-          showUserLocation: true,
-          geolocationControlEnabled: true,
-          userLocationStyle: UserLocationStyle(
-            userLocationType: Platform.isAndroid
-                ? UserLocationType.locationTypeLocationRotateNoCenter
-                : UserLocationType.locationTypeMapRotate,
-          ),
-          onUserLocationChange: (location) => _lastLocation = location,
-          onMapCreated: (c) => setState(() => _controller = c),
-        ),
-        Positioned(
-          right: 12,
-          bottom: 12,
-          child: Material(
-            elevation: 2,
-            shape: const CircleBorder(),
-            color: Theme.of(context).colorScheme.surface,
-            child: IconButton(
-              tooltip: '移动到当前位置',
-              visualDensity: VisualDensity.compact,
-              onPressed: _controller == null ? null : _moveToCurrentLocation,
-              icon: const Icon(Icons.my_location),
+    return ValueListenableBuilder<NaviLocation?>(
+      valueListenable: _naviLocation,
+      builder: (context, naviLocation, _) {
+        final Set<Marker> markers = naviLocation == null
+            ? const <Marker>{}
+            : <Marker>{
+                Marker(
+                  id: _cruiseVehicleMarkerId,
+                  position: Position(
+                    latitude: naviLocation.position.latitude,
+                    longitude: naviLocation.position.longitude,
+                  ),
+                  bitmap: Bitmap(
+                    asset: 'assets/car.png',
+                    size: Size(width: 31.2, height: 62.4),
+                  ),
+                  anchor: Anchor(x: 0.5, y: 0.5),
+                  title: '巡航自车',
+                  snippet: '导航引擎道路匹配位置',
+                  zIndex: 10,
+                ),
+              };
+        return Stack(
+          children: [
+            AMapWidget(
+              initCameraPosition: CameraPosition(zoom: 16),
+              showUserLocation: false,
+              geolocationControlEnabled: false,
+              markers: markers,
+              onMapCreated: (c) => setState(() => _controller = c),
             ),
-          ),
-        ),
-      ],
+            Positioned(
+              right: 12,
+              top: 12,
+              child: Material(
+                elevation: 2,
+                shape: const CircleBorder(),
+                color: Theme.of(context).colorScheme.surface,
+                child: IconButton(
+                  tooltip: '移动到巡航自车位置',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _controller == null
+                      ? null
+                      : _moveToCurrentLocation,
+                  icon: const Icon(Icons.my_location),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -457,7 +519,7 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              '当前模式：${_modeLabel(_selectedMode)}。${Platform.isIOS ? 'iOS 巡航拥堵回调取决于 SDK 版本和实际路况。' : 'Android 会拆分电子眼、特殊路段、统计和拥堵回调。'}',
+              '当前模式：${_modeLabel(_selectedMode)}。双端均会拆分电子眼、特殊路段、统计和拥堵回调。',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -505,17 +567,17 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
       children: [
         Text(
           '巡航回调',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const Spacer(),
         IconButton(
-          tooltip: '复制日志',
+          tooltip: '分享日志文件',
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 32, height: 32),
           padding: EdgeInsets.zero,
-          onPressed: _cruiseLogLines.isEmpty ? null : _copyCruiseLogs,
+          onPressed: _cruiseLogLines.isEmpty ? null : _shareCruiseLogs,
           icon: const Icon(Icons.ios_share, size: 20),
         ),
         IconButton(
@@ -565,9 +627,9 @@ class _CruiseMapPageState extends State<CruiseMapPage> {
               child: Text(
                 entry.summary,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                      height: 1.2,
-                    ),
+                  fontFamily: 'monospace',
+                  height: 1.2,
+                ),
               ),
             ),
           );

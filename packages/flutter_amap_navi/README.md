@@ -121,6 +121,27 @@ await AMapNavi.startNavigation(
 
 `AMapNavi.init` 可重复调用，后一次配置会重新应用。未初始化就启动导航或巡航会抛出 `StateError`；插件不会替应用静默同意隐私协议。
 
+### 智能巡航
+
+智能巡航不需要起终点或算路，但需要联网，并且与正式导航互斥：
+
+```dart
+final subscriptions = <StreamSubscription<dynamic>>[
+  AMapNavi.onCruiseTrafficFacility.listen((event) {}),
+  AMapNavi.onCruiseElecCameraInfo.listen((event) {}),
+  AMapNavi.onCruiseStatistics.listen((event) {}),
+  AMapNavi.onCruiseCongestion.listen((event) {}),
+  AMapNavi.onCruisePlayRing.listen((event) {}),
+  AMapNavi.onNaviText.listen((event) {}),
+  AMapNavi.onNaviLocationChange.listen((event) {}),
+];
+
+await AMapNavi.startCruiseMode(mode: CruiseBroadcastMode.both);
+await AMapNavi.stopCruiseMode();
+```
+
+默认使用内置语音并保留播报文字回调。iOS 后台定位默认关闭；确需后台巡航时，再将 `allowsBackgroundLocationUpdates` 设为 `true` 并完成宿主能力配置。页面销毁时应取消业务订阅，并停止仍在运行的巡航。
+
 ### Android 自定义导航 Activity
 
 自定义容器需继承 `AMapFlutterRouteActivity`（间接继承高德 `AmapRouteActivity`）并在宿主 Manifest 注册，然后传入完整类名：
@@ -181,7 +202,7 @@ final naviStrategy = NaviDrivingStrategy.fromId(mapStrategy.id);
 ### iOS
 
 - 最低 iOS 12.0。
-- 在 `Info.plist` 中声明定位用途；巡航或导航需要后台定位时，再启用 Location Background Mode 并提供 Always 权限说明。
+- 在 `Info.plist` 中声明定位用途。`allowsBackgroundLocationUpdates` 默认关闭；巡航或导航确实需要后台定位时，再显式开启该参数、Location Background Mode 并提供 Always 权限说明。
 - Pod 固定使用 `AMapNavi 11.2.100`。
 - 与 `flutter_amap` 联合使用时，在宿主 `Podfile` 的 `flutter_ios_podfile_setup` 之前设置 `ENV['FLUTTER_AMAP_USE_NAVI_SDK'] = 'true'`，避免同时引入 `AMap3DMap`。
 

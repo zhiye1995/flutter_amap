@@ -975,7 +975,7 @@ class CruiseConfig {
   CruiseConfig({
     required this.mode,
     this.useInnerVoice = true,
-    this.allowsBackgroundLocationUpdates = true,
+    this.allowsBackgroundLocationUpdates = false,
     this.pausesLocationUpdatesAutomatically = false,
   });
 
@@ -1001,15 +1001,21 @@ class CruiseConfig {
   }
 
   static CruiseConfig decode(List<Object?> result) {
-    final modeCode = result[0] as int? ?? CruiseBroadcastMode.both.code;
+    final modeCode = result.isNotEmpty
+        ? result[0] as int? ?? CruiseBroadcastMode.both.code
+        : CruiseBroadcastMode.both.code;
     return CruiseConfig(
       mode: CruiseBroadcastMode.values.firstWhere(
         (mode) => mode.code == modeCode,
         orElse: () => CruiseBroadcastMode.both,
       ),
-      useInnerVoice: result[1] as bool? ?? true,
-      allowsBackgroundLocationUpdates: result[2] as bool? ?? true,
-      pausesLocationUpdatesAutomatically: result[3] as bool? ?? false,
+      useInnerVoice: result.length > 1 ? result[1] as bool? ?? true : true,
+      allowsBackgroundLocationUpdates: result.length > 2
+          ? result[2] as bool? ?? false
+          : false,
+      pausesLocationUpdatesAutomatically: result.length > 3
+          ? result[3] as bool? ?? false
+          : false,
     );
   }
 
@@ -1129,7 +1135,7 @@ class CruiseStatisticsInfo {
   }
 }
 
-/// 巡航拥堵路段 link（当前仅 Android 巡航回调提供）
+/// 巡航拥堵路段 link。
 class CruiseCongestionLink {
   CruiseCongestionLink({
     this.status,
@@ -1170,7 +1176,7 @@ class CruiseCongestionLink {
   }
 }
 
-/// 巡航拥堵信息（当前仅 Android 巡航回调提供；iOS 官方巡航页未给出对等回调）
+/// 巡航拥堵信息。
 class CruiseCongestionInfo {
   CruiseCongestionInfo({
     this.roadName,

@@ -635,7 +635,8 @@ class AMapNaviApi: NSObject {
             return
         }
         let modeCode = arguments["mode"] as? Int ?? 3
-        let allowsBackgroundLocationUpdates = arguments["allowsBackgroundLocationUpdates"] as? Bool ?? true
+        let useInnerVoice = arguments["useInnerVoice"] as? Bool ?? true
+        let allowsBackgroundLocationUpdates = arguments["allowsBackgroundLocationUpdates"] as? Bool ?? false
         let pausesLocationUpdatesAutomatically = arguments["pausesLocationUpdatesAutomatically"] as? Bool ?? false
         
         DispatchQueue.main.async { [weak self] in
@@ -655,6 +656,7 @@ class AMapNaviApi: NSObject {
             
             let driveManager = AMapNaviDriveManager.sharedInstance()
             driveManager.delegate = self.naviDelegate
+            driveManager.isUseInternalTTS = useInnerVoice
             driveManager.allowsBackgroundLocationUpdates = allowsBackgroundLocationUpdates
             driveManager.pausesLocationUpdatesAutomatically = pausesLocationUpdatesAutomatically
             self.attachCruiseDataRepresentative(to: driveManager)
@@ -674,7 +676,7 @@ class AMapNaviApi: NSObject {
             driveManager.detectedMode = detected
             self.isCruiseModeActive = true
             
-            print("[AMapNaviApi] startCruiseMode modeCode=\(modeCode) detectedMode=\(detected.rawValue)")
+            print("[AMapNaviApi] startCruiseMode modeCode=\(modeCode) detectedMode=\(detected.rawValue) useInnerVoice=\(useInnerVoice)")
             result(nil)
         }
     }

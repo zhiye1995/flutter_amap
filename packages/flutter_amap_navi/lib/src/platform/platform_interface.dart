@@ -62,6 +62,8 @@ abstract class AMapNaviPlatformInterface extends PlatformInterface {
       naviEventStream.whereType<CruiseStatisticsEvent>();
   Stream<CruiseCongestionEvent> get onCruiseCongestion =>
       naviEventStream.whereType<CruiseCongestionEvent>();
+  Stream<CruisePlayRingEvent> get onCruisePlayRing =>
+      naviEventStream.whereType<CruisePlayRingEvent>();
 
   Future<void> initialize(NaviSdkConfig config) {
     throw UnimplementedError('initialize() has not been implemented.');

@@ -128,7 +128,7 @@ class AMapNavi {
   static Future<void> startCruiseMode({
     required CruiseBroadcastMode mode,
     bool useInnerVoice = true,
-    bool allowsBackgroundLocationUpdates = true,
+    bool allowsBackgroundLocationUpdates = false,
     bool pausesLocationUpdatesAutomatically = false,
   }) {
     return startCruise(
@@ -255,7 +255,11 @@ class AMapNavi {
   static Stream<CruiseStatisticsEvent> get onCruiseStatistics =>
       AMapNaviPlatformInterface.instance.onCruiseStatistics;
 
-  /// 巡航拥堵信息（主要为 Android）
+  /// 巡航拥堵信息。
   static Stream<CruiseCongestionEvent> get onCruiseCongestion =>
       AMapNaviPlatformInterface.instance.onCruiseCongestion;
+
+  /// SDK 提示音事件（如电子眼“叮”声）。
+  static Stream<CruisePlayRingEvent> get onCruisePlayRing =>
+      AMapNaviPlatformInterface.instance.onCruisePlayRing;
 }

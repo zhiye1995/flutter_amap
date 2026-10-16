@@ -34,11 +34,12 @@ class AMapNaviMethodChannel extends AMapNaviPlatformInterface {
     if (_naviEventChannelInitialized) return;
     _naviEventChannelInitialized = true;
     _naviEventSubscription = _naviEventChannel.receiveBroadcastStream().listen(
-      _handleNaviEvent,
+      handleNaviEvent,
     );
   }
 
-  void _handleNaviEvent(dynamic event) {
+  @visibleForTesting
+  void handleNaviEvent(dynamic event) {
     if (event is! Map) return;
     final Map<String, dynamic> data = Map<String, dynamic>.from(event);
     final String? type = data['type'] as String?;
@@ -138,6 +139,11 @@ class AMapNaviMethodChannel extends AMapNaviPlatformInterface {
       case 'cruiseCongestion':
         naviEventStreamController.add(
           CruiseCongestionEvent(CruiseCongestionInfo.decodeFromMap(data)),
+        );
+        break;
+      case 'playRing':
+        naviEventStreamController.add(
+          CruisePlayRingEvent((data['ringType'] as num?)?.toInt() ?? 0),
         );
         break;
     }

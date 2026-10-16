@@ -123,3 +123,13 @@ class CruiseCongestionEvent extends NaviEvent<CruiseCongestionInfo> {
 
   CruiseCongestionInfo get congestion => value;
 }
+
+/// 巡航或导航过程中的 SDK 提示音事件。
+///
+/// 类型值从 Android `AMapNaviListener.onPlayRing` / iOS
+/// `AMapNaviRingType` 原样透传，由业务侧按对应平台 SDK 文档解释。
+class CruisePlayRingEvent extends NaviEvent<int> {
+  CruisePlayRingEvent(super.ringType);
+
+  int get ringType => value;
+}

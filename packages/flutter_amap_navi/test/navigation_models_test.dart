@@ -67,4 +67,50 @@ void main() {
     expect(decoded.allowsBackgroundLocationUpdates, false);
     expect(decoded.pausesLocationUpdatesAutomatically, true);
   });
+
+  test('CruiseConfig keeps background location opt-in', () {
+    final config = CruiseConfig(mode: CruiseBroadcastMode.both);
+    expect(config.allowsBackgroundLocationUpdates, false);
+    expect(
+      CruiseConfig.decode(<Object?>[CruiseBroadcastMode.both.code, true]),
+      isA<CruiseConfig>().having(
+        (value) => value.allowsBackgroundLocationUpdates,
+        'allowsBackgroundLocationUpdates',
+        false,
+      ),
+    );
+  });
+
+  test('cruise facility and congestion preserve native details', () {
+    final facility = CruiseTrafficFacilityItem.decodeFromMap(
+      <String, dynamic>{
+        'source': 'unified',
+        'type': 7,
+        'latitude': 39.9,
+        'longitude': 116.3,
+        'remainDistanceMeters': 320,
+        'speedLimitKmh': 60,
+      },
+    );
+    final congestion = CruiseCongestionInfo.decodeFromMap(<String, dynamic>{
+      'roadName': '测试道路',
+      'lengthMeters': 800,
+      'status': 3,
+      'estimatedTimeSeconds': 420,
+      'links': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'status': 3,
+          'coords': <Map<String, double>>[
+            <String, double>{'latitude': 39.9, 'longitude': 116.3},
+          ],
+        },
+      ],
+    });
+
+    expect(facility.type, 7);
+    expect(facility.remainDistanceMeters, 320);
+    expect(congestion.estimatedTimeSeconds, 420);
+    expect(congestion.links.single.status, 3);
+    expect(congestion.links.single.coords.single.latitude, 39.9);
+  });
 }

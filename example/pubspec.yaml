@@ -33,6 +33,10 @@ dependencies:
   saver_gallery: ^5.1.0
   crypto: ^3.0.3
   flutter_easyloading: ^3.0.5
+  share_plus: ^13.3.0
+
+dependency_overrides:
+  objective_c: 9.6.0
 
 dev_dependencies:
   flutter_test:
