@@ -24,17 +24,17 @@ class AMapNaviListenerImpl : AMapNaviListener {
 
     /**
      * 上一次下发给 Flutter 的转向图标类型，用于去重（减少重复传输）。
-     * 说明：Flutter 侧会按 iconType 缓存上一张图标，因此这里不需要每次都下发字节。
+     * 说明：Flutter 侧按 iconType 缓存图标；类型或 PNG 内容变化时重新下发。
      */
     private var lastIconType: Int = Int.MIN_VALUE
 
-    /** 转向图标 PNG 字节缓存：同一个 iconType 只编码一次 */
-    private val iconPngCache: MutableMap<Int, ByteArray> = mutableMapOf()
+    /** 上次下发的图片内容；同一类型的 SDK Bitmap 也可能随后更新。 */
+    private var lastIconPng: ByteArray? = null
 
     /** 每次新导航会话开始前重置会话内去重状态，保留 EventChannel 连接。 */
     fun resetSessionState() {
         lastIconType = Int.MIN_VALUE
-        iconPngCache.clear()
+        lastIconPng = null
     }
 
     /**
@@ -164,21 +164,27 @@ class AMapNaviListenerImpl : AMapNaviListener {
                 // 调试兜底
                 "raw" to info.toString(),
 
-                // 图标是否存在（具体图标数据见 iconPng，仅在 iconType 变化时发送）
+                // 图标是否存在（具体图标数据见 iconPng，仅在类型或图片内容变化时发送）
                 "hasIcon" to (info.iconBitmap != null)
             )
 
+            // 无图标时重置去重状态，恢复后重新发送图片。
+            if (info.iconType <= 0 || info.iconBitmap == null) {
+                lastIconType = Int.MIN_VALUE
+                lastIconPng = null
+            }
             // 处理转向图标
             info.iconBitmap?.let { bitmap ->
                 if (info.iconType > 0) {
                     try {
-                        // 只在 iconType 变化时才下发图标字节，避免频繁传输/编码
-                        if (info.iconType != lastIconType) {
-                            val pngBytes = iconPngCache.getOrPut(info.iconType) {
-                                bitmapToPngBytes(bitmap)
-                            }
+                        // 每次读取当前 Bitmap，避免把类型切换时滞后的图片永久缓存。
+                        val pngBytes = bitmapToPngBytes(bitmap)
+                        if (pngBytes.isNotEmpty() &&
+                            (info.iconType != lastIconType ||
+                                lastIconPng?.contentEquals(pngBytes) != true)) {
                             data["iconPng"] = pngBytes
                             lastIconType = info.iconType
+                            lastIconPng = pngBytes
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing icon bitmap", e)

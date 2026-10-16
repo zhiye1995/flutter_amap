@@ -32,7 +32,12 @@ class AMapNaviDelegate: NSObject {
     /// 上一次下发给 Flutter 的转向图标类型，用于去重
     private var lastIconType: Int = Int.min
     
-    /// 转向图标 PNG 数据缓存：同一个 iconType 只编码一次
+    /// 图标回调持续更新缓存，导航回调按类型和 PNG 内容去重。
+    private let iconLock = NSLock()
+    private var lastDriveIconType: Int = Int.min
+    private var lastDriveIconPng: Data?
+
+    /// SDK 图标回调提供的最新 PNG。
     private var iconPngCache: [Int: FlutterStandardTypedData] = [:]
     
     // MARK: - 发送事件
@@ -432,7 +437,6 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
         guard let info = naviInfo else { return }
         
         let iconType = Int(info.iconType.rawValue)
-        let needIconData = iconType > 0 && iconType != lastIconType
         
         // 构建基础数据（hasIcon 先设为 false，后面根据缓存结果更新）
         var data: [String: Any?] = [
@@ -470,40 +474,22 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
             "hasIcon": false  // 先设为 false，后面根据缓存结果更新
         ]
         
-        // 如果 iconType 变化，尝试从缓存获取图标数据
-        if needIconData {
-            // 在后台队列处理等待逻辑，避免阻塞 SDK 回调
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self = self else { return }
-                
-                var iconPngData: FlutterStandardTypedData? = nil
-                
-                // 循环等待最多6次，每次5毫秒，共30ms
-                for _ in 0..<6 {
-                    if let cachedData = self.iconPngCache[iconType] {
-                        iconPngData = cachedData
-                        break
-                    }
-                    // 等待5毫秒
-                    Thread.sleep(forTimeInterval: 0.005)
-                }
-                
-                // 更新 lastIconType 并添加图标数据
-                self.lastIconType = iconType
-                if let pngData = iconPngData {
-                    data["iconPng"] = pngData
-                    data["hasIcon"] = true  // 缓存中找到图标
-                }
-                
-                self.sendEvent(data)
+        // 同步读取快照，不等待图片回调，保持导航事件原有顺序。
+        // 图片晚到时，下一次 navInfo 仍会检查内容并下发更新。
+        iconLock.lock()
+        if iconType > 0, let pngData = iconPngCache[iconType] {
+            data["hasIcon"] = true
+            if iconType != lastDriveIconType || pngData.data != lastDriveIconPng {
+                data["iconPng"] = pngData
+                lastDriveIconType = iconType
+                lastDriveIconPng = pngData.data
             }
         } else {
-            // iconType 没变化，检查缓存中是否有该图标
-            if iconType > 0, let _ = iconPngCache[iconType] {
-                data["hasIcon"] = true
-            }
-            sendEvent(data)
+            lastDriveIconType = Int.min
+            lastDriveIconPng = nil
         }
+        iconLock.unlock()
+        sendEvent(data)
     }
     
     /// 自车位置更新回调
@@ -602,8 +588,10 @@ extension AMapNaviDelegate: AMapNaviDriveDataRepresentable {
         
         // 缓存图标数据，每次都重新写入（即使已存在）
         if iconType > 0, let image = turnIconImage, let pngData = imageToPngData(image) {
+            iconLock.lock()
             let isUpdate = iconPngCache[iconType] != nil
             iconPngCache[iconType] = pngData
+            iconLock.unlock()
             let action = isUpdate ? "更新缓存" : "首次缓存"
             print("[AMapNaviDelegate-Data] ✓ 图标\(action): type=\(iconType), pngSize=\(pngData.data.count) bytes")
         } else {

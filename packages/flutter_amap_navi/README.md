@@ -84,7 +84,7 @@
 
 ```yaml
 dependencies:
-  flutter_amap_navi: ^1.0.3
+  flutter_amap_navi: ^1.0.4
 ```
 
 ## 初始化与启动导航
